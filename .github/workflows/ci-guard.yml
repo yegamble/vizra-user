@@ -14,9 +14,10 @@ name: ci-guard
 #      version (scripts/ci/check-image-pins.sh),
 #   8. the `ci-required` fan-in or its guards fail their own regression suite,
 #   9. the `e2e` browser lane stops driving the built image, disarms its
-#      coverage floor, stops uploading artifacts, or stops proving that the
-#      harness is absent from the shipped image
-#      (scripts/ci/check-e2e-lane.sh).
+#      coverage floor, drops the harness canary that self-tests the
+#      browser-error guard, lets ANY upload step publish artifacts without the
+#      redactor-success gate, or stops proving that the harness is absent from
+#      the shipped image (scripts/ci/check-e2e-lane.sh).
 #
 # ADR-002 asks the fan-in guard to reject `continue-on-error` on a required
 # lane and to reject an empty test selection. (2) is the first. The second is

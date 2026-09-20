@@ -31,14 +31,28 @@
  *   4. it targets the BUILT IMAGE: its `E2E_BASE_URL` is the URL a
  *      `docker run --publish` step in the same job exposes;
  *   5. the coverage-floor step FOLLOWS it;
+ *  5b. the HARNESS CANARY step (`node scripts/ci/harness-canary.mjs`) exists,
+ *      is unconditional, does not continue-on-error, and drives the same
+ *      container. It is the only CI step that would notice the browser-error
+ *      guard being switched off while its identifiers stayed in place — a case
+ *      an independent verifier measured as silent in every other check;
  *   6. the image is built and started, and proved free of harness fixtures,
  *      before the lane runs;
- *   7. artifacts are redacted and then uploaded on failure, with the upload
- *      gated on `steps.<redact>.outcome == 'success'` — two bare `failure()`
- *      conditions are not a sequence — and with `if-no-files-found: error`;
+ *   7. artifacts are redacted and then uploaded on failure, with EVERY upload
+ *      step gated on `steps.<redact>.outcome == 'success'` — two bare
+ *      `failure()` conditions are not a sequence — and with
+ *      `if-no-files-found: error`. EVERY step, not the first one: a verifier
+ *      appended a SECOND, ungated `actions/upload-artifact` step and the
+ *      `.find()` this used to do answered OK, so a failing redactor would have
+ *      had the unredacted tree published by the second step. An uploader that
+ *      is not `actions/upload-artifact` is recognised too;
  *   8. nothing starts a development server, and nothing sets
- *      `E2E_COVERAGE_FLOOR`;
- *   9. the workflow triggers on `pull_request` and `merge_group`.
+ *      `E2E_COVERAGE_FLOOR` or `VIZRA_E2E_STAMP_KEY`;
+ *   9. the workflow triggers on `pull_request` and `merge_group`;
+ *  10. the harness keeps its guard AND its runtime stamp, and
+ *      `playwright.config.ts` keeps the three lines the stamp depends on.
+ *      Those last checks are string presence and are NOT the control; see the
+ *      comment where they are made.
  *
  * Usage:  node scripts/ci/check-e2e-lane.mjs [workflow.yml]
  * Invoked by `scripts/ci/check-e2e-lane.sh`, which is what `ci-guard` runs and
@@ -72,6 +86,28 @@ const LANE_COMMAND = "npm run e2e";
 const FLOOR_COMMAND = "node scripts/ci/check-coverage-floor-ran.mjs";
 const FIXTURE_GUARD = "check-no-test-fixtures-in-image.sh";
 const REDACT_SCRIPT = "redact-artifacts.sh";
+/**
+ * The harness's own self-test. Without it, neutering the browser-error guard
+ * while leaving its identifiers in place is SILENT in CI — `npm run test` exits
+ * 0, the harness check at the bottom of this file is string-presence only, and
+ * the lane exits 0 because a guard that has stopped looking finds nothing to
+ * fail on.
+ */
+const CANARY_COMMAND = "node scripts/ci/harness-canary.mjs";
+
+/**
+ * Does this `uses:` name a step that PUBLISHES artifacts?
+ *
+ * Broader than `actions/upload-artifact@` on purpose. A verifier's mutation
+ * replaced that action with a different one and the guard's answer was "no step
+ * uploads artifacts" — correct, but only because the check keyed on one exact
+ * name. Anything whose action name contains `upload` or `artifact` is treated as
+ * an uploader and must carry the same gate, so swapping the action is not a way
+ * round the redaction. Arbitrary `run:` exfiltration (`gh release upload`,
+ * `curl`) is outside what any parser can close; the control there is review, and
+ * AGENTS.md says so rather than implying otherwise.
+ */
+const UPLOADER = /(^|\/)[\w.-]*(upload|artifact)[\w.-]*@/i;
 
 const workflowPath = process.argv[2] ?? ".github/workflows/e2e.yml";
 const problems = [];
@@ -219,6 +255,48 @@ if (!job) {
     }
   }
 
+  // (5b) THE HARNESS CANARY. Asserted the same way as the lane step — present,
+  //      exactly the documented command, unconditional, exit code not laundered
+  //      — because this is the only CI step that would notice the guard itself
+  //      being switched off.
+  const canaryIndexes = steps
+    .map((step, index) => (runOf(step) === CANARY_COMMAND ? index : -1))
+    .filter((index) => index >= 0);
+  if (canaryIndexes.length === 0) {
+    add(
+      `no step runs \`${CANARY_COMMAND}\`. Without it, neutering e2e/harness/browser-errors.ts ` +
+        "while leaving its identifiers in place is silent: every other check in this lane " +
+        "stays green, because a guard that has stopped looking finds nothing to fail on.",
+    );
+  } else if (canaryIndexes.length > 1) {
+    add(`${canaryIndexes.length} steps run \`${CANARY_COMMAND}\`; exactly one must.`);
+  } else {
+    const canaryIndex = canaryIndexes[0];
+    const canary = steps[canaryIndex];
+    if (isConditional(canary)) {
+      add(
+        "the harness-canary step carries an `if:`. A conditional self-test is one expression " +
+          "away from never running, and its absence is invisible in a green lane.",
+      );
+    }
+    if (hidesFailure(canary["continue-on-error"])) {
+      add("the harness-canary step sets `continue-on-error`, so a neutered guard would report success.");
+    }
+    if (typeof canary.shell === "string" && !/^(bash|sh)( |$)/.test(canary.shell.trim())) {
+      add(`the harness-canary step overrides \`shell: ${canary.shell}\`; its exit code is the result.`);
+    }
+    if (laneIndex !== undefined && canaryIndex < laneIndex) {
+      add("the harness-canary step runs BEFORE the browser lane; it must exercise the same running container.");
+    }
+    const canaryBaseUrl = canary.env?.E2E_BASE_URL;
+    if (typeof canaryBaseUrl !== "string" || canaryBaseUrl.trim() === "") {
+      add(
+        "the harness-canary step sets no `E2E_BASE_URL`, so it would start a server of its own " +
+          "instead of exercising the built image the lane just drove.",
+      );
+    }
+  }
+
   // (7) artifacts: redacted, then uploaded, with a loud missing-path — and the
   //     upload gated on the redaction having SUCCEEDED, not merely on the job
   //     having failed. `failure()` is true whenever any earlier step failed, so
@@ -245,45 +323,69 @@ if (!job) {
       );
     }
   }
-  const uploadStep = steps.find((step) => usesOf(step).startsWith("actions/upload-artifact@"));
-  if (!uploadStep) {
+  //
+  //     EVERY upload step, not the first one. This used `steps.find(...)`, and a
+  //     verifier appended a SECOND `actions/upload-artifact` step on a bare
+  //     `if: failure()` publishing the same two directories: the parser said OK.
+  //     When the redactor fails, the gated upload is skipped and the ungated one
+  //     publishes the unredacted tree — precisely the fail-open the gate closed
+  //     for the first step. The parser's value is that it answers for the whole
+  //     job, and a reader assumes it does, so it now does.
+  const uploadSteps = steps.filter((step) => UPLOADER.test(usesOf(step)));
+  const canonicalUploads = uploadSteps.filter((step) =>
+    usesOf(step).startsWith("actions/upload-artifact@"),
+  );
+  if (canonicalUploads.length === 0) {
     add("no step uploads artifacts; a red lane would be undiagnosable.");
-  } else {
-    const uploadPath = String(uploadStep.with?.path ?? "");
-    for (const wanted of ["playwright-report", "test-results"]) {
-      if (!uploadPath.includes(wanted)) add(`the artifact upload no longer includes \`${wanted}\`.`);
-    }
-    // The gate. The upload's `if:` must name the redaction step's OUTCOME.
+  }
+  const redactId = typeof redactStep?.id === "string" ? redactStep.id.trim() : "";
+  const gate = redactId === "" ? null : new RegExp(`steps\\.${redactId}\\.outcome\\s*==\\s*'success'`);
+  const redactIndex = redactStep ? steps.indexOf(redactStep) : -1;
+
+  uploadSteps.forEach((uploadStep) => {
+    const index = steps.indexOf(uploadStep);
+    // Named by index AND by `uses`, so a report about a second upload step says
+    // which one rather than "the artifact upload".
+    const which = `the artifact upload at step ${index + 1} (\`${usesOf(uploadStep)}\`)`;
+
     const uploadIf = String(uploadStep.if ?? "");
-    const redactId = typeof redactStep?.id === "string" ? redactStep.id.trim() : "";
-    const gate = redactId === "" ? null : new RegExp(`steps\\.${redactId}\\.outcome\\s*==\\s*'success'`);
     if (!uploadIf.includes("failure()")) {
-      add("the artifact upload is not gated on `failure()`.");
+      add(`${which} is not gated on \`failure()\`.`);
     }
     if (gate === null || !gate.test(uploadIf)) {
       add(
-        "the artifact upload is not gated on the redaction having SUCCEEDED. It must read " +
+        `${which} is not gated on the redaction having SUCCEEDED. It must read ` +
           `\`if: failure() && steps.${redactId || "<redact-step-id>"}.outcome == 'success'\`; ` +
           `it reads \`${uploadIf || "(nothing)"}\`. With two bare \`failure()\` conditions a ` +
-          "redactor that exits non-zero still lets the unredacted tree be published.",
+          "redactor that exits non-zero still lets the unredacted tree be published — and a " +
+          "SECOND, ungated upload step publishes it even when the first one is correctly skipped.",
       );
     }
     if (hidesFailure(uploadStep["continue-on-error"])) {
-      add("the artifact upload sets `continue-on-error`, hiding a failed publish.");
+      add(`${which} sets \`continue-on-error\`, hiding a failed publish.`);
+    }
+    if (redactIndex >= 0 && index < redactIndex) {
+      add(`${which} runs before the redaction step: the artifacts are uploaded BEFORE they are redacted.`);
+    }
+  });
+
+  // Path and `if-no-files-found` are properties of `actions/upload-artifact`'s
+  // own inputs, so they are asserted on those steps only. The gate above applies
+  // to every uploader whatever its inputs are called.
+  canonicalUploads.forEach((uploadStep) => {
+    const index = steps.indexOf(uploadStep);
+    const which = `the artifact upload at step ${index + 1}`;
+    const uploadPath = String(uploadStep.with?.path ?? "");
+    for (const wanted of ["playwright-report", "test-results"]) {
+      if (!uploadPath.includes(wanted)) add(`${which} no longer includes \`${wanted}\`.`);
     }
     if (String(uploadStep.with?.["if-no-files-found"] ?? "") !== "error") {
       add(
-        "the artifact upload does not set `if-no-files-found: error`. This step only runs on " +
+        `${which} does not set \`if-no-files-found: error\`. This step only runs on ` +
           "failure, so a wrong path would be a warning nobody ever reads.",
       );
     }
-    if (redactStep) {
-      const redactIndex = steps.indexOf(redactStep);
-      if (steps.indexOf(uploadStep) < redactIndex) {
-        add("the artifacts are uploaded BEFORE they are redacted.");
-      }
-    }
-  }
+  });
 
   // (8) nothing that would make the lane test the wrong thing.
   for (const step of steps) {
@@ -294,13 +396,33 @@ if (!job) {
     if (run.includes("E2E_COVERAGE_FLOOR") || step?.env?.E2E_COVERAGE_FLOOR !== undefined) {
       add("a step sets `E2E_COVERAGE_FLOOR`. The floor is on by default and the lane must not turn it off.");
     }
+    // The runtime proof-of-harness key is minted fresh by the Playwright main
+    // process on every run. A workflow that pinned it to a known value would let
+    // a spec sign its own stamp.
+    if (run.includes("VIZRA_E2E_STAMP_KEY") || step?.env?.VIZRA_E2E_STAMP_KEY !== undefined) {
+      add(
+        "a step sets `VIZRA_E2E_STAMP_KEY`. That key is minted per run so a spec cannot forge " +
+          "the harness stamp; pinning it to a known value would make the stamp forgeable.",
+      );
+    }
   }
   if (job.env?.E2E_COVERAGE_FLOOR !== undefined) {
     add("the `e2e` job sets `E2E_COVERAGE_FLOOR` at job level.");
   }
+  if (job.env?.VIZRA_E2E_STAMP_KEY !== undefined) {
+    add("the `e2e` job sets `VIZRA_E2E_STAMP_KEY` at job level; the key is minted per run.");
+  }
 }
 
-// The harness itself must keep its default-deny guard.
+// The harness itself must keep its default-deny guard AND its runtime proof.
+//
+// THESE ARE STRING-PRESENCE CHECKS AND THEY ARE NOT THE CONTROL. An independent
+// verifier established the limit exactly: neutering the guard while leaving
+// these identifiers in place passes here. That is why the `e2e` lane now runs
+// `scripts/ci/harness-canary.mjs`, which exercises the guard against three real
+// broken pages, and why deleting the stamp fixture or the stamp reporter turns
+// both the in-process and the out-of-process stamp checks red on their own.
+// What follows is the cheap early warning for an outright deletion.
 const guardPath = path.join(repoRoot, "e2e", "harness", "test.ts");
 try {
   const guard = readFileSync(guardPath, "utf8");
@@ -308,8 +430,45 @@ try {
   if (!guard.includes("unallowedRecords")) {
     add("e2e/harness/test.ts no longer fails a test on unallowed browser errors.");
   }
+  if (!guard.includes("claimSigner") || !guard.includes("STAMP_ANNOTATION")) {
+    add(
+      "e2e/harness/test.ts no longer stamps the tests it runs, so nothing at RUNTIME " +
+        "distinguishes a test that went through the guard from one that imported " +
+        "`@playwright/test` directly.",
+    );
+  }
 } catch {
   add("e2e/harness/test.ts is missing; there is no browser-error guard.");
+}
+
+// The wiring that makes the stamp work: the configuration must load the harness
+// entry (so the per-run key leaves the worker's environment before any test file
+// is evaluated) and must register the reporter that refuses an unstamped pass.
+const configPath = path.join(repoRoot, "playwright.config.ts");
+try {
+  const config = readFileSync(configPath, "utf8");
+  if (!config.includes("./e2e/harness/stamp-reporter")) {
+    add(
+      "playwright.config.ts no longer registers ./e2e/harness/stamp-reporter, so nothing " +
+        "inside the run refuses a test that passed without the harness.",
+    );
+  }
+  if (!/import\s+["']\.\/e2e\/harness\/test["']/.test(config)) {
+    add(
+      "playwright.config.ts no longer imports ./e2e/harness/test. That import is what takes " +
+        "the per-run stamp key out of each worker's environment before any spec is loaded; " +
+        "without it a spec can read the key and sign itself.",
+    );
+  }
+  if (!/testDir:\s*["']\.\/e2e\/specs["']/.test(config)) {
+    add(
+      "playwright.config.ts no longer restricts `testDir` to ./e2e/specs. With a wider root " +
+        "Playwright collects `**/*.spec.ts` from directories the guards do not cover — a " +
+        "verifier ran a spec from e2e/other/ that way, on a page that 404s and throws.",
+    );
+  }
+} catch {
+  add("playwright.config.ts is missing.");
 }
 
 if (problems.length > 0) {
@@ -321,5 +480,6 @@ if (problems.length > 0) {
 
 console.log(
   `OK: ${workflowPath} still drives the built image, runs \`${LANE_COMMAND}\` unconditionally, ` +
-    "re-checks the coverage floor after it, and redacts artifacts before uploading them.",
+    "re-checks the coverage floor after it, runs the harness canary, and redacts artifacts " +
+    "before EVERY upload step publishes them.",
 );

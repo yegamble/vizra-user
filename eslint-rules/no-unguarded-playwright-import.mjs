@@ -108,6 +108,24 @@ function importedNames(declaration) {
 }
 
 /**
+ * Is this module specifier one of the SEALED harness modules?
+ *
+ * `e2e/harness/stamp` holds the per-run key that proves, at runtime, that a test
+ * went through the guarded `test`. A spec that imported it could ask it to sign
+ * a stamp for a test the browser-error guard never ran. `claimSigner()` refuses
+ * a second claim inside a worker, so the runtime control already holds; this is
+ * the cheap half that fails in `npm run ci` instead of in the browser lane.
+ *
+ * Matched the same PATH-SUFFIX way as the harness entry, so `../harness/stamp`,
+ * `./stamp.ts` and `@/e2e/harness/stamp` all answer yes wherever ESLint is run
+ * from. Other harness modules stay importable: `e2e/specs/production-build.spec.ts`
+ * legitimately imports `../harness/production-build`, which holds nothing.
+ */
+function sealedModuleFor(specifier, filename, sealed) {
+  return sealed.find((entry) => isHarnessEntry(specifier, filename, entry));
+}
+
+/**
  * Is this module specifier the harness entry?
  *
  * `../harness/test`, `../harness/test.ts` and `@/e2e/harness/test` must all
@@ -140,7 +158,10 @@ const rule = {
     schema: [
       {
         type: "object",
-        properties: { harnessEntry: { type: "string" } },
+        properties: {
+          harnessEntry: { type: "string" },
+          sealedModules: { type: "array", items: { type: "string" } },
+        },
         additionalProperties: false,
       },
     ],
@@ -153,12 +174,27 @@ const rule = {
         "`{{name}}` must be imported from the harness entry ({{entry}}), not from `{{specifier}}`. A module that re-exports Playwright's raw `test` is a bypass with extra steps.",
       reExport:
         "This file must not re-export from `{{specifier}}`. Re-exporting makes the unguarded `test` reachable from a spec that looks compliant.",
+      sealedModule:
+        "This file must not reference `{{specifier}}`. `{{sealed}}` holds the per-run key that proves at runtime which tests went through the guarded harness; a file that can reach it could sign a stamp for a test the browser-error guard never ran. Import { test, expect } from the harness entry ({{entry}}) and let the harness stamp it.",
     },
   },
 
   create(context) {
     const entry = context.options[0]?.harnessEntry ?? "e2e/harness/test";
+    const sealed = context.options[0]?.sealedModules ?? [];
     const filename = context.filename ?? context.getFilename();
+
+    /**
+     * A sealed module named by ANY spelling — an import, a `require`, a dynamic
+     * `import()`, a bare string — reported from the catch-alls below, for the
+     * same reason the package ban is: the spellings are unbounded.
+     */
+    const reportSealed = (node, specifier, sealedName) =>
+      context.report({
+        node,
+        messageId: "sealedModule",
+        data: { specifier, sealed: sealedName, entry },
+      });
 
     /** The one ban-1 exemption: a type position that cannot produce a value. */
     const typePositionLiterals = new WeakSet();
@@ -249,13 +285,25 @@ const rule = {
       "Literal:exit"(node) {
         if (typePositionLiterals.has(node)) return;
         const value = stringValueOf(node);
-        if (value !== undefined && referencesPlaywright(value)) reportPackage(node, value);
+        if (value === undefined) return;
+        if (referencesPlaywright(value)) {
+          reportPackage(node, value);
+          return;
+        }
+        const sealedName = sealedModuleFor(value, filename, sealed);
+        if (sealedName !== undefined) reportSealed(node, value, sealedName);
       },
 
       "TemplateLiteral:exit"(node) {
         if (typePositionLiterals.has(node)) return;
         const value = stringValueOf(node);
-        if (value !== undefined && referencesPlaywright(value)) reportPackage(node, value);
+        if (value === undefined) return;
+        if (referencesPlaywright(value)) {
+          reportPackage(node, value);
+          return;
+        }
+        const sealedName = sealedModuleFor(value, filename, sealed);
+        if (sealedName !== undefined) reportSealed(node, value, sealedName);
       },
     };
   },

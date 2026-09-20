@@ -20,10 +20,20 @@ import base from "./playwright.config";
 
 const demosConfig = {
   ...base,
+  // The demo runner collects `e2e/demos` and nothing else, for the same reason
+  // the lane collects `e2e/specs` and nothing else: a file outside both is not
+  // collected by anything, so a new directory under `e2e/` cannot smuggle a
+  // test past the guards. `base.testDir` is `./e2e/specs`, so this override is
+  // required, not cosmetic.
+  testDir: "./e2e/demos",
   testMatch: "**/*.demo.ts",
   retries: 0,
   failOnFlakyTests: true,
-  reporter: [["list"]] as const,
+  // `list` for the transcripts, plus the runtime proof of harness: the demos
+  // are the files that exercise the guard, so they of all things must be shown
+  // to go through it. The coverage-floor reporter is deliberately absent — see
+  // the header.
+  reporter: [["list"], ["./e2e/harness/stamp-reporter.ts"]] as const,
 };
 
 export default demosConfig;

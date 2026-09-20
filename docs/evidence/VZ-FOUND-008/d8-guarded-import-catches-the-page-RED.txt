@@ -3,8 +3,8 @@ $ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright t
 
 Running 2 tests using 2 workers
 
-  ✘  2 [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (377ms)
-  ✘  1 [mobile-chromium-390] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (406ms)
+  ✘  1 [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (573ms)
+  ✘  2 [mobile-chromium-390] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (578ms)
 
 
   1) [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed 
@@ -12,33 +12,33 @@ Running 2 tests using 2 workers
     Error: The page produced 3 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
-          at: http://127.0.0.1:3211/
       [response] http 404: GET http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png
           at: http://127.0.0.1:3211/
       [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png:0:0)
+          at: http://127.0.0.1:3211/
+      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png:0:0)
-        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:147:13)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-desktop-chromium-1440/video.webm
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-desktop-chromium-1440/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-desktop-chromium-1440/test-failed-1.png
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-desktop-chromium-1440/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-desktop-chromium-1440/error-context.md
+    Error Context: test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-desktop-chromium-1440/error-context.md
 
     attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-desktop-chromium-1440/trace.zip
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-desktop-chromium-1440/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-desktop-chromium-1440/trace.zip
+        npx playwright show-trace test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-desktop-chromium-1440/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -47,33 +47,33 @@ Running 2 tests using 2 workers
     Error: The page produced 3 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
-          at: http://127.0.0.1:3211/
       [response] http 404: GET http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png
           at: http://127.0.0.1:3211/
       [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png:0:0)
+          at: http://127.0.0.1:3211/
+      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png:0:0)
-        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:147:13)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-mobile-chromium-390/video.webm
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-mobile-chromium-390/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-mobile-chromium-390/test-failed-1.png
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-mobile-chromium-390/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-mobile-chromium-390/error-context.md
+    Error Context: test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-mobile-chromium-390/error-context.md
 
     attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-mobile-chromium-390/trace.zip
+    test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-mobile-chromium-390/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/specs-__bypass-a-page-that-a8100-ows-with-the-guard-bypassed-mobile-chromium-390/trace.zip
+        npx playwright show-trace test-results/__bypass-a-page-that-404s-and-throws-with-the-guard-bypassed-mobile-chromium-390/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -81,5 +81,6 @@ Running 2 tests using 2 workers
     [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed 
     [mobile-chromium-390] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed 
 e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
 
 [exit 1]

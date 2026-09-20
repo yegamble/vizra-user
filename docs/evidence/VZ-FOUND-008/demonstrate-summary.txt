@@ -1,13 +1,17 @@
 
+> vizra-user@0.0.0 e2e:demos
+> bash scripts/e2e/demonstrate.sh
+
+
 === starting the production server on :3211 ===
 repository: /Users/yosefgamble/github/vizra/vizra-user
 branch:     feat/m0-browser-env
-head sha:   44dac201c120e2a6d0c689cf53aafb218ca341a3
-tree state: 15 modified/untracked path(s)
-date:       2026-09-20T21:28:15Z
+head sha:   0ac9fb6a820d50ef030f86f053409b967d2beec8
+tree state: 80 modified/untracked path(s)
+date:       2026-09-20T22:28:26Z
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   AO99S1Yq3ybjwJvFxhB29
+build id:   OGmpENwsXEURPF7JRPhZK
 project:    desktop-chromium-1440
 uname:      Darwin arm64
 
@@ -63,6 +67,13 @@ ok   d7-upload-not-gated-RED (exit 1, matched 'not gated on the redaction having
 ok   d7-upload-gated-on-ran-not-succeeded-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-upload-gated-on-ran-not-succeeded-RED.txt
 ok   d7-redact-step-has-no-id-RED (exit 1, matched 'no `id:`') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-step-has-no-id-RED.txt
 ok   d7-redact-continue-on-error-RED (exit 1, matched 'redaction step sets') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-continue-on-error-RED.txt
+ok   d7b-second-ungated-upload-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-second-ungated-upload-RED.txt
+ok   d7b-other-uploader-ungated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-other-uploader-ungated-RED.txt
+ok   d7b-second-gated-upload-GREEN (exit 0, matched 'still drives the built image') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-second-gated-upload-GREEN.txt
+ok   d7c-canary-step-deleted-RED (exit 1, matched 'harness-canary.mjs') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-step-deleted-RED.txt
+ok   d7c-canary-step-if-false-RED (exit 1, matched 'harness-canary step carries an') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-step-if-false-RED.txt
+ok   d7c-canary-continue-on-error-RED (exit 1, matched 'harness-canary step sets') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-continue-on-error-RED.txt
+ok   d7c-stamp-key-pinned-RED (exit 1, matched 'VIZRA_E2E_STAMP_KEY') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-stamp-key-pinned-RED.txt
 
 === D8 — a spec reaching Playwright's unguarded test fails the gate ===
 ok   d8-guard-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guard-GREEN.txt
@@ -90,8 +101,28 @@ ok   d9-artifact-redacted-GREEN (exit 0, matched 'members containing the sentine
 ok   d10-no-credentials-GREEN (exit 0, matched 'passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-no-credentials-GREEN.txt
 ok   d10-credential-spec-RED (exit 1, matched 'appears to handle a credential') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-credential-spec-RED.txt
 
+=== D11 — a spec that bypasses the harness is RED at runtime, whatever lint thinks ===
+ok   d11a-namespace-import-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11a-namespace-import-RED.txt
+ok   d11b-lint-defeated-GREEN (exit 0, matched 'the disable comment WORKED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11b-lint-defeated-GREEN.txt
+ok   d11b-eslint-disable-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11b-eslint-disable-RED.txt
+ok   d11c-outside-not-collected-GREEN (exit 0, matched 'Total: 18 tests in 3 files') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11c-outside-not-collected-GREEN.txt
+ok   d11c-outside-refused-by-lint-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11c-outside-refused-by-lint-RED.txt
+ok   d11d-forge-via-sealed-module-RED (exit 1, matched 'already been claimed in this worker') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11d-forge-via-sealed-module-RED.txt
+ok   d11e-forge-via-environment-RED (exit 1, matched 'does not verify against this run') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11e-forge-via-environment-RED.txt
+ok   d11f-in-process-reporter-deleted-GREEN (exit 0, matched '20 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11f-in-process-reporter-deleted-GREEN.txt
+ok   d11f-out-of-process-still-RED (exit 1, matched 'did not prove anything') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11f-out-of-process-still-RED.txt
+ok   d11-clean-tree-lane-GREEN (exit 0, matched 'e2e harness stamp: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11-clean-tree-lane-GREEN.txt
+ok   d11-clean-tree-out-of-process-GREEN (exit 0, matched 'carried a valid harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11-clean-tree-out-of-process-GREEN.txt
+
+=== D12 — neutering the guard's listeners turns the required lane red ===
+ok   d12-canary-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-canary-GREEN.txt
+ok   d12-console-listener-neutered-RED (exit 1, matched 'console-error.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-console-listener-neutered-RED.txt
+ok   d12-pageerror-listener-neutered-RED (exit 1, matched 'uncaught-exception.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-pageerror-listener-neutered-RED.txt
+ok   d12-response-listener-neutered-RED (exit 1, matched 'http 404') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-response-listener-neutered-RED.txt
+ok   d12-canary-restored-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-canary-restored-GREEN.txt
+
 === verdict ===
-halves passed: 51
+halves passed: 74
 halves blocked: 0
 halves failed: 0
 transcripts:   /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008

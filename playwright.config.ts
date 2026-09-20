@@ -34,6 +34,16 @@ import {
   MOBILE_PROJECT,
   MOBILE_VIEWPORT,
 } from "./e2e/harness/required-projects";
+// LOAD-BEARING SIDE EFFECT, not decoration. This configuration is executed in
+// the Playwright main process AND in every worker, before any test file is
+// loaded (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which re-executes
+// this file — before `loadTestFile`). Importing the guarded entry here is what
+// lets `e2e/harness/stamp.ts` take the per-run key out of the worker's
+// environment, and lets the harness claim the one-shot signer, before a spec
+// could do either. Removing this import does not make the lane green on a
+// broken page — the stamp reporter still refuses an unstamped pass — but it
+// does put the key back within a spec's reach. See e2e/harness/stamp.ts.
+import "./e2e/harness/test";
 
 /**
  * Where the harness points.
@@ -46,7 +56,17 @@ const localPort = Number(process.env.E2E_LOCAL_PORT ?? 3210);
 const baseURL = externalBaseUrl && externalBaseUrl !== "" ? externalBaseUrl : `http://127.0.0.1:${localPort}`;
 
 export default defineConfig({
-  testDir: "./e2e",
+  // `./e2e/specs`, NOT `./e2e`. The wider root was a hole an independent
+  // verifier walked through: Playwright collected `**​/*.spec.ts` under `e2e/`
+  // while both source guards enumerated `e2e/specs` and `e2e/demos`, so a spec
+  // at `e2e/other/x.spec.ts` RAN and was linted by nothing — `npm run ci` exit
+  // 0, the lane exit 0 with "coverage floor: OK (10/9 10/9)" — on a page that
+  // 404s a sub-resource and throws on every load. Narrowing the collection root
+  // means such a file is not collected at all, and widening the ESLint glob to
+  // `e2e/**` (minus `e2e/harness/**`) means it is refused if anyone writes one.
+  // Both halves are demonstrated; neither alone is the control, which is the
+  // runtime stamp.
+  testDir: "./e2e/specs",
   // The lane collects `*.spec.ts` ONLY. The fault-injection demonstrations live
   // in `e2e/demos/*.demo.ts` and are designed to FAIL; they are run by
   // `playwright.demos.config.ts` and must never enter this selection.
@@ -73,6 +93,14 @@ export default defineConfig({
     ["json", { outputFile: "playwright-report/results.json" }],
     // The floor: required projects must exist and must actually run tests.
     ["./e2e/harness/coverage-reporter.ts"],
+    // The runtime proof of harness: every test that SUCCEEDED must carry the
+    // stamp `e2e/harness/test.ts` writes, verified against this run's key. A
+    // spec that reached `@playwright/test` directly — by any syntax, from any
+    // directory, with any lint suppression — has no stamp and turns the run red,
+    // with its file named. `scripts/ci/check-coverage-floor-ran.mjs` re-checks
+    // the same stamps from the finished report, so deleting this line from the
+    // array does not remove the control.
+    ["./e2e/harness/stamp-reporter.ts"],
   ],
   outputDir: "test-results",
 

@@ -3,7 +3,7 @@ $ demos e2e/demos/console-error.demo.ts --grep RED
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (381ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (414ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
@@ -17,36 +17,37 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at harness/test.ts:86
+       at ../harness/test.ts:147
 
-      84 |     const unallowed = unallowedRecords(records, allowedBrowserErrors);
-      85 |     if (unallowed.length > 0) {
-    > 86 |       throw new Error(formatFailure(unallowed, allowedBrowserErrors));
-         |             ^
-      87 |     }
-      88 |   },
-      89 | });
-        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
+      145 |     const unallowed = unallowedRecords(records, allowedBrowserErrors);
+      146 |     if (unallowed.length > 0) {
+    > 147 |       throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+          |             ^
+      148 |     }
+      149 |   },
+      150 | });
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:147:13)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/video.webm
+    test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/test-failed-1.png
+    test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/error-context.md
+    Error Context: test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/error-context.md
 
     attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
-    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
+    test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
     Usage:
 
-        npx playwright show-trace test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
+        npx playwright show-trace test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
   1 failed
     [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
+e2e harness stamp: OK (0 succeeding result(s) verified).
 
 [exit 1]

@@ -115,6 +115,25 @@ jobs:
       - name: The coverage floor was actually satisfied
         run: node scripts/ci/check-coverage-floor-ran.mjs
 
+      # THE HARNESS'S OWN SELF-TEST, and the one case a green lane cannot show.
+      # An independent verifier recorded that neutering e2e/harness/test.ts — or
+      # the listeners in e2e/harness/browser-errors.ts — while leaving the
+      # identifiers in place is SILENT in CI: `npm run test` exits 0, the lane
+      # guard's harness check is string-presence only, and the lane itself exits
+      # 0, because a guard that has stopped looking finds nothing to fail on.
+      # Only `npm run e2e:demos` would have caught it, and that is not a CI lane.
+      #
+      # So the three fault-injection fixtures run here, against the container the
+      # lane just drove, and each is REQUIRED to fail for its own named reason
+      # (console.error / http 404 / pageerror). If any of them passes, this step
+      # is red. One browser launch, about three seconds. It is unconditional and
+      # does not continue-on-error; scripts/ci/check-e2e-lane.mjs asserts all
+      # three of those properties.
+      - name: The harness still fails a broken page (canary)
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+        run: node scripts/ci/harness-canary.mjs
+
       - name: Container logs
         if: always()
         run: docker logs vizra-user-e2e 2>&1 | tail -200 || true

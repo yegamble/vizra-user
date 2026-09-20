@@ -25,6 +25,18 @@ next-env.d.ts
 /Dockerfile.fixtures-mutant
 /Dockerfile.fixtures-mutant.dockerignore
 /e2e/specs/__bypass.spec.ts
+/e2e/specs/__shim.ts
+/e2e/specs/__cred.spec.ts
+# D11's bypass spec and its two controlled mutations: an ESLint configuration
+# with `noInlineConfig` stripped (so the demonstration can prove the RUNTIME
+# catches what lint was made to miss) and a Playwright configuration with the
+# stamp reporter removed (so it can prove the out-of-process check fails
+# closed). None may be committed: each is a deliberately weakened gate.
+/e2e/specs/__stamp.spec.ts
+/e2e/other/
+/eslint.config.no-inline-config.mjs
+/playwright.config.no-stamp-reporter.ts
+/.browser-errors.ts.bak
 
 # typescript
 *.tsbuildinfo
@@ -48,3 +60,8 @@ yarn-error.log*
 # editors
 .idea/
 .vscode/
+
+# The runtime proof-of-harness key (e2e/harness/stamp.ts). Written by the stamp
+# reporter AFTER a run, read by scripts/ci/check-coverage-floor-ran.mjs. Never
+# committed: it is a per-run secret and a committed one would be forgeable.
+/.vizra-e2e

@@ -1,0 +1,100 @@
+$ env E2E_BASE_URL=http://127.0.0.1:3211 node scripts/ci/harness-canary.mjs
+
+
+Running 3 tests using 3 workers
+
+  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (348ms)
+  ✘  3 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (327ms)
+  ✘  2 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (799ms)
+
+
+  1) [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
+
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [response] http 404: GET http://127.0.0.1:3211/__vizra_e2e_fixture__/missing-on-purpose.png
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+
+       at ../harness/test.ts:147
+
+      145 |     const unallowed = unallowedRecords(records, allowedBrowserErrors);
+      146 |     if (unallowed.length > 0) {
+    > 147 |       throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+          |             ^
+      148 |     }
+      149 |   },
+      150 | });
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:147:13)
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
+
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [pageerror] pageerror: __vizra_e2e_fixture__ uncaught exception demonstration (D3)
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+
+       at ../harness/test.ts:147
+
+      145 |     const unallowed = unallowedRecords(records, allowedBrowserErrors);
+      146 |     if (unallowed.length > 0) {
+    > 147 |       throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+          |             ^
+      148 |     }
+      149 |   },
+      150 | });
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:147:13)
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
+    [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
+  1 passed (1.3s)
+e2e harness stamp: OK (1 succeeding result(s) verified).
+::error::the browser harness no longer fails a broken page:
+  Playwright did not report exactly 3 failed tests. Each of the 3 fault-injection fixtures must fail; a run that reports fewer has a fixture that the guard let through.
+  This step exists because neutering the guard while leaving its identifiers in place is otherwise SILENT: `npm run test`, `check-e2e-lane.sh` and the lane itself all stay green. See e2e/harness/browser-errors.ts and scripts/e2e/demonstrate.sh D1-D3.
+
+[exit 1]

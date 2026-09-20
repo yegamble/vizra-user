@@ -3,8 +3,9 @@ $ demos e2e/demos/failed-request.demo.ts --grep GREEN
 
 Running 1 test using 1 worker
 
-  ✓  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:76:7 › GREEN: the same 404, allow-listed with a written reason › passes once the deliberate 404 is declared (707ms)
+  ✓  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:76:7 › GREEN: the same 404, allow-listed with a written reason › passes once the deliberate 404 is declared (644ms)
 
-  1 passed (1.1s)
+  1 passed (988ms)
+e2e harness stamp: OK (1 succeeding result(s) verified).
 
 [exit 0]

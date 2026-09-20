@@ -87,16 +87,38 @@ function withoutComments(source: string): string {
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
 }
 
+/**
+ * EVERY `.ts` under `e2e/` except the harness itself — not a hard-coded
+ * `["specs", "demos"]`.
+ *
+ * The list of two directories was a hole an independent verifier walked
+ * through: `playwright.config.ts` collected `**​/*.spec.ts` under the whole of
+ * `e2e/`, so a spec at `e2e/other/x.spec.ts` ran while this sweep and the ESLint
+ * rule both looked elsewhere. The collection root is now `e2e/specs` and the
+ * lint glob is `e2e/**` minus the harness; this walk follows the lint glob
+ * rather than the collection root, deliberately, so that a file which is not
+ * collected today but could be tomorrow is still swept.
+ *
+ * Every extension is swept, not only `*.spec.ts` / `*.demo.ts`: a helper named
+ * `login.ts` beside a spec would put the credential into the trace through the
+ * same call-parameter channel as the spec itself.
+ *
+ * `e2e/harness/**` is excluded for the same reason the lint rule excludes it —
+ * it is the guard, `.github/CODEOWNERS` covers it, and it must be able to name
+ * the patterns it forbids. That exclusion is a known limit, stated in AGENTS.md:
+ * a login helper placed in `e2e/harness/` evades this sweep.
+ */
 function sourceFiles(): string[] {
   const files: string[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir)) {
+      if (dir === e2eRoot && entry === "harness") continue;
       const full = path.join(dir, entry);
       if (statSync(full).isDirectory()) walk(full);
-      else if (/\.(spec|demo)\.ts$/.test(entry)) files.push(full);
+      else if (/\.ts$/.test(entry)) files.push(full);
     }
   };
-  for (const dir of ["specs", "demos"]) walk(path.join(e2eRoot, dir));
+  walk(e2eRoot);
   return files;
 }
 

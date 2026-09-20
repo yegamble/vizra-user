@@ -3,8 +3,9 @@ $ demos e2e/demos/console-error.demo.ts --grep GREEN
 
 Running 1 test using 1 worker
 
-  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:57:7 › GREEN: the same console.error, allow-listed with a written reason › passes, and only this exact message is forgiven (301ms)
+  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:57:7 › GREEN: the same console.error, allow-listed with a written reason › passes, and only this exact message is forgiven (180ms)
 
-  1 passed (1.1s)
+  1 passed (527ms)
+e2e harness stamp: OK (1 succeeding result(s) verified).
 
 [exit 0]

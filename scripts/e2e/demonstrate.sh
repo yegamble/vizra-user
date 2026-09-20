@@ -24,6 +24,12 @@
 #       artifact, trace.zip members included
 #   D10 a spec that handles a credential fails the cheap lane — the hard line
 #       that holds until the artifact-privacy slice lands
+#   D11 THE RUNTIME PROOF. A spec that does not go through the guarded harness
+#       is RED *at runtime*, whatever lint thinks — every historical bypass
+#       door, plus two the verifier has not tried, plus the out-of-process half
+#       with the in-process reporter deleted
+#   D12 THE CANARY. Neutering the guard's own listeners, one at a time, turns
+#       the required `e2e` lane red — the case that was silent in CI
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -65,9 +71,22 @@ cleanup() {
     "$repo/Dockerfile.fixtures-mutant.dockerignore" \
     "$repo/e2e/specs/__bypass.spec.ts" \
     "$repo/e2e/specs/__shim.ts" \
-    "$repo/e2e/specs/__cred.spec.ts"
+    "$repo/e2e/specs/__cred.spec.ts" \
+    "$repo/e2e/specs/__stamp.spec.ts" \
+    "$repo/eslint.config.no-inline-config.mjs" \
+    "$repo/playwright.config.no-stamp-reporter.ts"
+  rm -rf "$repo/e2e/other"
+  # D12 replaces e2e/harness/browser-errors.ts with a mutant; restore it
+  # whatever happens, including on Ctrl-C, so an interrupted run never leaves a
+  # neutered guard on disk.
+  if [ -f "$repo/.browser-errors.ts.bak" ]; then
+    cp "$repo/.browser-errors.ts.bak" "$repo/e2e/harness/browser-errors.ts"
+    rm -f "$repo/.browser-errors.ts.bak"
+  fi
 }
-trap cleanup EXIT
+# INT and TERM as well as EXIT: D12 temporarily neuters e2e/harness/browser-errors.ts,
+# and an interrupted run must never leave the guard switched off on disk.
+trap cleanup EXIT INT TERM
 
 # --- preflight -------------------------------------------------------------
 [ -f "$repo/.next/BUILD_ID" ] || {
@@ -367,6 +386,89 @@ sed 's|^        id: redact$|        id: redact\n        continue-on-error: true|
 half d7-redact-continue-on-error-RED 1 "redaction step sets" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
+# --- D7b the parser answers for the WHOLE JOB, not the first upload step ----
+# The parser used `steps.find(...)` for the upload, so it asserted the gate on
+# exactly one step. A verifier appended a SECOND `actions/upload-artifact` step
+# on a bare `if: failure()`, publishing the same two directories, and the parser
+# printed OK. When the redactor FAILS the gated upload is skipped and the
+# ungated one publishes the UNREDACTED tree — the same fail-open the gate closed
+# for the first step. `.find` is now `.filter`.
+cp .github/workflows/e2e.yml "$mutant"
+cat >> "$mutant" <<'SECOND_UPLOAD'
+
+      - name: Upload Playwright artifacts (second, ungated)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: error
+SECOND_UPLOAD
+half d7b-second-ungated-upload-RED 1 "not gated on the redaction having SUCCEEDED" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+# The same, with a DIFFERENT uploader action. The old check keyed on the exact
+# name `actions/upload-artifact@`, so any other action that publishes artifacts
+# was invisible to it rather than refused.
+cp .github/workflows/e2e.yml "$mutant"
+cat >> "$mutant" <<'OTHER_UPLOADER'
+
+      - name: Publish with some other uploader
+        if: failure()
+        uses: some-org/artifact-publisher@0000000000000000000000000000000000000000 # v1
+        with:
+          name: playwright-artifacts-elsewhere
+          path: test-results/
+OTHER_UPLOADER
+half d7b-other-uploader-ungated-RED 1 "not gated on the redaction having SUCCEEDED" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+# And the control: a second upload step that IS correctly gated passes, so the
+# check refuses the ungated step rather than refusing a second step as such.
+cp .github/workflows/e2e.yml "$mutant"
+cat >> "$mutant" <<'SECOND_GATED'
+
+      - name: Upload Playwright artifacts (second, correctly gated)
+        if: failure() && steps.redact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: error
+SECOND_GATED
+half d7b-second-gated-upload-GREEN 0 "still drives the built image" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+# --- D7c the canary step itself must be present and unconditional ----------
+# The canary is the only CI step that would notice the browser-error guard being
+# switched off while its identifiers stayed in place. Deleting it, or making it
+# conditional, or laundering its exit code, must each be a named red.
+sed '/run: node scripts\/ci\/harness-canary.mjs/d' .github/workflows/e2e.yml > "$mutant"
+half d7c-canary-step-deleted-RED 1 "harness-canary.mjs" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+sed 's|^      - name: The harness still fails a broken page (canary)$|      - name: The harness still fails a broken page (canary)\n        if: false|' \
+  .github/workflows/e2e.yml > "$mutant"
+half d7c-canary-step-if-false-RED 1 "harness-canary step carries an" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+sed 's|^        run: node scripts/ci/harness-canary.mjs$|        continue-on-error: true\n        run: node scripts/ci/harness-canary.mjs|' \
+  .github/workflows/e2e.yml > "$mutant"
+half d7c-canary-continue-on-error-RED 1 "harness-canary step sets" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+# The per-run stamp key must be minted per run, never pinned by the workflow.
+sed 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          VIZRA_E2E_STAMP_KEY: deadbeef|' \
+  .github/workflows/e2e.yml > "$mutant"
+half d7c-stamp-key-pinned-RED 1 "VIZRA_E2E_STAMP_KEY" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
 rm -f "$mutant"
 
 # --- D8 a spec that bypasses the guard fails the cheap lane ----------------
@@ -549,6 +651,240 @@ CRED
 half d10-credential-spec-RED 1 "appears to handle a credential" \
   -- npx vitest run e2e/harness/no-credentials-in-specs.test.ts
 rm -f "$repo/e2e/specs/__cred.spec.ts"
+
+# --- D11 THE RUNTIME PROOF OF HARNESS --------------------------------------
+# Three verification rounds found three different ways for a spec to reach
+# Playwright's unguarded `test` and go green on a page that 404s and throws:
+# a namespace import (the regex missed it), an `eslint-disable` comment, and a
+# spec in `e2e/other/` (collected by Playwright, covered by no lint glob). Each
+# was patched where it was found, and the guarantee still rested on LINT.
+#
+# It no longer does. `e2e/harness/test.ts` stamps every test it runs with an
+# HMAC over that test's identity, under a per-run key a spec cannot read, and
+# two checks refuse a run in which a test SUCCEEDED without a valid stamp.
+# EVERY half below runs Playwright DIRECTLY — no ESLint anywhere in the command —
+# so what is demonstrated is the runtime, not the lint.
+log "D11 — a spec that bypasses the harness is RED at runtime, whatever lint thinks"
+
+stamp_spec="$repo/e2e/specs/__stamp.spec.ts"
+
+write_stamp_spec() {
+  # $1 = the lines that obtain `test`; the body is identical every time, so the
+  # only variable is how the harness was avoided. The page 404s a sub-resource
+  # and throws an uncaught error on every load, exactly as in D8.
+  {
+    printf '// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.\n'
+    printf '%s\n' "$1"
+    cat <<'BODY'
+
+test("a page that 404s and throws, with the harness bypassed", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.addEventListener("DOMContentLoaded", () => {
+      const img = new Image();
+      img.src = "/VERIFIER_EV3_MISSING.png";
+      document.body.appendChild(img);
+      setTimeout(() => {
+        throw new Error("VERIFIER_EV3_UNCAUGHT");
+      }, 0);
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+});
+BODY
+  } > "$stamp_spec"
+}
+
+# --- D11a door 1: the namespace import, verbatim ---------------------------
+write_stamp_spec 'import * as pw from "@playwright/test";
+const { test, expect } = pw;'
+half d11a-namespace-import-RED 1 "succeeded WITHOUT the harness stamp" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test
+
+# --- D11b door 2: one inline eslint-disable, with noInlineConfig REMOVED ----
+# `linterOptions: { noInlineConfig: true }` now covers everything under `e2e/`
+# except the harness, so the comment no longer works — which would make this
+# demonstration prove the lint fix rather than the runtime one. So lint is
+# DELIBERATELY DEFEATED first, with a controlled mutation of eslint.config.mjs
+# that drops `linterOptions`: the GREEN half proves ESLint really does let the
+# file through in that configuration, and the RED half proves the runtime
+# catches it anyway. That is the whole claim — the guarantee no longer depends
+# on lint.
+cat > "$repo/eslint.config.no-inline-config.mjs" <<'NOINLINE'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+// The controlled mutation for D11b: the repository's real configuration with
+// `linterOptions` (and therefore `noInlineConfig`) stripped from every block,
+// so an inline `eslint-disable` comment works again.
+import base from "./eslint.config.mjs";
+
+export default base.map((entry) => {
+  if (!entry || typeof entry !== "object") return entry;
+  const { linterOptions: _dropped, ...rest } = entry;
+  return rest;
+});
+NOINLINE
+
+write_stamp_spec '/* eslint-disable vizra/no-unguarded-playwright-import */
+import * as pw from "@playwright/test";
+const { test, expect } = pw;'
+half d11b-lint-defeated-GREEN 0 "the disable comment WORKED" \
+  -- bash -c 'npx eslint --config eslint.config.no-inline-config.mjs e2e/specs/__stamp.spec.ts \
+    && echo "OK: the disable comment WORKED — ESLint reports no problem for this file"'
+half d11b-eslint-disable-RED 1 "succeeded WITHOUT the harness stamp" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test
+rm -f "$repo/eslint.config.no-inline-config.mjs"
+
+# --- D11c door 3: a spec outside e2e/specs ---------------------------------
+# Closed twice over. At COLLECTION: `testDir` is `./e2e/specs`, so the file is
+# not collected at all — the lane still lists exactly its own 18 tests. At LINT:
+# the glob is `e2e/**` minus the harness, so the file is refused if anyone
+# writes one. Neither is the guarantee; the guarantee is that were it collected,
+# it would be unstamped.
+rm -f "$stamp_spec"
+mkdir -p "$repo/e2e/other"
+cat > "$repo/e2e/other/__r1.spec.ts" <<'OUTSIDE'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { test } from "@playwright/test";
+
+test("R1", async ({ page }) => {
+  await page.goto("/");
+});
+OUTSIDE
+half d11c-outside-not-collected-GREEN 0 "Total: 18 tests in 3 files" \
+  -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" npx playwright test --list
+half d11c-outside-refused-by-lint-RED 1 "must not reference" \
+  -- npx eslint "$repo/e2e/other/__r1.spec.ts"
+rm -rf "$repo/e2e/other"
+
+# --- D11d a door the verifier has not tried: forge the stamp ---------------
+# The spec imports the sealed module that holds the key and signs itself. The
+# key is claimed ONCE per worker, by `e2e/harness/test.ts`, while
+# playwright.config.ts is being loaded — before any test file exists in that
+# worker. So the forger's own call is the SECOND claim, and it throws.
+write_stamp_spec 'import * as pw from "@playwright/test";
+import { claimSigner, specPath, STAMP_ANNOTATION } from "../harness/stamp";
+const { test, expect } = pw;
+test.beforeEach(async ({}, testInfo) => {
+  const sign = claimSigner();
+  testInfo.annotations.push({
+    type: STAMP_ANNOTATION,
+    description: sign({
+      project: testInfo.project.name,
+      file: specPath(testInfo.config.rootDir, testInfo.file),
+      title: testInfo.title,
+      workerIndex: testInfo.workerIndex,
+      retry: testInfo.retry,
+    }),
+  });
+});'
+half d11d-forge-via-sealed-module-RED 1 "already been claimed in this worker" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test
+
+# --- D11e a second door the verifier has not tried: read the key from env ---
+# The key reaches workers through the environment, and the harness DELETES it
+# from `process.env` while the configuration is loading, before any test file is
+# evaluated. The spec below asserts the variable is `undefined` — so the RED
+# transcript shows both halves at once: the assertion PASSES (the key is gone)
+# and the run still fails, because the stamp the spec forged from `undefined`
+# does not verify.
+write_stamp_spec 'import * as pw from "@playwright/test";
+const { test, expect } = pw;
+test.beforeEach(async ({}, testInfo) => {
+  const key = process.env.VIZRA_E2E_STAMP_KEY;
+  expect(key, "the stamp key must not be readable from a spec").toBeUndefined();
+  testInfo.annotations.push({
+    type: "vizra-harness-stamp",
+    description: String(key),
+  });
+});'
+half d11e-forge-via-environment-RED 1 "does not verify against this run" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test
+
+# --- D11f the OUT-OF-PROCESS half, with the in-process reporter deleted -----
+# `playwright.config.ts` is editable by the pull request being gated, so the
+# stamp reporter can be deleted from the `reporter` array — one line, no other
+# visible effect. `scripts/ci/check-coverage-floor-ran.mjs` re-reads the
+# finished JSON report, and the key file the reporter would have written is then
+# absent (or holds an earlier run's key, since every run mints a fresh one), so
+# it fails CLOSED.
+cat > "$repo/playwright.config.no-stamp-reporter.ts" <<'NOSTAMP'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+// The controlled mutation for D11f: the stamp reporter is removed from the
+// reporter array, which is the one-line edit the gated pull request could make.
+import base from "./playwright.config";
+
+export default {
+  ...base,
+  reporter: (base.reporter ?? []).filter(
+    (entry) => !String(entry[0]).includes("stamp-reporter"),
+  ),
+};
+NOSTAMP
+
+write_stamp_spec 'import * as pw from "@playwright/test";
+const { test, expect } = pw;'
+rm -rf "$repo/.vizra-e2e"
+# The run itself is green: with the reporter gone, nothing inside Playwright
+# objects. That is the point of the mutation.
+half d11f-in-process-reporter-deleted-GREEN 0 "20 passed" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test --config playwright.config.no-stamp-reporter.ts
+half d11f-out-of-process-still-RED 1 "did not prove anything" \
+  -- node scripts/ci/check-coverage-floor-ran.mjs
+rm -f "$repo/playwright.config.no-stamp-reporter.ts" "$stamp_spec"
+
+# And with the reporter restored and no bypass, both halves are green again.
+half d11-clean-tree-lane-GREEN 0 "e2e harness stamp: OK" \
+  -- env E2E_BASE_URL="$prod_url" npx playwright test
+half d11-clean-tree-out-of-process-GREEN 0 "carried a valid harness stamp" \
+  -- node scripts/ci/check-coverage-floor-ran.mjs
+
+# --- D12 THE CANARY: the guard itself, self-tested in the lane -------------
+# The verifier recorded this case as ACCEPTED-BY-DESIGN and silent: neutering
+# `e2e/harness/browser-errors.ts` while leaving its identifiers in place passes
+# `npm run test`, passes `check-e2e-lane.sh` (its harness check is
+# string-presence only) and passes the lane itself, because a guard that has
+# stopped looking finds nothing to fail on. `npm run e2e:demos` would catch it —
+# and is not a CI lane.
+#
+# `scripts/ci/harness-canary.mjs` runs the three fault-injection fixtures inside
+# the required `e2e` lane and requires each to fail for its OWN named reason.
+# Each listener is neutered one at a time below, and each makes the lane red.
+log "D12 — neutering the guard's listeners turns the required lane red"
+guard_file="$repo/e2e/harness/browser-errors.ts"
+cp "$guard_file" "$repo/.browser-errors.ts.bak"
+
+half d12-canary-GREEN 0 "failed all 3 fault-injection fixtures" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# (a) the console listener stops recording. The console-error fixture then
+#     passes, so the canary sees two failures instead of three.
+sed 's|if (message.type() === "error") push("console", describeConsole(message));|void message;|' \
+  "$repo/.browser-errors.ts.bak" > "$guard_file"
+half d12-console-listener-neutered-RED 1 "console-error.demo.ts" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# (b) the pageerror listener stops recording. The single quotes are deliberate:
+#     the `${...}` is TypeScript source to be matched literally, not a shell
+#     expansion.
+# shellcheck disable=SC2016
+sed 's|push("pageerror", `pageerror: ${redactUrlsInText(error.message)}`);|void error;|' \
+  "$repo/.browser-errors.ts.bak" > "$guard_file"
+half d12-pageerror-listener-neutered-RED 1 "uncaught-exception.demo.ts" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# (c) the response listener stops recording. This one is the sharpest: the 404
+#     ALSO produces a console error, so the fixture still fails — just not for
+#     its own reason. A canary that only counted failures would pass here; this
+#     one requires the named diagnostic `http 404`, and goes red.
+sed 's|if (response.status() >= 400) push("response", describeResponse(response));|void response;|' \
+  "$repo/.browser-errors.ts.bak" > "$guard_file"
+half d12-response-listener-neutered-RED 1 "http 404" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+cp "$repo/.browser-errors.ts.bak" "$guard_file"
+rm -f "$repo/.browser-errors.ts.bak"
+half d12-canary-restored-GREEN 0 "failed all 3 fault-injection fixtures" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
 # --- verdict ---------------------------------------------------------------
 log "verdict"

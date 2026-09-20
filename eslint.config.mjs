@@ -27,15 +27,29 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // THE BROWSER HARNESS. Every file Playwright can collect as a test must
-    // take `test`/`expect` from the guarded harness entry and must not reach
-    // `@playwright/test` at all. An independent verifier walked through the
-    // previous regex-based guard with `import * as pw from "@playwright/test"`
-    // and with single quotes, and got `npm run ci` exit 0 and `npm run e2e`
-    // exit 0 — "20 passed, coverage floor: OK" — on a page that 404s and
-    // throws. `e2e/harness/**` is deliberately NOT listed: it is the module
-    // that must import the real Playwright, and CODEOWNERS covers it.
-    files: ["e2e/specs/**/*.ts", "e2e/demos/**/*.ts"],
+    // THE BROWSER HARNESS. Every file under `e2e/` except the harness itself
+    // must take `test`/`expect` from the guarded harness entry and must not
+    // reach `@playwright/test` at all.
+    //
+    // THE GLOB IS `e2e/**`, NOT `e2e/specs/** + e2e/demos/**`, and that is the
+    // whole point. It used to name the two directories, while
+    // `playwright.config.ts` collected `**​/*.spec.ts` under `e2e/`: an
+    // independent verifier put a spec at `e2e/other/x.spec.ts` and it RAN,
+    // linted by neither this rule nor the credential sweep — `npm run ci` exit
+    // 0, the lane exit 0 with "coverage floor: OK (10/9 10/9)" — on a page that
+    // 404s a sub-resource and throws on every load. A list of directories is a
+    // guess about where people will put files. `e2e/**` minus the one directory
+    // that must be exempt is not.
+    //
+    // `e2e/harness/**` is ignored deliberately: it is the module that must
+    // import the real Playwright, and `.github/CODEOWNERS` covers it.
+    //
+    // This rule is the EARLY WARNING — it fails in seconds in `npm run ci`. It
+    // is no longer the guarantee: the guarantee is the runtime stamp in
+    // `e2e/harness/stamp.ts`, which a spec cannot pass by editing its import
+    // line, its directory, or a comment.
+    files: ["e2e/**/*.ts"],
+    ignores: ["e2e/harness/**"],
     // NO INLINE CONFIG IN THESE DIRECTORIES. The rule below was, until this
     // line, optional: an independent verifier put
     // `/* eslint-disable vizra/no-unguarded-playwright-import */` above an
@@ -56,7 +70,14 @@ const eslintConfig = defineConfig([
     rules: {
       "vizra/no-unguarded-playwright-import": [
         "error",
-        { harnessEntry: "e2e/harness/test" },
+        {
+          harnessEntry: "e2e/harness/test",
+          // The modules that hold the runtime stamp key. A spec that imported
+          // one of them could ask it to sign a stamp for a test the guard never
+          // ran. `claimSigner()` already refuses a second claim inside a worker,
+          // so this is the cheap half of a control that also holds at runtime.
+          sealedModules: ["e2e/harness/stamp", "e2e/harness/stamp-reporter"],
+        },
       ],
     },
   },

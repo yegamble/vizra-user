@@ -135,8 +135,9 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step exists, runs exactly `npm run e2e`, is unconditional, targets the built image, and the coverage-floor step follows it |
-| `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` (run after the lane) |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded |
+| `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
+| `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: the three fault-injection fixtures must each fail for their own named reason (needs a production target, as the lane does) |
 | `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
@@ -176,42 +177,104 @@ test.use({
 `kind`, a RegExp `match` and a non-blank `reason` are all required, and a policy
 of the wrong shape throws rather than being coerced.
 
-**A spec may not reach `@playwright/test` at all**, and may take `test`/`expect`
-only from `e2e/harness/test`. That is enforced by the ESLint rule
-`vizra/no-unguarded-playwright-import`, an error in `e2e/specs/**` and
-`e2e/demos/**`, covering every spelling: named, namespace, default,
-side-effect, `require`, dynamic `import()`, either quote style, re-exports, and
-a local shim that re-exports the raw binding. Type-only imports of types are
-allowed; `import type { test }` is not.
+#### The control is the RUNTIME STAMP. Lint is the early warning.
 
-The unscoped `playwright/test` and `playwright` are banned too: the first
-re-exports the same runner, and a spec has no business launching its own
-browser. Until they were added to the rule's list, `playwright/test` failed the
-lane only because loading a second runner copy breaks the real tests — a
-module-loading accident, not a control.
+A spec may not reach `@playwright/test` at all, and may take `test`/`expect`
+only from `e2e/harness/test`. There are two layers, and it matters which one is
+the guarantee, because for three rounds the wrong one was.
 
-**`linterOptions: { noInlineConfig: true }` is set for both directories, and
-that line is load-bearing.** Without it the rule was optional: a verifier put
+**Layer 1, the guarantee — every test the harness runs is STAMPED.**
+`e2e/harness/test.ts` has an automatic fixture that writes an annotation whose
+value is an HMAC over that test's identity (project, spec file, title, worker,
+attempt), under a key minted fresh by the Playwright main process on every run.
+Two checks then refuse a run in which a test *succeeded* without a valid stamp,
+naming the file:
+
+| Where | What it reads |
+|---|---|
+| `e2e/harness/stamp-reporter.ts` | inside the Playwright process, from `onTestEnd` |
+| `scripts/ci/check-coverage-floor-ran.mjs` | outside it, from the finished JSON report |
+
+Playwright's own `test` writes no such annotation, so **a spec that reaches the
+raw runner — by any syntax, from any directory, with any lint suppression — is
+RED at runtime.** Nothing about that depends on what a file looks like.
+
+The key is not readable from a spec. It reaches workers through the
+environment, and `e2e/harness/stamp.ts` **deletes it from `process.env` while
+the configuration is being loaded**, which in a worker happens before any test
+file is evaluated (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which
+re-executes `playwright.config.ts` — before `loadTestFile`; read out of the
+installed `playwright/lib/worker/workerProcessEntry.js`, not assumed). That is
+why `playwright.config.ts` imports `./e2e/harness/test`: the import is a
+load-bearing side effect, and `check-e2e-lane.mjs` fails if it goes. The signer
+is handed out **once per worker**, to the harness entry, during that same load —
+so a spec that imports `e2e/harness/stamp` and calls `claimSigner()` itself gets
+a throw. The reporter writes the key to `.vizra-e2e/stamp-key.json` only in
+`onEnd`, after the last test has finished, so the out-of-process check can
+verify it while no running spec could have read it.
+
+**What forging a stamp would take, stated honestly.** One of:
+
+1. recovering the 32-byte per-run key from inside a spec — it is absent from the
+   worker's environment, absent from disk while any test is running, and not
+   derivable from the report;
+2. importing `e2e/harness/stamp` or `e2e/harness/stamp-reporter` from a spec.
+   `claimSigner()` already refuses the second claim in a worker
+   (demonstration D11d), and `vizra/no-unguarded-playwright-import` refuses the
+   reference as a *sealed module* — but that lint half is an early warning, not
+   the control;
+3. editing `e2e/harness/**`, `playwright.config.ts` or `eslint-rules/**`. Those
+   are `.github/CODEOWNERS` paths, `npm run test` fails if the rule or the
+   wiring is neutered, and the `e2e` lane's canary (below) goes red if the guard
+   itself stops failing a broken page.
+
+None of those is an accident, and every one is a named edit in the diff. The
+claim this section makes is therefore precise: **a test cannot pass without the
+harness**, and switching the harness off is a deliberate act in a file whose job
+is to be a gate — not a one-line opt-out in a spec.
+
+**Layer 2, the early warning — the ESLint rule.**
+`vizra/no-unguarded-playwright-import` is an error for **everything under
+`e2e/` except `e2e/harness/**`**, covering every spelling: named, namespace,
+default, side-effect, `require`, dynamic `import()`, either quote style,
+re-exports, and a local shim that re-exports the raw binding. Type-only imports
+of types are allowed; `import type { test }` is not. The unscoped
+`playwright/test` and `playwright` are banned too: the first re-exports the same
+runner, and a spec has no business launching its own browser.
+
+The glob is `e2e/**`, not a list of directories, because a list of directories
+was the third bypass: `playwright.config.ts` collected `**/*.spec.ts` from the
+whole of `e2e/` while both source guards enumerated `e2e/specs` and `e2e/demos`,
+so a spec at `e2e/other/x.spec.ts` ran and was linted by nothing. Both ends are
+now closed: **`testDir` is `./e2e/specs`** (and the demo runner's is
+`./e2e/demos`), so a file elsewhere is not collected at all, and the lint glob
+covers it if anyone writes one. `e2e/harness/collection.test.ts` pins both
+roots; `e2e/harness/browser-errors.test.ts` asks the resolved ESLint config
+about every file under `e2e/` *and* about paths in directories that do not exist
+yet, so the assertion is about the class rather than about today's directories.
+
+`linterOptions: { noInlineConfig: true }` is set for the same glob, because
+without it the rule was optional: a verifier put
 `/* eslint-disable vizra/no-unguarded-playwright-import */` above an unguarded
 import in a spec whose page 404s a sub-resource and throws on every load, and
 got `npm run ci` exit 0, the full lane exit 0 with "20 passed, coverage floor:
 OK", both floor checks exit 0 and the lane guard exit 0.
-`reportUnusedDisableDirectives` cannot help — the directive is *used* — and the
-vitest sweep lints through the same ESLint, so it inherited the suppression.
-`noInlineConfig` turns off every comment form at once rather than naming the
-ones known today. `browser-errors.test.ts` asserts both the setting and the
-behaviour, so neither can be dropped quietly; `no-console` is therefore turned
-off for `e2e/demos/**` by configuration rather than by a comment, because the
-console call there IS the fault under demonstration.
+`reportUnusedDisableDirectives` cannot help — the directive is *used*.
+`browser-errors.test.ts` asserts both the setting and the behaviour;
+`no-console` is therefore turned off for `e2e/demos/**` by configuration rather
+than by a comment, because the console call there IS the fault under
+demonstration.
 
-This paragraph previously claimed that a regex in
-`e2e/harness/browser-errors.test.ts` caught any such import. **It did not.** The
-regex required braces and double quotes, and an independent verifier walked
-through it twice — `import * as pw from "@playwright/test"` and the named form
-with single quotes — with a spec whose page 404s and throws on every load,
-getting `npm run ci` exit 0 and `npm run e2e` exit 0, "20 passed, coverage
-floor: OK". Matching import syntax was guessing at spellings; the rule works on
-the AST and on the module specifier.
+**The history, kept because it is the argument.** This section has twice
+described a control that could be walked through. A regex over spec sources
+required braces and double quotes, and `import * as pw from "@playwright/test"`
+and the single-quoted named form both went through it. The AST rule that
+replaced it was defeated by one comment. The comment fix was defeated by a new
+directory. Each fix was a lint fix, and lint inspects source rather than what
+runs; that is why the guarantee moved to the runtime and why this section now
+says which layer is which. Demonstration D11 runs all three historical doors,
+plus two forgery attempts, through Playwright **with no ESLint anywhere in the
+command**.
 
 ### Artifact privacy: what is redacted, and what is NOT
 
@@ -301,11 +364,81 @@ server — there is no `app/` route to delete — and
 `scripts/ci/check-no-test-fixtures-in-image.sh` proves the built image contains
 neither a harness path nor the `__vizra_e2e_fixture__` token.
 
+**The lane self-tests the guard, in CI.** An independent verifier recorded the
+gap exactly: neutering `e2e/harness/browser-errors.ts` while leaving its
+identifiers in place is **silent**. `npm run test` exits 0 (the unit tests cover
+the decision logic, not the listeners), `check-e2e-lane.sh` exits 0 (its harness
+check is string presence, and says so in its own comment), and the lane exits 0,
+because a guard that has stopped looking finds nothing to fail on. Only
+`npm run e2e:demos` would have caught it, and that is not a CI lane.
+
+So `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane, against the
+same container the lane just drove, and requires each of the three
+fault-injection fixtures to fail **for its own named reason**:
+
+| Fixture | Must fail with |
+|---|---|
+| `e2e/demos/console-error.demo.ts` | `console.error`, `browser error(s) that no allow-list entry covers` |
+| `e2e/demos/failed-request.demo.ts` | `http 404` |
+| `e2e/demos/uncaught-exception.demo.ts` | `pageerror` |
+
+Per-reason and not merely a count, because the sharpest case needs it: with the
+`response` listener neutered, the 404 fixture still fails — on the console error
+the 404 also produces — so a canary that only counted failures would pass. One
+browser launch, about three seconds. `check-e2e-lane.mjs` asserts the step
+exists, runs exactly that command, is unconditional, does not
+`continue-on-error` and drives the container; `require-checks_test.sh` drives
+all of that against mutated workflows. Demonstration D12 neuters each listener
+in turn and shows the lane going red.
+
+The Docker D6 pair, D5 (`next dev`), D7 (the workflow parser) and D9 (artifact
+redaction) are deliberately NOT in the canary: they need a second image build, a
+development server, or are already asserted by cheap checks in other lanes. The
+canary is the smallest thing that would have caught the silent case.
+
+**Every artifact-upload step is checked, not the first one.** The parser used
+`steps.find(...)`, so a SECOND `actions/upload-artifact` step on a bare
+`if: failure()` passed — and when the redactor fails, the gated upload is
+skipped while the ungated one publishes the unredacted tree. It is now
+`filter`, every uploader must carry `failure() && steps.redact.outcome ==
+'success'`, and an uploader whose action is *not* `actions/upload-artifact` is
+recognised as one rather than ignored.
+
 **What this lane does NOT cover, and does not claim.** Chromium only: no WebKit,
 so Safari behaviour is not claimed. No accessibility engine yet — VZ-A11Y-001 is
 M1, and the seam is documented in `e2e/harness/test.ts` where the axe assertion
 belongs. No visual baselines: `toHaveScreenshot` is unused on purpose, because
 approving a baseline is a reviewed act of its own.
+
+### Residuals — what is still only as strong as review
+
+Listed because a control whose limits are unstated is a control people
+over-trust. None of these is closed by this slice, and none should be described
+as if it were.
+
+- **`.github/CODEOWNERS` enforces nothing today.** It is committed, and
+  `* @yegamble` covers every path, but GitHub applies it only once a ruleset on
+  `main` requires Code Owner review. That ruleset is an owner action, outside
+  any pull request. Wherever this file says "owner-reviewed", read "owner-
+  reviewed once that ruleset exists".
+- **An arbitrary `run:` step can still exfiltrate** — `gh release upload`,
+  `curl`, anything. No workflow parser can close that; `check-e2e-lane.mjs`
+  covers uploader *actions*, and the protection for the rest is review.
+- **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
+  the runtime half and is demonstrated (D11d); the ESLint half is the early
+  warning. A file under `e2e/harness/**` is exempt from both by construction.
+- **`e2e/harness/no-credentials-in-specs.test.ts` is a tripwire, not a proof.**
+  It sweeps every `.ts` under `e2e/` except `e2e/harness/**` and matches a named
+  list of patterns; it catches the accident, not the determined author. Measured
+  evasions: `pressSequentially` instead of `.fill(`, `page.evaluate` setting
+  `document.cookie`, credentials read from `process.env`, and a login helper
+  placed inside `e2e/harness/`. The real control is the queued artifact-privacy
+  slice.
+- **The redactor covers URL query strings, fragments and `Location` only.** The
+  full "NOT covered" table is above; read it before deciding a red lane is safe
+  to share.
+- **Platform.** ADR-009's acceptance platform is GitHub `ubuntu-24.04`,
+  linux/amd64. Local runs on macOS arm64 carry no platform claim.
 
 Evidence, including the red and green transcript of every demonstration, is in
 `docs/evidence/VZ-FOUND-008/`.

@@ -1,0 +1,6 @@
+$ bash -c npx eslint --config eslint.config.no-inline-config.mjs e2e/specs/__stamp.spec.ts \
+    && echo "OK: the disable comment WORKED — ESLint reports no problem for this file"
+
+OK: the disable comment WORKED — ESLint reports no problem for this file
+
+[exit 0]

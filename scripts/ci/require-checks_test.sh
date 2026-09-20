@@ -708,6 +708,106 @@ else
   record 0
 fi
 
+# --- EVERY upload step, not the first one ----------------------------------
+# The parser located the upload with `steps.find(...)` and asserted the gate on
+# that one step. An independent verifier appended a SECOND
+# `actions/upload-artifact` step on a bare `if: failure()`, publishing the same
+# two directories, and the parser printed OK. When the redactor FAILS the gated
+# upload is skipped and the ungated one publishes the UNREDACTED tree — the
+# exact fail-open the gate was added to close. `.find` is now `.filter`.
+#
+# These cases APPEND to the real workflow rather than mutating a line, so they
+# are written directly instead of through `lane_expect`.
+
+# lane_append WANT_RC PATTERN <<yaml  — append the here-doc to the real
+# workflow and drive the guard with the result.
+lane_append() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 rc=0
+  local file=$tmp/lane-append-$cases.yml
+  { cat "$real_workflow"; printf '\n'; cat; } >"$file"
+  bash "$lane_script" "$file" >"$tmp/lane-append-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/lane-append-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/lane-append-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/lane-append-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="a SECOND, ungated upload-artifact step fails by name"
+lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
+      - name: Upload Playwright artifacts (second, ungated)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+title="a second upload step with no condition at all fails by name"
+lane_append 1 'not gated on .failure' <<'YAML'
+      - name: Upload Playwright artifacts (second, always)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-always
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+title="an ungated uploader that is NOT actions/upload-artifact fails by name"
+lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
+      - name: Publish with some other uploader
+        if: failure()
+        uses: some-org/artifact-publisher@0000000000000000000000000000000000000000 # v1
+        with:
+          name: playwright-artifacts-elsewhere
+          path: test-results/
+YAML
+
+title="a second upload step that IS correctly gated passes"
+lane_append 0 'still drives the built image' <<'YAML'
+      - name: Upload Playwright artifacts (second, correctly gated)
+        if: failure() && steps.redact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+# --- the HARNESS CANARY step -----------------------------------------------
+# The canary is the only CI step that would notice the browser-error guard being
+# switched off while its identifiers stayed in place — the case an independent
+# verifier measured as silent in `npm run test`, in this guard's own harness
+# check (which is string presence only) and in the lane itself.
+
+title="removing the harness-canary step fails by name"
+lane_expect 1 'harness-canary.mjs' '/run: node scripts\/ci\/harness-canary.mjs/d'
+
+title="replacing the harness canary with an echo fails by name"
+lane_expect 1 'harness-canary.mjs' 's|^        run: node scripts/ci/harness-canary.mjs$|        run: echo skipping|'
+
+title="appending || true to the harness canary fails by name"
+lane_expect 1 'harness-canary.mjs' 's@^        run: node scripts/ci/harness-canary.mjs$@        run: node scripts/ci/harness-canary.mjs || true@'
+
+title="if: false on the harness canary fails by name"
+lane_expect 1 'harness-canary step carries an' 's|^      - name: The harness still fails a broken page (canary)$|      - name: The harness still fails a broken page (canary)\n        if: false|'
+
+title="continue-on-error on the harness canary fails by name"
+lane_expect 1 'harness-canary step sets .continue-on-error' 's|^        run: node scripts/ci/harness-canary.mjs$|        continue-on-error: true\n        run: node scripts/ci/harness-canary.mjs|'
+
+title="pinning the per-run stamp key in the workflow fails by name"
+lane_expect 1 'VIZRA_E2E_STAMP_KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          VIZRA_E2E_STAMP_KEY: deadbeef|'
+
 # ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
 #

@@ -298,6 +298,124 @@ describe("specs use the guarded test", () => {
     expect(message?.severity).toBe(2);
   });
 
+  /**
+   * THE CLASS, NOT THE DIRECTORY.
+   *
+   * The two assertions above ask about `e2e/specs/home.spec.ts` and
+   * `e2e/demos/console-error.demo.ts` — two files that exist. That is what let
+   * the third bypass through: `eslint.config.mjs` named `e2e/specs/**` and
+   * `e2e/demos/**` while `playwright.config.ts` collected `**​/*.spec.ts` from
+   * the whole of `e2e/`, and an independent verifier put a spec at
+   * `e2e/other/__r1.spec.ts` that ran, was linted by nothing, and took `npm run
+   * ci` and the full lane to exit 0 on a page that 404s and throws.
+   *
+   * So the question is asked of EVERY file the sweep finds AND of paths in
+   * directories that do not exist yet. A configuration that covers today's two
+   * directories and not tomorrow's passes the tests above and fails these.
+   */
+  it("resolves the rule to severity 2 with noInlineConfig for every file under e2e/", async () => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const everything: string[] = [];
+    const walkAll = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        if (dir === e2eRoot && entry === "harness") continue;
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) walkAll(full);
+        else if (/\.ts$/.test(entry)) everything.push(full);
+      }
+    };
+    walkAll(e2eRoot);
+    expect(everything.length, "an empty sweep would pass vacuously").toBeGreaterThanOrEqual(4);
+
+    for (const file of everything) {
+      const config = (await eslint.calculateConfigForFile(file)) as {
+        rules?: Record<string, unknown>;
+        linterOptions?: { noInlineConfig?: boolean };
+      };
+      const severity = config.rules?.["vizra/no-unguarded-playwright-import"];
+      expect(
+        Array.isArray(severity) ? severity[0] : severity,
+        `${path.relative(repoRoot, file)} must resolve the guarded-import rule to severity 2`,
+      ).toBe(2);
+      expect(
+        config.linterOptions?.noInlineConfig,
+        `${path.relative(repoRoot, file)} must resolve linterOptions.noInlineConfig === true`,
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["e2e/other/__r1.spec.ts", "the verifier's third bypass, in a directory that does not exist"],
+    ["e2e/nested/deeper/__x.spec.ts", "a directory two levels down"],
+    ["e2e/__loose.spec.ts", "a spec directly under e2e/"],
+    ["e2e/specs/helpers/__helper.ts", "a helper beside a spec, not itself a spec"],
+  ])("%s (%s) is covered by the rule at severity 2", async (relative) => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const config = (await eslint.calculateConfigForFile(path.join(repoRoot, relative))) as {
+      rules?: Record<string, unknown>;
+      linterOptions?: { noInlineConfig?: boolean };
+    };
+    const severity = config.rules?.["vizra/no-unguarded-playwright-import"];
+    expect(Array.isArray(severity) ? severity[0] : severity).toBe(2);
+    expect(config.linterOptions?.noInlineConfig).toBe(true);
+  });
+
+  it("e2e/harness stays exempt — it is the module that imports the real Playwright", async () => {
+    // The exemption is deliberate and it is the only one. If this ever starts
+    // failing, the harness has been brought under its own rule and cannot work;
+    // if the assertion is deleted, the exemption stops being a stated decision.
+    const eslint = new ESLint({ cwd: repoRoot });
+    const config = (await eslint.calculateConfigForFile(
+      path.join(repoRoot, "e2e/harness/test.ts"),
+    )) as { rules?: Record<string, unknown> };
+    expect(config.rules?.["vizra/no-unguarded-playwright-import"]).toBeUndefined();
+  });
+
+  /**
+   * THE SEALED MODULES. `e2e/harness/stamp.ts` holds the per-run key that proves
+   * at runtime which tests went through the guard. A spec that could import it
+   * could sign a stamp for a test the guard never ran — so the rule refuses the
+   * reference. `claimSigner()` refuses a second claim inside a worker as well,
+   * which is the half that does not depend on lint; this is the half that fails
+   * in seconds.
+   */
+  it.each([
+    ['import { claimSigner } from "../harness/stamp";', "a named import"],
+    ['import * as s from "../harness/stamp";', "a namespace import"],
+    ['const s = require("../harness/stamp");', "require"],
+    ['const s = await import("../harness/stamp");', "a dynamic import"],
+    ['import x from "../harness/stamp-reporter";', "the reporter"],
+  ])("a spec may not reach the sealed stamp module (%s)", async (line) => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `import { test } from "../harness/test";\n${line}\nexport default test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__sealed__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message, `the sealed module was reachable: ${line}`).toBeDefined();
+    expect(message?.severity).toBe(2);
+    expect(message?.message).toContain("per-run key");
+  });
+
+  it("other harness modules stay importable — the seal is narrow, not a blanket ban", async () => {
+    // e2e/specs/production-build.spec.ts legitimately imports
+    // ../harness/production-build. Sealing the whole directory would have broken
+    // it, and a rule that breaks legitimate code gets switched off.
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `import { probeProductionBuild } from "../harness/production-build";\n` +
+        `import { test } from "../harness/test";\nexport default [test, probeProductionBuild];\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__narrow__.spec.ts") },
+    );
+    expect(
+      result?.messages.filter(
+        (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+      ),
+    ).toEqual([]);
+  });
+
   it("the rule is configured as an error for e2e/specs, not a warning", async () => {
     // A rule set to "warn" would report and let the gate pass. Asked of the
     // real config, for a real path, with a spelling the old regex missed.

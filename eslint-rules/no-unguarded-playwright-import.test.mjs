@@ -33,6 +33,12 @@ const ruleTester = new RuleTester({
 
 const SPEC = "e2e/specs/example.spec.ts";
 const DEMO = "e2e/demos/example.demo.ts";
+/**
+ * The modules that hold the runtime proof-of-harness key, as
+ * `eslint.config.mjs` passes them. A file that could reach one of them could
+ * sign a stamp for a test the browser-error guard never ran.
+ */
+const SEALED = ["e2e/harness/stamp", "e2e/harness/stamp-reporter"];
 
 ruleTester.run("no-unguarded-playwright-import", rule, {
   valid: [
@@ -253,6 +259,77 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       code: `import * as pw from "playwright/test";`,
       filename: DEMO,
       errors: [{ messageId: "packageReference" }],
+    },
+
+    // ---- the SEALED modules -----------------------------------------------
+    // `e2e/harness/stamp.ts` holds the per-run key that proves at runtime which
+    // tests went through the guard. A file that can reach it could sign a stamp
+    // for a test the guard never ran — the one forgery the runtime control
+    // cannot make impossible on its own, so it is refused here as well. The
+    // spelling-agnostic catch-all covers every way of naming it, exactly as it
+    // does for the package.
+    {
+      name: "a spec may not import the sealed stamp module",
+      code: `import { claimSigner } from "../harness/stamp";`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "namespace import of the sealed module",
+      code: `import * as stamp from "../harness/stamp";`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "require() of the sealed module",
+      code: `const stamp = require("../harness/stamp");`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "dynamic import of the sealed module",
+      code: `const stamp = await import("../harness/stamp");`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "an explicit extension resolves to the same sealed module",
+      code: `import { claimSigner } from "../harness/stamp.ts";`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "the @/ alias resolves to the same sealed module",
+      code: `import { claimSigner } from "@/e2e/harness/stamp";`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "the stamp reporter is sealed too",
+      code: `import StampReporter from "../harness/stamp-reporter";`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "a demo may not reach the sealed module either",
+      code: `import { claimSigner } from "../harness/stamp";`,
+      filename: DEMO,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
+    },
+    {
+      name: "a bare string naming the sealed module is refused, like the package",
+      code: `const where = "../harness/stamp";\nexport default where;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
+      errors: [{ messageId: "sealedModule" }],
     },
   ],
 });

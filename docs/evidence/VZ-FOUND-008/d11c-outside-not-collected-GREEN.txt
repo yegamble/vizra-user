@@ -1,0 +1,26 @@
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --list
+
+Listing tests:
+  [desktop-chromium-1440] › health.spec.ts:16:7 › health page › reports liveness for vizra-user
+  [desktop-chromium-1440] › health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata
+  [desktop-chromium-1440] › health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache
+  [desktop-chromium-1440] › home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet
+  [desktop-chromium-1440] › home.spec.ts:38:7 › home placeholder › hydrates without the page complaining
+  [desktop-chromium-1440] › home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page
+  [desktop-chromium-1440] › home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow
+  [desktop-chromium-1440] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
+  [desktop-chromium-1440] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
+  [mobile-chromium-390] › health.spec.ts:16:7 › health page › reports liveness for vizra-user
+  [mobile-chromium-390] › health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata
+  [mobile-chromium-390] › health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache
+  [mobile-chromium-390] › home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet
+  [mobile-chromium-390] › home.spec.ts:38:7 › home placeholder › hydrates without the page complaining
+  [mobile-chromium-390] › home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page
+  [mobile-chromium-390] › home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow
+  [mobile-chromium-390] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
+  [mobile-chromium-390] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
+Total: 18 tests in 3 files
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 0]

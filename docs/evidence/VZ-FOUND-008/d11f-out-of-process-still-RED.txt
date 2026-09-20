@@ -1,0 +1,8 @@
+$ node scripts/ci/check-coverage-floor-ran.mjs
+
+::error::a test succeeded without going through the guarded browser harness (e2e/harness/test.ts):
+  0 of the run's succeeding results could be verified, because the key is unreadable.
+  .vizra-e2e/stamp-key.json could not be read (ENOENT: no such file or directory, open '/Users/yosefgamble/github/vizra/vizra-user/.vizra-e2e/stamp-key.json'). e2e/harness/stamp-reporter.ts writes it at the end of every run; its absence means that reporter is no longer in playwright.config.ts, so nothing proved the tests went through the harness. A lane whose proof is missing did not prove anything.
+  The stamp is written by the harness's automatic fixture under a per-run key a spec cannot read (e2e/harness/stamp.ts). This check reads the finished report and the key the reporter wrote after the run, so it still applies when the in-process stamp reporter has been removed from playwright.config.ts.
+
+[exit 1]

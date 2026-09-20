@@ -1,13 +1,33 @@
 # VZ-FOUND-008 — browser test environment against the production build
 
 Evidence for `vizra-user` PR3, branch `feat/m0-browser-env`, base `1a952b5`.
-Issue: yegamble/vizra#1 (VZ-ISSUE-001). Execution plan (meta repo):
-`docs/plans/2026-09-20-vizra-user-pr3-browser-env.md`.
+Issue: yegamble/vizra#1 (VZ-ISSUE-001). Execution plans (meta repo):
+`docs/plans/2026-09-20-vizra-user-pr3-browser-env.md` (rounds 0–2) and
+`docs/plans/2026-09-20-vizra-user-pr3-replan-structural.md` (this round).
 
 **Status: READY_FOR_REVIEW.** Not VERIFIED — no ledger entry reaches VERIFIED on
-a builder's own evidence. This is **fix round 2 of 2**. Round 1 (at `44dac20`)
-closed four of the verifier's five findings; re-verification returned FAIL "on
-one line" with Findings 6, 7 and 8, all closed here.
+a builder's own evidence.
+
+This is the **chair's RE-PLAN round**, written by a different builder from the
+one that produced rounds 1 and 2. Rounds 1 and 2 closed Findings 1–8. The third
+verification, at `0ac9fb6`, returned FAIL on **Finding 9** and recorded
+**Finding 10** and one accepted-by-design residual. Three rounds, three
+different doors into the same hole — a spec that does not go through the guarded
+harness `test` runs green on a page that 404s and throws:
+
+| Door | Found at | Patched by |
+|---|---|---|
+| 1 — `import * as pw from "@playwright/test"`, and the single-quoted named form | round 0 | an AST ESLint rule |
+| 2 — `/* eslint-disable vizra/no-unguarded-playwright-import */` | round 1 | `linterOptions: { noInlineConfig: true }` |
+| 3 — a spec at `e2e/other/x.spec.ts`, collected by Playwright, covered by no lint glob | round 2 | (open at `0ac9fb6`) |
+
+Each was patched where it was found, and each fix was a **lint** fix. Lint
+inspects source; it does not inspect what runs. So this round does not patch
+door 3 and stop: it moves the guarantee to the RUNTIME, where the file's
+spelling, directory and comments are irrelevant, and demonstrates all three
+historical doors plus two forgery attempts against it **with no ESLint anywhere
+in the command**. See D11 below, and the "Layer 1 / Layer 2" section of
+`AGENTS.md`.
 
 ## Environment
 See `environment.txt` (machine-written). Darwin arm64, Node v22.14.0,
@@ -49,6 +69,22 @@ npm run e2e:demos    # every transcript in this directory, regenerated
 | 7 — the redact step and the upload step both carried bare `if: failure()`, so a redactor that exits non-zero still published the unredacted tree | REQUIRED | the redact step has `id: redact`; the upload is `if: failure() && steps.redact.outcome == 'success'`; the parser asserts exactly that relationship | **D7**, four new halves, plus 6 fixture cases in `require-checks_test.sh`, plus the forced-failure CI proof in **`ci-redactor-failure-proof.md`** — GitHub evaluated the gate and **skipped** the upload; **0 artifacts** published, against 48 files on the healthy run |
 | 8 — AGENTS.md said no query string leaves the repository and then offered "headers readable" as a feature | SHOULD | the section now states what IS covered (query strings, fragments, `Location`) and tabulates every channel that is NOT, and adds the hard line: no spec may authenticate, fill a credential or touch a real signed URL until the artifact-privacy slice lands — asserted by `e2e/harness/no-credentials-in-specs.test.ts` | **D10** |
 
+### Round 3 (this one) — Findings 9 and 10, and the silent case
+
+| Finding | Severity | Closed by | Demonstrated |
+|---|---|---|---|
+| 9 — a spec at `e2e/other/x.spec.ts` was collected by Playwright (`testDir: "./e2e"`) and linted by neither guard (both enumerated `e2e/specs` + `e2e/demos`): `npm run ci` 0, the lane 0 with `coverage floor: OK (10/9 10/9)`, the out-of-process floor 0, the credential sweep blind — on a page that 404s and throws | BLOCKER | **the guarantee moved to the runtime.** `e2e/harness/test.ts` stamps every test it runs with an HMAC over that test's identity under a per-run key a spec cannot read; `e2e/harness/stamp-reporter.ts` (in process) and `scripts/ci/check-coverage-floor-ran.mjs` (out of process) both fail a run in which a test SUCCEEDED without a valid stamp, naming the file. Collection narrowed to `e2e/specs` (`e2e/demos` for the demo runner) and the ESLint glob widened to `e2e/**` minus `e2e/harness/**`, so the file is neither collected nor unlinted — but neither of those is the control | **D11**, eleven halves: all three historical doors plus two forgery attempts plus the out-of-process half with the in-process reporter deleted |
+| 10 — the workflow parser located the upload with `steps.find(...)`, so a SECOND, ungated `actions/upload-artifact` step passed; when the redactor fails, it publishes the unredacted tree | REQUIRED | `.filter`: every uploader step must carry `failure() && steps.redact.outcome == 'success'`, and an uploader that is not `actions/upload-artifact` is recognised as one | **D7b**, three halves, plus 4 fixture cases in `require-checks_test.sh` |
+| residual — neutering `e2e/harness/browser-errors.ts` while leaving its identifiers in place is SILENT in CI: `npm run test` 0, `check-e2e-lane.sh` 0 (string presence only), the lane 0, and `npm run e2e:demos` is not a CI lane | (verifier's note) | `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane and requires each of the three fault-injection fixtures to fail **for its own named reason** — per-reason, not a count, because with the `response` listener dead the 404 fixture still fails on the console error it also produces | **D12**, five halves: each listener neutered in turn, plus 6 fixture cases in `require-checks_test.sh` |
+
+**What forging the runtime stamp would take** is stated in full in `AGENTS.md`
+and in the header of `e2e/harness/stamp.ts`, and is not claimed to be
+impossible: recovering the per-run key (absent from the worker's environment,
+absent from disk while any test runs), or importing a sealed harness module
+(`claimSigner()` refuses the second claim in a worker — D11d — and lint refuses
+the reference), or editing `e2e/harness/**` / `playwright.config.ts` /
+`eslint-rules/**` directly. Every one of those is a named edit in the diff.
+
 `no-console` for `e2e/demos/**` moved from an inline comment to the config, because
 with `noInlineConfig` a disable comment there is inert; the console call in a
 demo IS the fault under demonstration.
@@ -64,14 +100,14 @@ module-resolution stack, and `ci-guard`'s path filter now includes
 ## The lane
 | File | What it shows |
 |---|---|
-| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **10 files / 227 tests**, 0 skipped |
-| `lane-against-built-image-local.txt` | `npm run e2e` against the **built Docker image** (arm64, local): 18 passed, `coverage floor: OK (desktop=9/9 mobile=9/9)`, and the out-of-process floor guard exit 0 |
+| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **12 files / 269 tests**, 0 skipped |
+| `lane-against-built-image-local.txt` | `npm run e2e` against the **built Docker image** (arm64, local): 18 passed, `coverage floor: OK (desktop=9/9 mobile=9/9)`, `e2e harness stamp: OK (18 succeeding result(s) verified)`, the out-of-process floor-and-stamp guard exit 0, and the harness canary exit 0 |
 | `browser-revision.txt` | the exact browser build the harness resolved |
 | `server-production.log`, `server-development.log` | the two servers the demonstrations drove |
 
 ## The demonstrations
 Red against a controlled mutation, green when restored. Summary of the run that
-produced these files: `demonstrate-summary.txt` — **51 halves passed, 0 blocked,
+produced these files: `demonstrate-summary.txt` — **74 halves passed, 0 blocked,
 0 failed.**
 
 | # | Requirement | Transcripts |
@@ -86,10 +122,21 @@ produced these files: `demonstrate-summary.txt` — **51 halves passed, 0 blocke
 | D4d | the lane **refuses a filtered run** (the verifier's `--grep "reports liveness"`) | `d4d-filtered-run-{RED,GREEN}.txt` |
 | D5 | pointing at `next dev` fails | `d5-dev-server-{RED,GREEN}.txt` |
 | D6 | the built image carries no harness file or fixture token | `d6-image-fixtures-{RED,GREEN}.txt` |
-| D7 | a weakened `e2e` workflow fails the lane guard — step deleted, echo-replaced, `\|\| true`, `if: false`, artifacts removed, `if-no-files-found: warn`, floor step removed, **upload not gated on the redactor, gated on "ran" rather than "succeeded", redact step with no `id`, redact step `continue-on-error`** | `d7-*.txt` (12) |
+| D7 | a weakened `e2e` workflow fails the lane guard — step deleted, echo-replaced, `\|\| true`, `if: false`, artifacts removed, `if-no-files-found: warn`, floor step removed, upload not gated on the redactor, gated on "ran" rather than "succeeded", redact step with no `id`, redact step `continue-on-error` | `d7-*.txt` (12) |
+| D7b | **EVERY upload step is checked, not the first** — a second ungated `actions/upload-artifact`, an ungated uploader that is *not* `actions/upload-artifact`, and the control: a second upload that IS correctly gated passes | `d7b-*.txt` (3) |
+| D7c | **the harness canary is a required part of the lane** — deleted, `if: false`, `continue-on-error`, and a workflow that pins `VIZRA_E2E_STAMP_KEY` | `d7c-*.txt` (4) |
 | D8 | a spec reaching the unguarded `test` fails the gate — namespace, single quotes, dynamic `import()`, `require`, a re-export shim, **four inline-directive forms, the unscoped `playwright/test`**, and the whole `npm run lint` and `npm run ci` | `d8-*.txt` (14) |
 | D9 | a signed-URL-shaped query string does not reach an uploaded artifact | `d9-artifact-leak-RED.txt`, `d9-redaction-runs-GREEN.txt`, `d9-artifact-redacted-GREEN.txt` |
 | D10 | a spec that handles a credential fails the cheap lane | `d10-no-credentials-GREEN.txt`, `d10-credential-spec-RED.txt` |
+| **D11** | **the runtime proof of harness.** Every half below runs Playwright directly — **no ESLint anywhere in the command** — so what is shown is the runtime, not the lint | `d11*-*.txt` (11) |
+| D11a | door 1, the namespace import verbatim → the lane is RED with `succeeded WITHOUT the harness stamp` | `d11a-namespace-import-RED.txt` |
+| D11b | door 2, `/* eslint-disable … */` **with `noInlineConfig` removed by a controlled mutation of `eslint.config.mjs`**, so lint genuinely lets the file through (GREEN half proves it does) — and the runtime catches it anyway | `d11b-lint-defeated-GREEN.txt`, `d11b-eslint-disable-RED.txt` |
+| D11c | door 3, a spec at `e2e/other/__r1.spec.ts` — **not collected** (the lane still lists `Total: 18 tests in 3 files`) and **refused by lint** | `d11c-outside-not-collected-GREEN.txt`, `d11c-outside-refused-by-lint-RED.txt` |
+| D11d | a door the verifier has not tried: the spec imports the sealed `e2e/harness/stamp` and signs itself → `the browser harness's stamp key has already been claimed in this worker` | `d11d-forge-via-sealed-module-RED.txt` |
+| D11e | a second new door: the spec reads `process.env.VIZRA_E2E_STAMP_KEY`. The transcript shows both halves at once — the assertion that the variable is `undefined` PASSES, and the forged stamp `does not verify against this run's key` | `d11e-forge-via-environment-RED.txt` |
+| D11f | the **out-of-process** half with the in-process reporter deleted from `playwright.config.ts` (the one-line edit the gated PR could make): the run itself is green ("20 passed"), and `check-coverage-floor-ran.mjs` is still RED — *"A lane whose proof is missing did not prove anything."* | `d11f-in-process-reporter-deleted-GREEN.txt`, `d11f-out-of-process-still-RED.txt` |
+| D11 | and the clean tree: the lane prints `e2e harness stamp: OK` and the out-of-process check `carried a valid harness stamp` | `d11-clean-tree-*.txt` |
+| **D12** | **the CI canary self-tests the guard.** Each of the three listeners in `e2e/harness/browser-errors.ts` is neutered in turn and the canary turns the lane red. The `response` case is the sharp one: the fixture still FAILS (the 404 also logs a console error), so a canary that counted failures would pass — this one requires the named diagnostic `http 404` and goes red | `d12-*.txt` (5) |
 
 Notes where the mutation matters more than the exit code:
 
@@ -103,6 +150,20 @@ Notes where the mutation matters more than the exit code:
   `npm run lint`, which is the step that used to exit 0;
   `d8-guarded-import-catches-the-page-RED` shows the same body, imported
   correctly, being caught at run time by the browser-error guard.
+- **D11b's GREEN half is load-bearing, and it is deliberately a WEAKENING.** It
+  lints the bypass spec with a mutated `eslint.config.mjs` that has
+  `linterOptions` stripped, and asserts ESLint reports no problem. Without that
+  half, the RED half would be demonstrating the lint fix rather than the runtime
+  one. Both mutant configurations (`eslint.config.no-inline-config.mjs`,
+  `playwright.config.no-stamp-reporter.ts`) are generated by the script, deleted
+  when it exits, and gitignored; neither is ever committed.
+- **D11f's GREEN half is load-bearing for the same reason.** It shows the run
+  going green once the in-process reporter is deleted — which is exactly what
+  makes the RED half (the out-of-process check, still failing) mean something.
+- **D12's `response` case is the one to read.** The fixture still fails when the
+  `response` listener is dead, because the 404 also produces a console error. A
+  canary that asserted "three tests failed" would have passed that mutation. The
+  canary asserts each fixture's own diagnostic, so it does not.
 - **D9's RED half is load-bearing.** If the sentinel were not present in the
   raw artifacts, the green half would prove nothing.
   `d9-artifact-leak-RED.txt` names the two members that carried it
@@ -142,3 +203,18 @@ rewriting is verified rather than assumed.
   this PR; it is its own slice.
 - **An API-backed journey** — there is no vizra-core; the frontend runs on
   sentinel configuration.
+- **An unforgeable stamp.** The stamp is not claimed to be unforgeable, only to
+  be unforgeable *by accident* and to make every forgery a named edit in the
+  diff. `AGENTS.md` § "What forging a stamp would take" lists the three routes
+  in full. Two of them are demonstrated failing (D11d, D11e); the third is
+  editing `e2e/harness/**`, `playwright.config.ts` or `eslint-rules/**`, which
+  `npm run test` and the D12 canary make loud but which no control in this
+  repository can forbid.
+- **`.github/CODEOWNERS` still enforces nothing** until a ruleset on `main`
+  requires Code Owner review, which is an owner action outside any pull request.
+  Wherever the evidence or `AGENTS.md` says "owner-reviewed", that precondition
+  applies.
+- **Arbitrary `run:` exfiltration** — `gh release upload`, `curl`, anything a
+  step can execute. `check-e2e-lane.mjs` closes uploader *actions*, including
+  ones that are not `actions/upload-artifact`; it cannot close `run:`, and does
+  not claim to.
