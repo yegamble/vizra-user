@@ -139,7 +139,13 @@ jobs:
       - name: Redact URL query strings in the artifacts
         id: redact
         if: failure()
-        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
+        run: |
+          # THROWAWAY (chore/e2e-redactor-failure-proof): force the redactor to
+          # fail the way a missing perl/unzip/zip would, to prove the upload
+          # below does not run. Never merged.
+          bash scripts/ci/redact-artifacts.sh test-results playwright-report
+          echo "FORCED redactor failure for the FINDING 7 demonstration"
+          exit 2
 
       # Traces, screenshots, videos and the HTML report — the things that make a
       # red lane diagnosable without reproducing it locally. Uploaded on
