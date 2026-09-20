@@ -33,16 +33,38 @@ contract:
   configured `Origin` on state-changing requests, which is what core's CSRF
   check compares against.
 
-Three rules follow, and all three are enforced by tooling rather than by
-goodwill:
+Three layers enforce it, and the order matters — the weakest is the one people
+notice first:
 
-1. `vizra/no-raw-fetch` — only `lib/api/fetch.ts` may call global `fetch`.
-2. `vizra/no-identity-headers-in-cached-fetch` — a `fetch` carrying a
-   `cookie`, `authorization`, `proxy-authorization` or `x-vizra-session`
-   header (or `credentials: "include"`) must be explicitly `cache: "no-store"`.
-   A cached response built from one viewer's credentials is served to the next
-   visitor; it fails silently and it is a privacy leak.
-3. Both are `error`, never `warn`.
+1. **Types.** `publicFetch` has no header option at all; `viewerFetch` has no
+   cache option. Neither can be misused without changing the helper.
+2. **Runtime, asserted by test.** `lib/api/fetch.test.ts` asserts that
+   `viewerFetch`'s init is `cache: "no-store"` with no `next` over every
+   method/body/upload combination, that `cookies()` is read on every path, and
+   that `publicFetch` never reads it. Lint reads syntax; a refactor can change
+   syntax without changing behaviour, so the behaviour is pinned here.
+3. **Lint**, as the cheapest layer rather than the last one:
+   - `vizra/no-raw-fetch` — only `lib/api/fetch.ts` may *call* global `fetch`,
+     and **no file, including that one, may alias the binding**
+     (`const f = fetch`, `const { fetch } = globalThis`). An aliased fetch is
+     invisible to the identity rule.
+   - `vizra/no-identity-headers-in-cached-fetch` — a `fetch` carrying a
+     `cookie`, `authorization`, `proxy-authorization` or `x-vizra-session`
+     header (or `credentials: "include"`) must be explicitly
+     `cache: "no-store"`. It **fails closed**: an init it cannot read in full —
+     hoisted into a variable, spread, computed keys, headers from a call —
+     is an error, not a pass. `fetch(url)` with no init stays legal.
+   - Both are `error`, never `warn`, in every directory.
+
+Why fail closed: two independent reviewers broke the first version of the
+identity rule by hoisting the init into a variable — a refactor any reviewer
+would wave through — and a cached response built from one viewer's credentials
+is served to the next visitor, with no error, no log line and no failing test.
+The cost is that a dynamic init must be written as a literal at the call site,
+or go through the helpers. That is the trade, on purpose.
+
+Every request is bounded: `API_TIMEOUT_MS` (default 10 s) is both the default
+deadline and the ceiling a caller cannot exceed.
 
 If you need a third helper, that is an ADR amendment, not a file.
 
@@ -89,7 +111,8 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run check:contract` | vendored spec ↔ manifest ↔ generated client |
 | `npm run codegen` | regenerate the client from the vendored spec |
 | `node scripts/vendor-contract.mjs --from ../vizra-core` | take a newer contract |
-| `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite (needs bash ≥ 4) |
+| `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite, plus the manifest-floor cases (needs bash ≥ 4) |
+| `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 
 Run `npm run ci` before opening a PR. A missing command or dependency is
 BLOCKED, never a pass.
@@ -105,8 +128,18 @@ not run in the merge queue would hang the queue rather than pass it.
 `continue-on-error`, `npm ci` not `npm install`, a manifest that names only
 real jobs, shellchecked `scripts/ci`, and the fan-in's regression suite.
 
-Adding, renaming or removing a required lane is an owner-reviewed change to
-`.github/required-checks.txt`. Never weaken the manifest to turn a PR green.
+**The floor.** `ci-required` reads the manifest from the checkout under test,
+so the file that defines the gate is editable by the pull request the gate is
+gating — deleting one line used to merge green with lint, typecheck, tests and
+the build never having had to pass. `scripts/ci/check-required-floor.sh` fixes
+a floor (`frontend`, `contract`) in a separate file and fails by name when the
+manifest stops demanding it, whether by deletion or by demotion to `?optional`.
+
+Adding, renaming or removing a required lane is an owner-reviewed change
+(`.github/CODEOWNERS` covers `.github/`, `scripts/ci/`, `eslint-rules/` and
+`contracts/`). CODEOWNERS only bites once a ruleset requires Code Owner review,
+which is an owner action, not part of any PR. Never weaken the manifest or the
+floor to turn a PR green.
 
 ## Pins
 Versions come from ADR-001 and are verified on the npm registry before they are

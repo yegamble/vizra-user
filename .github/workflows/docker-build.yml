@@ -68,6 +68,14 @@ jobs:
             sleep 2
           done
           [ -n "$ok" ] || { echo "::error::/health never answered"; exit 1; }
+          # The runtime user is non-root AND in the group the COPY --chown
+          # names, so the group half of that chown is not inert.
+          id_out=$(docker exec vizra-user-ci id)
+          echo "runtime identity: $id_out"
+          case $id_out in
+            *"uid=1001(nextjs)"*"gid=1001(nodejs)"*) ;;
+            *) echo "::error::unexpected runtime identity: $id_out"; exit 1 ;;
+          esac
           grep -q 'data-testid="health-status"' /tmp/health.html \
             && grep -q '>ok<' /tmp/health.html \
             || { echo "::error::/health did not report ok"; cat /tmp/health.html; exit 1; }

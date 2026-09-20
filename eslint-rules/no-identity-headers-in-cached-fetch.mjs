@@ -1,6 +1,6 @@
 /**
  * ESLint rule: a `fetch()` that carries viewer identity must be explicitly
- * uncached.
+ * uncached — and a `fetch()` this rule cannot read is an error, not a pass.
  *
  * ADR-003 ("SSR identity"): "`viewerFetch` … always sets `cache: 'no-store'`
  * and is never called inside a revalidated cache. A lint rule forbids identity
@@ -14,31 +14,47 @@
  * section exists to prevent, and it produces no error, no log line and no
  * failing test: the page just renders, with someone else's data in it.
  *
- * WHAT COUNTS AS IDENTITY: a `cookie`, `authorization`, `proxy-authorization`
- * or `x-vizra-session` header (any casing), or `credentials: "include"`.
+ * FAIL CLOSED. Two independent reviewers broke the first version of this rule
+ * the same way: it returned silently whenever the call was not spelled the way
+ * it expected — the init object hoisted into a variable, headers spread from a
+ * function, `Object.assign`, a computed key, `new Headers().set()`. Each was a
+ * plausible refactor of `lib/api/fetch.ts`, the one file where `no-raw-fetch`
+ * is allow-listed off and this rule is therefore the only lint control. So the
+ * rule no longer decides between "identity" and "no identity". It decides
+ * between "I read this call and it is safe" and "report it":
  *
- * WHAT COUNTS AS CACHED: anything that is not an explicit opt-out. The rule
- * demands `cache: "no-store"` (or the equivalent `next: { revalidate: 0 }`)
- * rather than merely rejecting `force-cache`, because caching posture varies
- * by framework version and by route segment config — "I did not write a cache
- * option" is not a guarantee of an uncached request, while `no-store` is.
+ *   - second argument present and not an object literal          → `unreadable`
+ *   - a property of that object with a key it cannot read        → `unreadable`
+ *   - a spread element in that object                            → `unreadable`
+ *   - `headers` it cannot resolve to an object literal — a call,
+ *     a parameter, a reassigned binding, a `new Headers(x)` with a
+ *     non-literal argument, or a binding that escapes into another
+ *     expression (passed to `Object.assign`, spread, aliased)    → `unreadable`
+ *   - a header key it cannot read statically                     → `unreadable`
+ *   - identity present and the call is cached or unmarked        → `revalidated` / `unmarked`
  *
- * HEADERS IN A VARIABLE ARE JUDGED TOO. Real code rarely writes the headers
- * inline; `viewerFetch` builds a `Record<string, string>` and adds the cookie
- * conditionally. An earlier version of this rule only read object literals at
- * the call site, and a controlled mutation proved it: weakening `viewerFetch`
- * itself from `cache: "no-store"` to `next: { revalidate: 60 }` produced NO
- * lint error, because the headers arrived by name. So the rule now resolves an
- * identifier through scope and inspects both the variable's initializer and
- * every `headers.cookie = …` / `headers["cookie"] = …` write to it.
+ * `fetch(url)` with no init stays valid: there is nothing to read and nothing
+ * to send. The cost of failing closed is that a legitimate dynamic call has to
+ * be written as a literal at the call site, or go through the helpers. That is
+ * the intended trade.
  *
- * LIMITS, STATED PLAINLY. It is still syntax, not type inference: headers
- * spread from a function call (`...identityHeaders()`), assembled through a
- * `Headers` object's `.set()`, or reached through a second alias are not
- * judged. That is why `no-raw-fetch.mjs` keeps every module except
- * `lib/api/fetch.ts` out of global `fetch` in the first place, and why
- * `lib/api/fetch.test.ts` asserts the helpers' behaviour directly. The three
- * are meant to be used together; none of them alone is the control.
+ * WHAT REMAINS UNREPORTED, PLAINLY. Within a call this rule CAN read, it still
+ * only knows the header names it is told about: `IDENTITY_HEADERS` below plus
+ * `credentials: "include"`. A future credential carried in a header name not on
+ * that list, or a value whose identity is not visible in its key, is not
+ * detected. It also judges one call at a time: a wrapper that takes the cache
+ * posture as a parameter and is called with identity elsewhere is out of reach
+ * of any syntactic rule.
+ *
+ * This is why the rule is not the control on its own, and the docblock no
+ * longer claims it is:
+ *   - `no-raw-fetch.mjs` bans global `fetch` outside `lib/api/fetch.ts` AND
+ *     bans aliasing the `fetch` binding in every file, including that one;
+ *   - `lib/api/fetch.test.ts` asserts the runtime property directly — over
+ *     every method/body/upload combination, `viewerFetch`'s init has
+ *     `cache: "no-store"` and no `next`, and `cookies()` is consulted on every
+ *     path, which is what keeps Next's own cache-scope error armed.
+ * A syntactic rule is the cheapest layer, not the last one.
  */
 
 const IDENTITY_HEADERS = new Set([
@@ -68,8 +84,17 @@ function findProperty(objectExpression, name) {
   return found;
 }
 
+/** First property of an object literal that cannot be read statically, or null. */
+function unreadablePart(objectExpression) {
+  for (const property of objectExpression.properties) {
+    if (property.type === "SpreadElement") return property;
+    if (staticKey(property) === null) return property;
+  }
+  return null;
+}
+
 /** The object literal holding header entries, whether written directly or as `new Headers({...})`. */
-function headersObject(value) {
+function headersLiteral(value) {
   if (!value) return null;
   if (value.type === "ObjectExpression") return value;
   if (
@@ -84,7 +109,7 @@ function headersObject(value) {
   return null;
 }
 
-/** The first identity-named key in an object literal of headers, or null. */
+/** First identity-named key in an object literal of headers, or null. */
 function identityKeyIn(object) {
   for (const property of object.properties) {
     const key = staticKey(property);
@@ -105,18 +130,50 @@ function lookup(scope, name) {
 }
 
 /**
- * Identity carried by a headers object held in a variable: either present in
- * its initializer, or written onto it later (`headers.cookie = …`).
+ * Is this reference to a headers binding one we can account for?
+ *
+ * Accounted for: its own initializer, a member expression on it
+ * (`headers.cookie`, read or written), and being handed to a fetch as the
+ * `headers` option. Anything else — passed to a function, spread into another
+ * object, aliased to a second name — means the object can be changed somewhere
+ * this rule is not looking, so the call is `unreadable`.
  */
-function identityInVariable(variable) {
-  for (const def of variable.defs) {
-    if (def.node.type === "VariableDeclarator" && def.node.init) {
-      const object = headersObject(def.node.init);
-      const hit = object ? identityKeyIn(object) : null;
-      if (hit) return hit;
-    }
+function accountedFor(reference) {
+  if (reference.init) return true;
+  const identifier = reference.identifier;
+  const parent = identifier.parent;
+  if (!parent) return false;
+  if (parent.type === "MemberExpression" && parent.object === identifier) return true;
+  if (parent.type === "Property" && !parent.computed) {
+    const key = staticKey(parent);
+    const isValue = parent.shorthand || parent.value === identifier;
+    if (isValue && key !== null && key.toLowerCase() === "headers") return true;
   }
+  return false;
+}
+
+/**
+ * Read a headers binding. Returns `{ identity }` (identity may be null) when
+ * the binding could be read in full, or `{ unreadable: node }`.
+ */
+function readHeadersVariable(variable, at) {
+  const defs = variable.defs;
+  if (defs.length !== 1) return { unreadable: at };
+
+  const def = defs[0];
+  if (def.node.type !== "VariableDeclarator" || !def.node.init) return { unreadable: at };
+
+  const literal = headersLiteral(def.node.init);
+  if (!literal) return { unreadable: at };
+
+  const opaque = unreadablePart(literal);
+  if (opaque) return { unreadable: opaque };
+
+  let identity = identityKeyIn(literal);
+
   for (const reference of variable.references) {
+    if (!accountedFor(reference)) return { unreadable: reference.identifier };
+
     const identifier = reference.identifier;
     const member = identifier.parent;
     if (!member || member.type !== "MemberExpression" || member.object !== identifier) {
@@ -126,46 +183,58 @@ function identityInVariable(variable) {
     if (member.computed) {
       if (member.property.type === "Literal" && typeof member.property.value === "string") {
         key = member.property.value;
+      } else {
+        // headers[someExpression] = … — the name is not knowable here.
+        return { unreadable: member };
       }
     } else if (member.property.type === "Identifier") {
       key = member.property.name;
     }
     if (key === null || !IDENTITY_HEADERS.has(key.toLowerCase())) continue;
+
     const assignment = member.parent;
     if (assignment && assignment.type === "AssignmentExpression" && assignment.left === member) {
-      return { node: assignment, header: key };
+      identity = identity ?? { node: assignment, header: key };
     }
   }
-  return null;
+
+  return { identity };
 }
 
-/** The identity-bearing node for this options object, or null. */
-function identityNode(options, scope) {
+/**
+ * Identity carried by this options object. Returns `{ identity }` (possibly
+ * null) or `{ unreadable: node }`.
+ */
+function readIdentity(options, scope) {
+  const opaque = unreadablePart(options);
+  if (opaque) return { unreadable: opaque };
+
   const credentials = findProperty(options, "credentials");
-  if (
-    credentials &&
-    credentials.value.type === "Literal" &&
-    credentials.value.value === "include"
-  ) {
-    return { node: credentials, header: 'credentials: "include"' };
+  if (credentials) {
+    if (credentials.value.type !== "Literal") return { unreadable: credentials };
+    if (credentials.value.value === "include") {
+      return { identity: { node: credentials, header: 'credentials: "include"' } };
+    }
   }
 
   const headers = findProperty(options, "headers");
-  if (!headers) return null;
+  if (!headers) return { identity: null };
 
-  const object = headersObject(headers.value);
-  if (object) return identityKeyIn(object);
+  const literal = headersLiteral(headers.value);
+  if (literal) {
+    const opaqueHeader = unreadablePart(literal);
+    if (opaqueHeader) return { unreadable: opaqueHeader };
+    return { identity: identityKeyIn(literal) };
+  }
 
-  // `headers,` (shorthand) or `headers: someVariable` — follow it.
   const value = headers.shorthand ? headers.key : headers.value;
   if (value.type === "Identifier" && scope) {
     const variable = lookup(scope, value.name);
-    if (variable) {
-      const hit = identityInVariable(variable);
-      if (hit) return { node: hit.node, header: hit.header };
-    }
+    if (!variable) return { unreadable: headers };
+    return readHeadersVariable(variable, headers);
   }
-  return null;
+
+  return { unreadable: headers };
 }
 
 /**
@@ -175,16 +244,15 @@ function identityNode(options, scope) {
 function cachePosture(options) {
   const cache = findProperty(options, "cache");
   const next = findProperty(options, "next");
-  const revalidate = next ? findProperty(next.value, "revalidate") : null;
+  const revalidate =
+    next && next.value.type === "ObjectExpression"
+      ? findProperty(next.value, "revalidate")
+      : null;
 
   const explicitNoStore =
-    cache &&
-    cache.value.type === "Literal" &&
-    cache.value.value === "no-store";
+    cache && cache.value.type === "Literal" && cache.value.value === "no-store";
   const explicitZeroRevalidate =
-    revalidate &&
-    revalidate.value.type === "Literal" &&
-    revalidate.value.value === 0;
+    revalidate && revalidate.value.type === "Literal" && revalidate.value.value === 0;
 
   // An explicit revalidate window alongside no-store is a contradiction; treat
   // the caching half as the answer so it is reported rather than excused.
@@ -192,7 +260,7 @@ function cachePosture(options) {
     return { posture: "revalidated", node: revalidate };
   }
   if (explicitNoStore || explicitZeroRevalidate) return { posture: "no-store", node: null };
-  if (cache) return { posture: "revalidated", node: cache };
+  if (cache || next) return { posture: "revalidated", node: cache ?? next };
   return { posture: "unmarked", node: null };
 }
 
@@ -202,7 +270,7 @@ const rule = {
     type: "problem",
     docs: {
       description:
-        "forbid identity headers (cookie/authorization) on a cached or revalidated fetch",
+        "forbid identity headers (cookie/authorization) on a cached or revalidated fetch, and report any fetch init this rule cannot read",
       recommended: true,
     },
     schema: [],
@@ -211,6 +279,8 @@ const rule = {
         'This fetch sends "{{header}}" and is cached or revalidated. A shared cache entry built from one viewer\'s credentials is served to other viewers (ADR-003). Use viewerFetch, or set cache: "no-store".',
       unmarked:
         'This fetch sends "{{header}}" without an explicit cache: "no-store". An identified request must opt out of the data cache at the call site (ADR-003), not rely on a framework default.',
+      unreadable:
+        'This rule cannot read this fetch, so it cannot prove the request carries no identity on a cached read — and it fails closed (ADR-003). Write the init and its headers as object literals at the call site, or call publicFetch / viewerFetch from lib/api/fetch.ts.',
     },
   },
   create(context) {
@@ -232,22 +302,32 @@ const rule = {
         if (!isFetch) return;
 
         const options = node.arguments[1];
-        if (!options || options.type !== "ObjectExpression") return;
+        // `fetch(url)` sends nothing of ours: nothing to read, nothing to report.
+        if (!options) return;
         calls.push({ node, options, scope: sourceCode.getScope(node) });
       },
 
       "Program:exit"() {
         for (const call of calls) {
-          const identity = identityNode(call.options, call.scope);
-          if (!identity) continue;
+          if (call.options.type !== "ObjectExpression") {
+            context.report({ node: call.options, messageId: "unreadable" });
+            continue;
+          }
+
+          const read = readIdentity(call.options, call.scope);
+          if (read.unreadable) {
+            context.report({ node: read.unreadable, messageId: "unreadable" });
+            continue;
+          }
+          if (!read.identity) continue;
 
           const { posture, node: cacheNode } = cachePosture(call.options);
           if (posture === "no-store") continue;
 
           context.report({
-            node: posture === "revalidated" && cacheNode ? cacheNode : identity.node,
+            node: posture === "revalidated" && cacheNode ? cacheNode : read.identity.node,
             messageId: posture === "revalidated" ? "revalidated" : "unmarked",
-            data: { header: identity.header },
+            data: { header: read.identity.header },
           });
         }
       },

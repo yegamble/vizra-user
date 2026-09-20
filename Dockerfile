@@ -41,9 +41,13 @@ ENV HOSTNAME=0.0.0.0
 # base's copy of a package that has since been fixed. The honest trade-off:
 # two builds of one commit can then differ in patch-level packages, which is
 # why the release records what it resolved rather than assuming.
+# `-G nodejs` matters: BusyBox `adduser` without it puts the user in `nogroup`,
+# so the `--chown=nextjs:nodejs` below would set a group the runtime user is
+# not in — inert today, and a confusing failure the first time anything relies
+# on group permissions (a writable cache directory, say).
 RUN apk upgrade --no-cache \
-  && addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
+  && addgroup -S -g 1001 nodejs \
+  && adduser -S -u 1001 -G nodejs nextjs
 # Standalone output bundles a minimal server plus a pruned node_modules; the
 # static assets and public/ must be copied alongside it.
 COPY --from=builder /app/public ./public

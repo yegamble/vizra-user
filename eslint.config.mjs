@@ -27,10 +27,13 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // Node scripts and the ESLint rules themselves: printing IS their output,
-    // and a lint rule may not call the app's fetch helpers.
+    // Node scripts and the ESLint rules themselves: printing IS their output.
+    // `vizra/no-raw-fetch` deliberately stays ON here — nothing under these
+    // directories has any business touching global `fetch`, and switching the
+    // rule off by directory is how the one file that mattered ended up
+    // unguarded the first time.
     files: ["scripts/**/*.{mjs,js}", "eslint-rules/**/*.mjs"],
-    rules: { "no-console": "off", "vizra/no-raw-fetch": "off" },
+    rules: { "no-console": "off" },
   },
   globalIgnores([
     ".next/**",

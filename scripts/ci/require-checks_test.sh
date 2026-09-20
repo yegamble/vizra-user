@@ -407,5 +407,99 @@ begin "an abbreviated commit SHA is refused"
 checks "100|10|a|completed|success"
 expect 1 'full 40-character' CHECK_SHA=0123456
 
+# ---------------------------------------------------------------------------
+# The FLOOR guard (scripts/ci/check-required-floor.sh).
+#
+# The fan-in above reads the manifest from the checkout under test, so the file
+# that DEFINES the required set is editable by the pull request the set is
+# gating. `check-required-manifest.sh` only asks whether the names present are
+# real jobs; nothing asked whether the names that matter are present at all.
+# These cases drive the floor guard directly with mutated manifests, because a
+# guard that can only be checked by hand is a guard that will drift.
+# ---------------------------------------------------------------------------
+floor_script=${REQUIRE_FLOOR_SCRIPT:-$here/check-required-floor.sh}
+[ -r "$floor_script" ] || { echo "require-checks_test: $floor_script is missing" >&2; exit 1; }
+
+# floor_expect WANT_RC PATTERN <<manifest lines
+floor_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 rc=0
+  local file=$tmp/floor-$cases.txt
+  cat >"$file"
+  # `|| rc=$?`, never `if ! cmd; then rc=$?`: inside the negated condition `$?`
+  # is the status of the negation (0), so every failing case would read as a
+  # pass. This suite exists because gates that look green are the problem.
+  FLOOR="frontend contract" bash "$floor_script" "$file" >"$tmp/floor-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/floor-$cases.out" | cut -c1-200)"
+  elif ! grep -Eq -- "$pattern" "$tmp/floor-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/floor-$cases.out" | cut -c1-200)"
+  else
+    record 0
+  fi
+}
+
+title="the floor guard accepts a manifest that requires frontend and contract"
+floor_expect 0 'still requires the floor' <<'MANIFEST'
+# a comment
+frontend
+contract
+?guard
+?docker-build
+MANIFEST
+
+title="deleting the frontend line fails the floor guard by name"
+floor_expect 1 'frontend: missing' <<'MANIFEST'
+contract
+?guard
+MANIFEST
+
+title="marking frontend optional fails the floor guard by name"
+floor_expect 1 'frontend: marked optional' <<'MANIFEST'
+?frontend
+contract
+MANIFEST
+
+title="deleting the contract line fails the floor guard by name"
+floor_expect 1 'contract: missing' <<'MANIFEST'
+frontend
+?guard
+MANIFEST
+
+title="marking contract optional fails the floor guard by name"
+floor_expect 1 'contract: marked optional' <<'MANIFEST'
+frontend
+?contract
+MANIFEST
+
+title="a floor lane commented out is not a floor lane"
+floor_expect 1 'frontend: missing' <<'MANIFEST'
+# frontend
+contract
+MANIFEST
+
+title="a floor name inside a comment on another line does not satisfy the guard"
+floor_expect 1 'frontend: missing' <<'MANIFEST'
+contract   # replaces frontend
+MANIFEST
+
+title="a near-miss name does not satisfy the guard"
+floor_expect 1 'frontend: missing' <<'MANIFEST'
+frontend-ci
+contract
+MANIFEST
+
+title="an empty manifest fails rather than vacuously passing"
+floor_expect 1 'frontend: missing' <<'MANIFEST'
+MANIFEST
+
+title="the real manifest in this repository satisfies its own floor"
+cases=$((cases + 1))
+if FLOOR="frontend contract" bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
+  record 0
+else
+  record 1 "the committed .github/required-checks.txt does not satisfy the floor"
+fi
+
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]

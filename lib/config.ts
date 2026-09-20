@@ -37,3 +37,34 @@ export function internalApiBaseUrl(): string {
 export function publicOrigin(): string {
   return required("PUBLIC_ORIGIN").replace(/\/+$/, "");
 }
+
+/** Fallback when `API_TIMEOUT_MS` is unset. Ten seconds. */
+export const DEFAULT_API_TIMEOUT_MS = 10_000;
+
+/**
+ * Deadline for one request to vizra-core, in milliseconds: both the **default**
+ * when a caller asks for none and the **ceiling** a caller cannot exceed.
+ *
+ * AGENTS.md requires bounded request resources. Without a deadline, a core
+ * that accepts a connection and never answers holds an SSR render open
+ * indefinitely: requests pile up on the Node process with no bound, and the
+ * visitor waits forever instead of seeing the real failure state the helpers
+ * are built to render. Undici has defaults of its own, but they are not this
+ * repository's reviewed decision, and `ApiResult`'s `reason: "timeout"` exists
+ * precisely because these helpers mean to own it.
+ *
+ * A caller may pass a SHORTER `timeoutMs` (a page that would rather degrade
+ * than wait); a longer one is clamped to this ceiling, so no single call site
+ * can opt out of the bound.
+ *
+ * Unset, empty, non-numeric, zero or negative all fall back to the default
+ * rather than disabling the bound — "unbounded" must not be reachable by
+ * typo.
+ */
+export function apiTimeoutMs(): number {
+  const raw = process.env.API_TIMEOUT_MS;
+  if (raw === undefined || raw.trim() === "") return DEFAULT_API_TIMEOUT_MS;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_API_TIMEOUT_MS;
+  return Math.floor(parsed);
+}

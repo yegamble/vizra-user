@@ -106,6 +106,14 @@ jobs:
       - name: Every required check name is a job some workflow defines
         run: bash scripts/ci/check-required-manifest.sh
 
+      # The manifest defines what `ci-required` waits for, and it lives in the
+      # tree the pull request can edit. Nothing asserted that the lanes that
+      # matter were still IN it, so deleting one line merged green with no
+      # lint, typecheck, test or build ever having to pass. The floor lives in
+      # a separate, owner-reviewed file (.github/CODEOWNERS).
+      - name: The required-check manifest still demands its floor
+        run: bash scripts/ci/check-required-floor.sh
+
       - name: The ci-required fan-in stays fail-closed
         run: bash scripts/ci/require-checks_test.sh
 

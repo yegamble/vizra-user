@@ -14,13 +14,23 @@
  *     all, so there is no expression a caller can write that adds identity to
  *     a cacheable read. `viewerFetch` has no cache option, so there is no
  *     expression a caller can write that caches an identified read.
- *  2. RUNTIME. `viewerFetch` always sets `cache: "no-store"`; `publicFetch`
- *     sends exactly `Accept: application/json` and never reads `cookies()`.
- *  3. LINT. `eslint-rules/no-raw-fetch.mjs` keeps every other module out of
- *     global `fetch`, and `eslint-rules/no-identity-headers-in-cached-fetch.mjs`
- *     fails any fetch that pairs an identity header with a cached or
- *     revalidated request — including the ones in this file, which pass only
- *     because `viewerFetch` is explicitly `no-store`.
+ *  2. RUNTIME, asserted by test. `viewerFetch` always sets `cache: "no-store"`
+ *     and never `next`, over every method/body/upload combination, and reads
+ *     `cookies()` on every path; `publicFetch` sends exactly
+ *     `Accept: application/json` and never reads `cookies()`. These are pinned
+ *     in `lib/api/fetch.test.ts`, not left to lint — lint reads syntax, and a
+ *     refactor can change syntax without changing behaviour.
+ *  3. LINT, as the cheapest layer rather than the last one.
+ *     `eslint-rules/no-raw-fetch.mjs` keeps every other module out of global
+ *     `fetch` and forbids aliasing the binding in EVERY file, this one
+ *     included; `eslint-rules/no-identity-headers-in-cached-fetch.mjs` fails
+ *     any fetch that pairs an identity header with a cached or revalidated
+ *     request, and fails closed on any init it cannot read. Both rules'
+ *     limits are written out in their own docblocks.
+ *
+ * Every request is bounded by `apiTimeoutMs()` — a default and a ceiling, so
+ * no call site can wait forever on a core that accepts the connection and
+ * never answers.
  *
  * Both are server-only. Importing them into a Client Component would put the
  * internal base URL (and, for `viewerFetch`, a cookie read) in the browser
@@ -29,7 +39,7 @@
 
 import { cookies } from "next/headers";
 
-import { internalApiBaseUrl, publicOrigin } from "@/lib/config";
+import { apiTimeoutMs, internalApiBaseUrl, publicOrigin } from "@/lib/config";
 
 /** Session cookie name, fixed by ADR-003. `__Host-` prefix: host-locked, secure, path `/`. */
 export const SESSION_COOKIE = "__Host-vizra_session";
@@ -61,6 +71,10 @@ export type PublicFetchOptions = {
    * changes the cache key rather than needing the cache purged.
    */
   readonly freshness: "no-store" | { readonly revalidateSeconds: number };
+  /**
+   * Shorten this request's deadline. Omitted, `API_TIMEOUT_MS` applies; a
+   * value longer than it is clamped to it, so no call site is unbounded.
+   */
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
 };
@@ -69,6 +83,7 @@ export type ViewerFetchOptions = {
   readonly method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** JSON request body. Sets `Content-Type: application/json`, which core's CSRF check requires. */
   readonly json?: unknown;
+  /** Shorten this request's deadline; see `PublicFetchOptions.timeoutMs`. */
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
   /**
@@ -95,12 +110,21 @@ function url(path: string): string {
   return `${internalApiBaseUrl()}${path}`;
 }
 
-function timeoutSignal(
+/**
+ * Every request is bounded. `apiTimeoutMs()` is both the default when the
+ * caller asks for nothing and the ceiling when it asks for too much, so no
+ * call site can make an unbounded request (AGENTS.md: bound request
+ * resources). A caller's own signal is composed with the deadline, never
+ * replaced by it — cancelling a render must still cancel the request.
+ */
+function boundedSignal(
   timeoutMs: number | undefined,
   caller: AbortSignal | undefined,
-): AbortSignal | undefined {
-  if (timeoutMs === undefined) return caller;
-  const deadline = AbortSignal.timeout(timeoutMs);
+): AbortSignal {
+  const ceiling = apiTimeoutMs();
+  const effective =
+    timeoutMs === undefined ? ceiling : Math.max(1, Math.min(timeoutMs, ceiling));
+  const deadline = AbortSignal.timeout(effective);
   return caller ? AbortSignal.any([caller, deadline]) : deadline;
 }
 
@@ -138,15 +162,24 @@ export async function publicFetch<T>(
   // disguised as `reason: "network"` — that is how a misconfigured instance
   // renders as an empty page instead of a loud failure.
   const target = url(path);
+  const headers = { Accept: "application/json" };
+  const signal = boundedSignal(options.timeoutMs, options.signal);
   try {
-    const res = await fetch(target, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-      ...(freshness === "no-store"
-        ? { cache: "no-store" as const }
-        : { next: { revalidate: freshness.revalidateSeconds } }),
-      signal: timeoutSignal(options.timeoutMs, options.signal),
-    });
+    // Two spellings of one request, written out rather than assembled with a
+    // spread. `no-identity-headers-in-cached-fetch` fails closed on any init
+    // it cannot read in full, and that is deliberate: the shape that hid a
+    // revalidated, cookie-bearing request from the first version of the rule
+    // was exactly an init the rule could not read. Keeping both inits literal
+    // is the price of the rule being able to check this file at all.
+    const res =
+      freshness === "no-store"
+        ? await fetch(target, { method: "GET", headers, cache: "no-store", signal })
+        : await fetch(target, {
+            method: "GET",
+            headers,
+            next: { revalidate: freshness.revalidateSeconds },
+            signal,
+          });
     return await decode<T>(res);
   } catch (error) {
     return failed<T>(error);
@@ -176,7 +209,14 @@ export async function viewerFetch<T>(
   const target = url(path);
   const headers: Record<string, string> = { Accept: "application/json" };
 
-  const session = (await cookies()).get(SESSION_COOKIE);
+  // Read UNCONDITIONALLY, before any branch. Two reasons: the request must be
+  // identical in shape whether or not a session exists, and calling `cookies()`
+  // on every path is what keeps Next's own backstop armed — Next throws when
+  // `cookies()` is reached inside a `"use cache"` / `unstable_cache` scope, so
+  // this call is what makes wrapping viewerFetch in a cache a loud error
+  // instead of a silent one. `lib/api/fetch.test.ts` locks that in.
+  const jar = await cookies();
+  const session = jar.get(SESSION_COOKIE);
   if (session) headers["cookie"] = `${SESSION_COOKIE}=${session.value}`;
 
   const stateChanging = method !== "GET";
@@ -198,7 +238,7 @@ export async function viewerFetch<T>(
       // cached or revalidated. The lint rule enforces the same thing for any
       // future call site.
       cache: "no-store",
-      signal: timeoutSignal(options.timeoutMs, options.signal),
+      signal: boundedSignal(options.timeoutMs, options.signal),
     });
     return await decode<T>(res);
   } catch (error) {

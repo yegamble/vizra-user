@@ -34,6 +34,7 @@ Read from the environment at request time; nothing is baked into the image.
 |---|---|
 | `INTERNAL_API_BASE_URL` | how this process reaches vizra-core (inside the compose network) |
 | `PUBLIC_ORIGIN` | the instance's public origin, sent as `Origin` on state-changing requests |
+| `API_TIMEOUT_MS` | deadline for one request to vizra-core — both the default and the ceiling a caller cannot exceed (default 10000) |
 
 ## Contributing
 Read [`AGENTS.md`](AGENTS.md) first. In short: the API contract belongs to
