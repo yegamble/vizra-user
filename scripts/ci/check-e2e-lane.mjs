@@ -49,7 +49,19 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { parse } from "yaml";
+// Imported dynamically so a missing dependency is a NAMED failure rather than
+// a module-resolution stack trace. `ci-guard` runs this job; it installs from
+// the lockfile for exactly this reason.
+let parse;
+try {
+  ({ parse } = await import("yaml"));
+} catch {
+  console.error(
+    "::error::e2e-lane guard: the `yaml` package is not installed, so the workflow cannot be " +
+      "parsed. Run `npm ci` first. This check is BLOCKED, not passed.",
+  );
+  process.exit(2);
+}
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 

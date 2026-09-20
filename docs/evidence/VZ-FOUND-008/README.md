@@ -38,7 +38,15 @@ npm run e2e:demos    # every transcript in this directory, regenerated
 | 2 — `check-e2e-lane.sh` never asserted the step that runs Playwright; deleting or echo-replacing it left the guard OK and the `e2e` check green | BLOCKER | the guard now PARSES the workflow (`scripts/ci/check-e2e-lane.mjs`) and asserts the step graph | **D7**, eight halves, plus 13 cases in `require-checks_test.sh` |
 | 3 — the coverage floor was 1 per project, so `--grep` ran one test and reported OK | SHOULD | minima moved to `e2e/harness/required-projects.json` at today's counts (9/9), filtered runs refused, and the floor re-checked from the report by a separate CI step | **D4c, D4c2, D4d** |
 | 4 — a `?X-Amz-Signature=…` value was redacted in every harness line and present verbatim inside uploaded `trace.zip` members | REQUIRED | `scripts/ci/redact-artifacts.sh` runs before upload; `trace.sources` disabled | **D9** |
-| 5 — the `if: failure()` upload had never executed and `if-no-files-found: warn` would hide a wrong path | NIT | `if-no-files-found: error`; the path proved on a throwaway PR (see `ci-artifact-proof.md`) | see that file |
+| 5 — the `if: failure()` upload had never executed and `if-no-files-found: warn` would hide a wrong path | NIT | `if-no-files-found: error`; the path proved on a throwaway PR | **`ci-artifact-proof.md`** — a real CI run, the artifact GitHub stored, downloaded and swept: 182 files, 8 archives, sentinel in **0** members, path readable in 46 |
+
+One more defect surfaced during this round, by the new tests rather than by a
+reviewer: `ci-guard` never ran `npm ci`, so the parser-based lane guard could
+not load its `yaml` dependency and 13 of the new regression cases failed in CI
+with "Cannot find package 'yaml'". The job now installs from the lockfile, the
+guard reports a missing parser as BLOCKED by name instead of throwing a
+module-resolution stack, and `ci-guard`'s path filter now includes
+`package.json` / `package-lock.json`.
 
 ## The lane
 | File | What it shows |

@@ -34,6 +34,8 @@ on:
       - "e2e/harness/**"
       - "Dockerfile"
       - ".nvmrc"
+      - "package.json"
+      - "package-lock.json"
   pull_request:
     paths:
       - ".github/workflows/**"
@@ -44,6 +46,8 @@ on:
       - "e2e/harness/**"
       - "Dockerfile"
       - ".nvmrc"
+      - "package.json"
+      - "package-lock.json"
   merge_group:
   workflow_dispatch:
 
@@ -62,6 +66,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # This job used to need nothing but bash. `check-e2e-lane.sh` now PARSES
+      # the e2e workflow (it used to grep it, and an independent verifier walked
+      # three mutations through the grep), and the parser needs the pinned
+      # `yaml` package. Without this the guard's own regression suite reported
+      # 13 failures of the form "Cannot find package 'yaml'" — loudly, which is
+      # the right way for a missing dependency to show up, but it must not be
+      # missing.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
 
       # A workflow file GitHub cannot parse is caught by the fan-in's zero-job
       # guard (scripts/ci/require-checks.sh: a run that concludes failure with

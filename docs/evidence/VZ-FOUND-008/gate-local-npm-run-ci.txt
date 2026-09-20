@@ -20,8 +20,8 @@
 
  Test Files  9 passed (9)
       Tests  206 passed (206)
-   Start at  16:48:09
-   Duration  1.08s (tests 58%, import 25%, transform 15%, worker 1%)
+   Start at  16:55:59
+   Duration  1.03s (tests 57%, import 28%, transform 13%, worker 1%)
 
 
 > vizra-user@0.0.0 build
@@ -31,12 +31,12 @@
 ✓ Running next.config.ts took 75ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 604ms
+✓ Compiled successfully in 633ms
   Running TypeScript ...
-  Finished TypeScript in 916ms ...
+  Finished TypeScript in 791ms ...
   Collecting page data using 5 workers ...
   Generating static pages using 5 workers (0/3) ...
-✓ Generating static pages using 5 workers (3/3) in 211ms
+✓ Generating static pages using 5 workers (3/3) in 220ms
   Finalizing page optimization ...
 
 Route (app)
