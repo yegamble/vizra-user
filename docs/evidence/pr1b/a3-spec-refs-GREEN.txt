@@ -1,0 +1,23 @@
+# A3 GREEN — the committed spec, unchanged
+
+$ git diff --exit-code contracts/
+(no diff) EXIT=0
+
+$ node scripts/check-spec-refs.mjs
+OK: all 9 $ref values in /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml are in-document pointers.
+EXIT=0
+
+$ npm run check:contract
+✨ openapi-typescript 7.13.0
+🚀 /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml → /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/vizra-contract-XnTqFE/generated.ts [21.8ms]
+✅ contract: contracts/vizra-core/api/openapi.yaml matches its manifest (sha256 128d0509238a…),
+   and lib/api/generated.ts is exactly what openapi-typescript 7.13.0 generates from it.
+   source: yegamble/vizra-core@b0dbeb6dc27294fe793492ea60bc18b6aed4b042 :api/openapi.yaml
+EXIT=
+
+$ git diff --exit-code   (the check changed nothing)
+(clean) EXIT=0
+
+$ npx vitest run scripts/check-spec-refs.test.mjs
+ Test Files  1 passed (1)
+      Tests  10 passed (10)

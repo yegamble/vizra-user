@@ -10,7 +10,9 @@ name: ci-guard
 #   4. frontend-ci.yml does not invoke the canonical `npm run ci` gate,
 #   5. .github/required-checks.txt names a job no workflow defines,
 #   6. a script under scripts/ci fails `bash -n` or `shellcheck -x`,
-#   7. the `ci-required` fan-in fails its own regression suite.
+#   7. a Dockerfile FROM is not pinned to an @sha256 digest at the .nvmrc
+#      version (scripts/ci/check-image-pins.sh),
+#   8. the `ci-required` fan-in or its guards fail their own regression suite.
 #
 # ADR-002 asks the fan-in guard to reject `continue-on-error` on a required
 # lane and to reject an empty test selection. (2) is the first. The second is
@@ -24,12 +26,16 @@ on:
       - ".github/required-checks.txt"
       - "scripts/ci/**"
       - "vitest.config.mts"
+      - "Dockerfile"
+      - ".nvmrc"
   pull_request:
     paths:
       - ".github/workflows/**"
       - ".github/required-checks.txt"
       - "scripts/ci/**"
       - "vitest.config.mts"
+      - "Dockerfile"
+      - ".nvmrc"
   merge_group:
   workflow_dispatch:
 
@@ -114,7 +120,15 @@ jobs:
       - name: The required-check manifest still demands its floor
         run: bash scripts/ci/check-required-floor.sh
 
-      - name: The ci-required fan-in stays fail-closed
+      # Actions are pinned to commit SHAs and the contract to a sha256; the
+      # Docker base image was the one input still referenced by a mutable tag,
+      # so a registry repoint changed what ships with no diff. The guard also
+      # binds the tag to .nvmrc, which is what makes the digest maintainable:
+      # a Node bump cannot leave a stale digest behind silently.
+      - name: Dockerfile base images are immutably pinned
+        run: bash scripts/ci/check-image-pins.sh
+
+      - name: The ci-required fan-in and its guards stay fail-closed
         run: bash scripts/ci/require-checks_test.sh
 
       - name: frontend-ci runs the canonical gate

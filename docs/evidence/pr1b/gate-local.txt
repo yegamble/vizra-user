@@ -1,0 +1,78 @@
+# FULL LOCAL GATE at the head of chore/m0-hardening
+# darwin arm64, node v22.14.0, npm 10.9.2, shellcheck 0.11.0, jq 1.7.1
+
+$ npm run lint
+EXIT=0
+
+$ npm run typecheck
+EXIT=0
+
+$ npx vitest run
+ Test Files  6 passed (6)
+      Tests  147 passed (147)
+EXIT=0
+
+$ npm run check:contract
+✅ contract: contracts/vizra-core/api/openapi.yaml matches its manifest (sha256 128d0509238a…),
+EXIT=0
+
+$ node scripts/check-spec-refs.mjs
+OK: all 9 $ref values in /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml are in-document pointers.
+EXIT=0
+
+$ bash scripts/ci/check-required-manifest.sh
+OK: all 4 entries in .github/required-checks.txt map to a defined job.
+EXIT=0
+
+$ bash scripts/ci/check-required-floor.sh
+OK: .github/required-checks.txt still requires the floor: frontend contract.
+EXIT=0
+
+$ bash scripts/ci/check-image-pins.sh
+OK: all 3 external FROM lines in Dockerfile are @sha256-pinned at node 22.14.0.
+EXIT=0
+
+$ bash scripts/ci/require-checks_test.sh
+require-checks_test: 70 cases, 77 assertions, 0 failed
+EXIT=0
+
+$ npm run build   (with sentinel env)
+EXIT=0
+
+$ SENTINELS=... bash scripts/ci/check-client-bundle.sh
+OK: 10 chunks under .next/static, none carrying server-side configuration.
+EXIT=0
+
+$ bash scripts/ci/check-server-only-boundary.sh
+server-only guard: building with a Client Component that imports viewerFetch and internalApiBaseUrl…
+OK: the build failed (exit 1) with 4 server-only diagnostics, attributed to both modules:
+EXIT=0
+
+$ shellcheck -x scripts/ci/*.sh
+OK: every scripts/ci script parses and passes shellcheck
+EXIT=0
+
+$ git status --short   (tree clean apart from the change itself)
+ M .github/required-checks.txt
+ M .github/workflows/ci-guard.yml
+ M .github/workflows/contract-ci.yml
+ M .github/workflows/frontend-ci.yml
+ M AGENTS.md
+ M Dockerfile
+ M eslint-rules/no-raw-fetch.mjs
+ M eslint-rules/no-raw-fetch.test.mjs
+ M lib/api/fetch.ts
+ M lib/config.ts
+ M package-lock.json
+ M package.json
+ M scripts/ci/check-required-floor.sh
+ M scripts/ci/require-checks_test.sh
+ M scripts/codegen.mjs
+ M vitest.config.mts
+?? .github/workflows/supply-chain.yml
+?? docs/
+?? scripts/check-spec-refs.mjs
+?? scripts/check-spec-refs.test.mjs
+?? scripts/ci/check-client-bundle.sh
+?? scripts/ci/check-image-pins.sh
+?? scripts/ci/check-server-only-boundary.sh

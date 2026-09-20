@@ -30,6 +30,32 @@
  *
  * A local binding that happens to be named `fetch` (a parameter, an import) is
  * not the global and is left alone.
+ *
+ * THE COMPUTED SPELLING. The first version of the alias ban returned on any
+ * `node.computed`, so an independent verifier walked straight through it:
+ *
+ *     globalThis["fetch"](url, { headers: { cookie }, next: { revalidate: 60 } });
+ *     window["fetch"](url, …);   globalThis[`fetch`](url, …);
+ *     const g = globalThis["fetch"];  g(url, …);
+ *
+ * ZERO messages, from either rule — the same shared-cache leak as the alias
+ * hole, in a different spelling. A computed key that the rule can READ (a
+ * string literal, or a template literal with no expressions) is now treated
+ * exactly as the dotted spelling.
+ *
+ * A key it CANNOT read — `globalThis[name]`, `globalThis[`fet${x}`]` — is
+ * reported as `dynamicGlobalMember` rather than waved through. This is the
+ * deliberate fail-closed choice the sibling rule already makes for an init it
+ * cannot read: the rule cannot rule out `fetch`, and nothing in this repository
+ * has any reason to index the global object by a computed name. Ordinary
+ * computed access on any OTHER object (`client["fetch"]`, `registry[name]`,
+ * `rows[0]`) is untouched — the object must be `globalThis` or `window`.
+ *
+ * LIMITS, so the docblock does not over-claim: a global reached through a
+ * further indirection the rule cannot follow (`const gt = globalThis;
+ * gt["fetch"]`, a `Proxy`, `eval`) is not caught, and no syntactic rule ever
+ * terminates. The runtime assertions in `lib/api/fetch.test.ts` and Next's own
+ * cache-scope throw are the layers that do not depend on spelling.
  */
 
 import path from "node:path";
@@ -41,6 +67,31 @@ function isLocalBinding(scope, name) {
     if (variable) return variable.defs.length > 0 && current.type !== "global";
   }
   return false;
+}
+
+/** A computed key whose value this rule cannot determine at lint time. */
+const UNREADABLE = Symbol("unreadable property key");
+
+/**
+ * The property name a member expression or object-pattern property names, or
+ * `UNREADABLE` when the key is computed from something the rule cannot read.
+ *
+ * `a.fetch` and `a["fetch"]` and ``a[`fetch`]`` all yield `"fetch"`. A template
+ * literal with any substitution, or any other computed expression, is
+ * `UNREADABLE` — the caller decides what to do with that, and here it fails
+ * closed.
+ */
+function propertyKey(keyNode, computed) {
+  if (!computed) {
+    if (keyNode.type === "Identifier") return keyNode.name;
+    if (keyNode.type === "Literal") return keyNode.value;
+    return UNREADABLE;
+  }
+  if (keyNode.type === "Literal") return keyNode.value;
+  if (keyNode.type === "TemplateLiteral" && keyNode.expressions.length === 0) {
+    return keyNode.quasis.map((q) => q.value.cooked).join("");
+  }
+  return UNREADABLE;
 }
 
 /** @type {import("eslint").Rule.RuleModule} */
@@ -66,6 +117,8 @@ const rule = {
         "Call publicFetch or viewerFetch from lib/api/fetch.ts instead of global fetch: they carry the identity, cache and CSRF rules of ADR-003, and keep pages from inventing their own data source.",
       aliasedFetch:
         "Do not bind global fetch to another name. An aliased fetch is invisible to the identity/caching lint rule, so a session cookie could ride a revalidated request with a clean lint run (ADR-003). Call it directly inside lib/api/fetch.ts, or use publicFetch / viewerFetch.",
+      dynamicGlobalMember:
+        "Do not index the global object by a computed name: this rule cannot read the key, so it cannot rule out `fetch`, and it fails closed rather than assuming. Name the property directly, or use publicFetch / viewerFetch (ADR-003).",
     },
   },
   create(context) {
@@ -107,12 +160,20 @@ const rule = {
         context.report({ node, messageId: "aliasedFetch" });
       },
 
-      // `globalThis.fetch` / `window.fetch` — as a call, or as a value.
+      // `globalThis.fetch` / `globalThis["fetch"]` / `window[`fetch`]` — as a
+      // call, or as a value. A computed key the rule cannot read is reported
+      // rather than skipped.
       MemberExpression(node) {
-        if (node.computed) return;
-        if (node.property.type !== "Identifier" || node.property.name !== "fetch") return;
         if (node.object.type !== "Identifier") return;
         if (node.object.name !== "globalThis" && node.object.name !== "window") return;
+        if (isLocalBinding(sourceCode.getScope(node), node.object.name)) return;
+
+        const key = propertyKey(node.property, node.computed);
+        if (key === UNREADABLE) {
+          context.report({ node, messageId: "dynamicGlobalMember" });
+          return;
+        }
+        if (key !== "fetch") return;
 
         const parent = node.parent;
         if (parent && parent.type === "CallExpression" && parent.callee === node) {
@@ -122,20 +183,19 @@ const rule = {
         context.report({ node, messageId: "aliasedFetch" });
       },
 
-      // `const { fetch } = globalThis` / `const { fetch: alias } = window`.
+      // `const { fetch } = globalThis` / `const { ["fetch"]: alias } = window`.
       VariableDeclarator(node) {
         if (!node.init || node.init.type !== "Identifier") return;
         if (node.init.name !== "globalThis" && node.init.name !== "window") return;
         if (node.id.type !== "ObjectPattern") return;
         for (const property of node.id.properties) {
-          if (property.type !== "Property" || property.computed) continue;
-          const key =
-            property.key.type === "Identifier"
-              ? property.key.name
-              : property.key.type === "Literal"
-                ? property.key.value
-                : null;
-          if (key === "fetch") context.report({ node: property, messageId: "aliasedFetch" });
+          if (property.type !== "Property") continue;
+          const key = propertyKey(property.key, property.computed);
+          if (key === UNREADABLE) {
+            context.report({ node: property, messageId: "dynamicGlobalMember" });
+          } else if (key === "fetch") {
+            context.report({ node: property, messageId: "aliasedFetch" });
+          }
         }
       },
     };

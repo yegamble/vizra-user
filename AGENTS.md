@@ -36,6 +36,13 @@ contract:
 Three layers enforce it, and the order matters — the weakest is the one people
 notice first:
 
+0. **The module boundary.** `lib/api/fetch.ts` and `lib/config.ts` both carry
+   `import "server-only"`, so a Client Component that imports either is a
+   `next build` FAILURE rather than a module that ships and throws in the
+   visitor's browser. `assertServer` stays as the runtime half.
+   `scripts/ci/check-server-only-boundary.sh` proves the build really fails,
+   and `scripts/ci/check-client-bundle.sh` proves no chunk under `.next/static`
+   carries the internal base URL or the configured origin.
 1. **Types.** `publicFetch` has no header option at all; `viewerFetch` has no
    cache option. Neither can be misused without changing the helper.
 2. **Runtime, asserted by test.** `lib/api/fetch.test.ts` asserts that
@@ -46,8 +53,11 @@ notice first:
 3. **Lint**, as the cheapest layer rather than the last one:
    - `vizra/no-raw-fetch` — only `lib/api/fetch.ts` may *call* global `fetch`,
      and **no file, including that one, may alias the binding**
-     (`const f = fetch`, `const { fetch } = globalThis`). An aliased fetch is
-     invisible to the identity rule.
+     (`const f = fetch`, `const { fetch } = globalThis`,
+     `globalThis["fetch"]`). An aliased fetch is invisible to the identity
+     rule. Indexing `globalThis`/`window` by a computed name the rule cannot
+     read (`globalThis[name]`) is an error too — it cannot rule out `fetch`,
+     so it fails closed.
    - `vizra/no-identity-headers-in-cached-fetch` — a `fetch` carrying a
      `cookie`, `authorization`, `proxy-authorization` or `x-vizra-session`
      header (or `credentials: "include"`) must be explicitly
@@ -81,6 +91,13 @@ repository:
 - `npm run check:contract` proves the vendored spec matches its manifest and
   the committed client is byte-for-byte what the generator produces. The
   `contract` lane runs it on every PR.
+- The spec is validated **as input** before the generator reads it:
+  `scripts/check-spec-refs.mjs` refuses any `$ref` that is not an in-document
+  pointer. openapi-typescript resolves external `$ref` targets through
+  `@redocly/openapi-core` — demonstrated, not assumed: a remote `$ref` makes
+  the generator issue an outbound request during the `contract` lane. A file
+  `$ref` is refused too, because the vendored contract is one file recorded by
+  one sha256 and a second file would be input the drift check does not cover.
 - To take a newer contract: `node scripts/vendor-contract.mjs --from ../vizra-core`,
   then commit the spec, the manifest and the regenerated client together.
 
@@ -111,8 +128,12 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run check:contract` | vendored spec ↔ manifest ↔ generated client |
 | `npm run codegen` | regenerate the client from the vendored spec |
 | `node scripts/vendor-contract.mjs --from ../vizra-core` | take a newer contract |
-| `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite, plus the manifest-floor cases (needs bash ≥ 4) |
+| `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite, plus the manifest-floor and image-pin cases |
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
+| `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
+| `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
+| `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
+| `node scripts/check-spec-refs.mjs` | the vendored contract references nothing outside itself |
 
 Run `npm run ci` before opening a PR. A missing command or dependency is
 BLOCKED, never a pass.
@@ -126,7 +147,19 @@ not run in the merge queue would hang the queue rather than pass it.
 
 `ci-guard` guards the other workflows: SHA-pinned actions, no unmarked
 `continue-on-error`, `npm ci` not `npm install`, a manifest that names only
-real jobs, shellchecked `scripts/ci`, and the fan-in's regression suite.
+real jobs, shellchecked `scripts/ci`, `@sha256`-pinned Dockerfile base images
+at the `.nvmrc` version, and the fan-in's regression suite.
+
+**Supply chain.** `supply-chain.yml` runs two detection lanes on every pull
+request and in the merge queue — `npm audit` over the lockfile, and Trivy over
+the built production image — and publishes both reports as artifacts. They are
+**deliberately not in `.github/required-checks.txt`**. `ci-guard` forbids
+`continue-on-error`, on purpose; the honest alternative to hiding a lane's
+failures is not to make it required until its baseline is clean and there is an
+agreed route for an unfixed upstream CVE, because a scan lane's result depends
+on the world and a required lane that goes red on its own teaches a team to
+merge past red. Promotion is an owner-reviewed change to the manifest and the
+floor. Read them; do not route around them.
 
 **The floor.** `ci-required` reads the manifest from the checkout under test,
 so the file that defines the gate is editable by the pull request the gate is
@@ -145,7 +178,12 @@ floor to turn a PR green.
 Versions come from ADR-001 and are verified on the npm registry before they are
 written. Change one only in a PR that also records why. Node is pinned once, in
 `.nvmrc`, and read from there by CI and by the Dockerfile's base image tag —
-keep the three in step.
+keep the three in step. The Dockerfile's `FROM` lines additionally carry an
+`@sha256` digest (a tag can be repointed by the registry, which would change
+what ships with no diff): re-resolve it with
+`docker buildx imagetools inspect node:<version>-alpine` and take the top-level
+multi-arch index digest. `scripts/ci/check-image-pins.sh` enforces both halves,
+so a `.nvmrc` bump cannot leave a stale digest behind silently.
 
 ## Evidence
 `READY_FOR_REVIEW`, never "done". Record exact commands, exit codes, test

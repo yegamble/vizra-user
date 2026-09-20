@@ -1,0 +1,4 @@
+# GREEN: blank-FLOOR guard restored
+ok 62 - a whitespace-only FLOOR does not pass vacuously
+ok 63 - a tab/newline-only FLOOR does not pass vacuously
+require-checks_test: 59 cases, 66 assertions, 0 failed

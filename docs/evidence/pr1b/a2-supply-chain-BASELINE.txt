@@ -1,0 +1,65 @@
+# A2 — supply-chain scan BASELINE, 2026-09-20
+#
+# Environment: darwin arm64 (native; no emulated amd64 build on this machine).
+# CI (ubuntu-24.04, linux/amd64) is the acceptance platform and produces the
+# authoritative numbers; the OS-package half can differ by architecture.
+# Trivy 0.70.0 (the version supply-chain.yml pins), scanners=vuln.
+
+## deps-scan — npm audit over package-lock.json
+$ npm audit --json | jq .metadata.vulnerabilities
+{
+  "info": 0,
+  "low": 0,
+  "moderate": 0,
+  "high": 0,
+  "critical": 0,
+  "total": 0
+}
+$ npm audit --audit-level=high
+found 0 vulnerabilities
+EXIT=
+
+## image-scan — BEFORE: the image as PR #1 merged it (package managers present)
+$ trivy image --scanners vuln vizra-user:<build of the merged Dockerfile>
+  vizra-user:pr1b-scan (alpine 3.21.3) [os-pkgs]: 0 findings
+  Node.js [lang-pkgs]: 53 findings
+  by severity:
+    CRITICAL: 3
+    HIGH: 35
+    LOW: 3
+    MEDIUM: 12
+  TOTAL: 53
+  every finding, by package and path:
+    @sigstore/core@2.0.0 n=1 [MEDIUM] usr/local/lib/node_modules/npm/node_modules/sigstore/node_modules/@sigstore/core/package.json
+    brace-expansion@2.0.1 n=5 [HIGH,LOW,MEDIUM] usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+    diff@5.2.0 n=1 [LOW] usr/local/lib/node_modules/npm/node_modules/diff/package.json
+    glob@10.4.5 n=1 [HIGH] usr/local/lib/node_modules/npm/node_modules/glob/package.json
+    ip-address@9.0.5 n=2 [HIGH,MEDIUM] usr/local/lib/node_modules/npm/node_modules/ip-address/package.json
+    minimatch@9.0.5 n=3 [HIGH] usr/local/lib/node_modules/npm/node_modules/minimatch/package.json
+    pacote@19.0.1 n=1 [HIGH] usr/local/lib/node_modules/npm/node_modules/pacote/package.json
+    pacote@20.0.0 n=1 [HIGH] usr/local/lib/node_modules/npm/node_modules/@npmcli/metavuln-calculator/node_modules/pacote/package.json
+    postcss-selector-parser@6.1.2 n=1 [LOW] usr/local/lib/node_modules/npm/node_modules/postcss-selector-parser/package.json
+    sigstore@3.0.0 n=1 [HIGH] usr/local/lib/node_modules/npm/node_modules/sigstore/package.json
+    tar@6.2.1 n=12 [CRITICAL,HIGH,MEDIUM] usr/local/lib/node_modules/npm/node_modules/tar/package.json
+    tar@7.4.3 n=24 [CRITICAL,HIGH,MEDIUM] usr/local/lib/node_modules/npm/node_modules/cacache/node_modules/tar/package.json
+
+  READING: 0 in the Alpine packages (the Dockerfile's `apk upgrade` works), 0 in the
+  application's bundled node_modules, and all 53 inside the npm CLI that the node base
+  image ships at /usr/local/lib/node_modules/npm. `npm audit` reports none of them,
+  because they are not our dependencies — which is exactly why the image scan exists
+  alongside the dependency scan.
+
+## image-scan — AFTER: package managers removed from the runner stage
+$ trivy image --scanners vuln vizra-user:<build of this PR's Dockerfile>
+  vizra-user:pr1b-scan2 (alpine 3.21.3) [os-pkgs]: 0 findings
+  Node.js [lang-pkgs]: 0 findings
+  TOTAL: 0
+
+## the image still runs with npm/npx/yarn/corepack gone
+$ docker run --detach ... && curl /health && docker exec ... id
+  GET /health -> 200, body carries data-testid="health-status" and >ok<
+  uid=1001(nextjs) gid=1001(nodejs) groups=1001(nodejs)
+  command -v npm npx yarn corepack -> no package manager on PATH
+  node --version -> v22.14.0
+  (the Dockerfile ASSERTS the removal in the same RUN, so a base image that moved
+   these paths fails the build instead of silently re-shipping them)

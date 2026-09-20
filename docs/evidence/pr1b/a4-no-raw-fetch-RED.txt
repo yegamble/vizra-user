@@ -1,0 +1,30 @@
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const a = await globalThis["fetch"](url, { headers: { cookie }, next: { revalidate: 60 } });
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const b = await window["fetch"](url, { headers: { cookie }, next: { revalidate: 60 } });
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const d = await globalThis[`fetch`](url, { headers: { cookie } });
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > window[`fetch`](url);
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const g = globalThis["fetch"];
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const g = globalThis["fetch"];
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const g = window[`fetch`];
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > wrap(globalThis["fetch"]);
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const { ["fetch"]: d } = globalThis;
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const f = globalThis[name];
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > window[name](url, {});
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > globalThis[`fet${suffix}`](url);
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const f = globalThis[name];
+AssertionError: Should have 1 error but had 0: []
+ FAIL  eslint-rules/no-raw-fetch.test.mjs > no-raw-fetch > invalid > const { [key]: maybe } = globalThis;
+AssertionError: Should have 1 error but had 0: []
+ Test Files  1 failed (1)
+      Tests  14 failed | 26 passed (40)

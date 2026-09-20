@@ -43,7 +43,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The gate builds. Recognisable sentinel values go in so the leak check
+      # below is testing an outcome rather than trusting that a real value
+      # would have been spotted.
       - name: Canonical gate (npm run ci)
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          INTERNAL_API_BASE_URL: http://api.sentinel.invalid:8080
+          PUBLIC_ORIGIN: https://origin.sentinel.invalid
+          API_TIMEOUT_MS: "4242"
         run: npm run ci
+
+      # OUTCOME check for the server-only boundary: whatever the controls do,
+      # the chunks the browser downloads must not carry the internal base URL,
+      # the configured origin, or the name of either. It reads the build the
+      # step above just produced.
+      - name: No server-side configuration reached the browser bundle
+        env:
+          SENTINELS: "http://api.sentinel.invalid:8080 https://origin.sentinel.invalid 4242"
+        run: bash scripts/ci/check-client-bundle.sh
+
+      # CONTROL check for the same boundary, and the one the security review
+      # asked for by name: a Client Component importing viewerFetch or
+      # internalApiBaseUrl must be a BUILD failure, not a runtime throw in the
+      # visitor's browser. The script writes its own fixture routes, requires
+      # `next build` to fail with the server-only diagnostic attributed to each
+      # module, and removes the fixtures again.
+      - name: A Client Component importing the server-only modules fails the build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          INTERNAL_API_BASE_URL: http://api.sentinel.invalid:8080
+          PUBLIC_ORIGIN: https://origin.sentinel.invalid
+        run: bash scripts/ci/check-server-only-boundary.sh

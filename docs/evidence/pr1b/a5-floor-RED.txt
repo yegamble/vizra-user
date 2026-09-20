@@ -1,0 +1,4 @@
+# RED: scripts/ci/check-required-floor.sh reverted to the merged (752253c) version
+not ok 62 - a whitespace-only FLOOR does not pass vacuously: exit 0, want 1: OK: /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T//require-checks-test.i9T6U2/floor-env-55.txt still requires the floor:  . 
+not ok 63 - a tab/newline-only FLOOR does not pass vacuously: exit 0, want 1: OK: /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T//require-checks-test.i9T6U2/floor-env-56.txt still requires the floor: 	  . 
+require-checks_test: 59 cases, 66 assertions, 2 failed

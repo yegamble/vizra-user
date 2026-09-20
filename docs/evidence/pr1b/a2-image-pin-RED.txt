@@ -1,0 +1,15 @@
+# RED: controlled mutation — the runner stage's digest removed (the repointable-tag state PR #1 merged with)
+39:FROM node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 AS deps
+45:FROM node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 AS builder
+53:FROM node:22.14.0-alpine AS runner
+
+$ bash scripts/ci/check-image-pins.sh
+::error::Dockerfile base images are not immutably pinned:
+  node:22.14.0-alpine: not pinned to an immutable @sha256 digest
+  Re-resolve with: docker buildx imagetools inspect node:22.14.0-alpine
+  and use the top-level (multi-arch index) Digest.
+EXIT=1
+
+$ bash scripts/ci/require-checks_test.sh   (image-pin cases only)
+not ok 77 - the committed Dockerfile satisfies the image-pin guard: the committed Dockerfile is not immutably pinned: ::error::/Users/yosefgamble/github/vizra/vizra-user/scripts/ci/../../Dockerfile base images are not immutably pinned:   node:22.14.0-alpine: not pinned to an immutable @sha256 digest   Re-resolve with: docker buildx imagetools inspect node:22.14.0-alpine   and use the top-level (multi-arch index) Di
+require-checks_test: 70 cases, 77 assertions, 1 failed

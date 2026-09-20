@@ -1,0 +1,36 @@
+# A1 GREEN — probe removed, imports in place
+$ grep -n '^import "server-only";' lib/config.ts lib/api/fetch.ts
+lib/config.ts:22:import "server-only";
+lib/api/fetch.ts:45:import "server-only";
+$ jq -r '.dependencies["server-only"]' package.json
+0.0.1
+$ jq -r '.packages["node_modules/server-only"] | "\(.version) \(.license) \(.integrity)"' package-lock.json
+0.0.1 MIT sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA==
+
+$ bash scripts/ci/check-server-only-boundary.sh
+server-only guard: building with a Client Component that imports viewerFetch and internalApiBaseUrl…
+OK: the build failed (exit 1) with 4 server-only diagnostics, attributed to both modules:
+  Error: 'server-only' cannot be imported from a Client Component module
+  Error: You're importing a module that depends on "server-only". This API is only available in Server Components in the App Router, but you are using it in the Pages Router.
+EXIT=0
+
+$ INTERNAL_API_BASE_URL=... PUBLIC_ORIGIN=... npm run build
+build EXIT=0
+$ SENTINELS="http://api.sentinel.invalid:8080 https://origin.sentinel.invalid 4242" bash scripts/ci/check-client-bundle.sh
+OK: 10 chunks under .next/static, none carrying server-side configuration.
+EXIT=0
+
+# assertServer is unchanged and still covered:
+$ git diff lib/api/fetch.ts | grep -c 'assertServer'
+1
+$ npx vitest run lib/api/fetch.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+
+# (re-run after the vitest resolve alias for server-only's react-server condition)
+$ npx vitest run
+ Test Files  6 passed (6)
+      Tests  147 passed (147)
+$ npx vitest run lib/api/fetch.test.ts   (assertServer coverage unchanged)
+ Test Files  1 passed (1)
+      Tests  51 passed (51)
