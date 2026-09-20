@@ -1,0 +1,40 @@
+# The definition of "required for merge" for vizra-user (ADR-002, "CI fan-in
+# and merge queue").
+#
+# scripts/ci/require-checks.sh reads this file in the `ci-required` job and
+# fails unless every entry is satisfied for the commit under test. Exactly ONE
+# required status check is configured on the branch ruleset — `ci-required` —
+# and this file is the single place the required set is declared and reviewed.
+#
+# Syntax (one check-run name per line, as GitHub reports it — matrix legs carry
+# their leg in the name):
+#   name    must EXIST for this commit and must conclude `success`
+#   ?name   required only IF it ran (path-filtered lanes)
+#
+# Nothing but `success` passes: `cancelled`, `timed_out`, `neutral` and
+# `skipped` all fail (AGENTS.md: a skipped required lane is not a pass).
+#
+# This file is owner-reviewed (CODEOWNERS, once the ruleset is applied): a PR
+# that weakens the required set must be as visible as one that weakens a test.
+
+# frontend-ci.yml — the canonical `npm run ci` gate: lint (including the
+# ADR-003 identity/caching rules), typecheck, vitest, production build.
+frontend
+
+# contract-ci.yml — the vendored vizra-core contract matches its manifest, and
+# lib/api/generated.ts is byte-for-byte what the pinned generator produces from
+# it. This is the check that makes "the client is generated, never hand-edited"
+# (VZ-FOUND-002) true rather than aspirational. Never drop it to unblock a
+# merge.
+contract
+
+# ci-guard.yml — action pins, no hidden continue-on-error, `npm ci` not
+# `npm install`, required-checks.txt names only jobs that exist, scripts/ci is
+# shellchecked, and the fan-in passes its own regression suite. Path-filtered
+# to .github/** and scripts/ci/**, so it is optional-if-absent.
+?guard
+
+# docker-build.yml — the production Dockerfile builds on the acceptance
+# platform (ADR-009: GitHub-hosted ubuntu-24.04, linux/amd64). Path-filtered to
+# the files that can break it.
+?docker-build

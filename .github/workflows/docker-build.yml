@@ -1,0 +1,74 @@
+name: docker-build
+
+# The production Dockerfile builds on the acceptance platform.
+#
+# ADR-009 fixes that platform: GitHub-hosted ubuntu-24.04, linux/amd64. The
+# owner's laptop is arm64, where the image also builds but proves nothing about
+# what ships, so this lane is the one that counts. No push, no registry
+# credentials, no cross-platform emulation: just the build the release does.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - "next.config.ts"
+      - ".github/workflows/docker-build.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - "next.config.ts"
+      - ".github/workflows/docker-build.yml"
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The runner's own Docker, so nothing third-party is pinned here.
+      - name: Build the production image (linux/amd64)
+        run: docker build --tag vizra-user:ci .
+
+      # A standalone build that silently lost its server entry point would
+      # still produce an image; the container would just exit. Prove the entry
+      # point exists and that the image answers the health page.
+      - name: The image serves /health
+        run: |
+          set -euo pipefail
+          trap 'docker logs vizra-user-ci 2>&1 | tail -50 || true; docker rm --force vizra-user-ci > /dev/null 2>&1 || true' EXIT
+          docker run --detach --name vizra-user-ci --publish 3000:3000 \
+            --env INTERNAL_API_BASE_URL=http://127.0.0.1:9 \
+            --env PUBLIC_ORIGIN=http://127.0.0.1:3000 \
+            vizra-user:ci
+          ok=""
+          for _ in $(seq 1 30); do
+            if curl --silent --fail --max-time 2 http://127.0.0.1:3000/health -o /tmp/health.html; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          [ -n "$ok" ] || { echo "::error::/health never answered"; exit 1; }
+          grep -q 'data-testid="health-status"' /tmp/health.html \
+            && grep -q '>ok<' /tmp/health.html \
+            || { echo "::error::/health did not report ok"; cat /tmp/health.html; exit 1; }
+          echo "OK: the production image serves /health."

@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+coverage
+test-results
+.git
+.github
+.gitignore
+.DS_Store
+*.tsbuildinfo
+.env
+.env.*
+README.md
+AGENTS.md
+CLAUDE.md

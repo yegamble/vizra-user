@@ -1,0 +1,116 @@
+name: ci-guard
+
+# CI integrity monitor: it guards the OTHER workflows, so that a green
+# `ci-required` means the gate that passes locally actually ran — not a
+# workflow quietly weakened to pass. Fails when:
+#   1. an external action is not pinned to a full 40-character commit SHA,
+#   2. a workflow hides failures with `continue-on-error: true`
+#      (escape hatch: annotate the line `# ci-guard:allow`),
+#   3. a workflow installs with `npm install` instead of `npm ci`,
+#   4. frontend-ci.yml does not invoke the canonical `npm run ci` gate,
+#   5. .github/required-checks.txt names a job no workflow defines,
+#   6. a script under scripts/ci fails `bash -n` or `shellcheck -x`,
+#   7. the `ci-required` fan-in fails its own regression suite.
+#
+# ADR-002 asks the fan-in guard to reject `continue-on-error` on a required
+# lane and to reject an empty test selection. (2) is the first. The second is
+# enforced where the tests run: vitest.config.mts sets `passWithNoTests: false`,
+# so a run that collected nothing exits non-zero instead of passing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/required-checks.txt"
+      - "scripts/ci/**"
+      - "vitest.config.mts"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/required-checks.txt"
+      - "scripts/ci/**"
+      - "vitest.config.mts"
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A workflow file GitHub cannot parse is caught by the fan-in's zero-job
+      # guard (scripts/ci/require-checks.sh: a run that concludes failure with
+      # zero jobs fails `ci-required` by name), so no YAML linter is duplicated
+      # here — and none is installed that could disagree with GitHub's parser.
+
+      - name: scripts/ci is syntax-checked and shellchecked
+        run: |
+          for f in scripts/ci/*.sh; do
+            bash -n "$f"
+            shellcheck -x "$f"
+          done
+          echo "OK: every scripts/ci script parses and passes shellcheck."
+
+      - name: External actions use immutable commit pins
+        run: |
+          bad=$(
+            grep -rnE '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]+' .github/workflows \
+              | grep -vE 'uses:[[:space:]]+\./' \
+              | grep -vE '@[0-9a-f]{40}([[:space:]]+#.*)?[[:space:]]*$' || true
+          )
+          if [ -n "$bad" ]; then
+            echo "::error::External actions must be pinned to a full 40-character commit SHA:" >&2
+            echo "$bad" >&2
+            exit 1
+          fi
+          echo "OK: every external action uses an immutable commit pin."
+
+      - name: No hidden failures (continue-on-error)
+        run: |
+          bad=$(grep -rnE '^[[:space:]]*continue-on-error:[[:space:]]*true' .github/workflows \
+            | grep -v 'ci-guard:allow' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::continue-on-error: true hides failures:" >&2
+            echo "$bad" >&2
+            exit 1
+          fi
+          echo "OK: no unmarked continue-on-error."
+
+      - name: Workflows install from the lockfile, never `npm install`
+        run: |
+          bad=$(grep -rnE '^[[:space:]]*(run:|-)?[[:space:]]*npm install' .github/workflows || true)
+          if [ -n "$bad" ]; then
+            echo "::error::use 'npm ci'; 'npm install' resolves fresh and rewrites the lockfile in the runner:" >&2
+            echo "$bad" >&2
+            exit 1
+          fi
+          echo "OK: every workflow installs with npm ci."
+
+      - name: An empty test selection cannot pass
+        run: |
+          grep -q 'passWithNoTests: false' vitest.config.mts \
+            || { echo "::error::vitest.config.mts must keep passWithNoTests: false — a run that collected nothing is not a pass (AGENTS.md)." >&2; exit 1; }
+          echo "OK: a vitest run that collects nothing fails."
+
+      - name: Every required check name is a job some workflow defines
+        run: bash scripts/ci/check-required-manifest.sh
+
+      - name: The ci-required fan-in stays fail-closed
+        run: bash scripts/ci/require-checks_test.sh
+
+      - name: frontend-ci runs the canonical gate
+        run: |
+          grep -Eq 'npm run ci' .github/workflows/frontend-ci.yml \
+            || { echo "::error::frontend-ci.yml must run the canonical gate ('npm run ci') so CI mirrors local." >&2; exit 1; }
+          echo "OK: frontend-ci.yml invokes the canonical gate."
