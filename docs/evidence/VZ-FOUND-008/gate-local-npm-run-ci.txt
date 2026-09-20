@@ -18,25 +18,25 @@
  RUN  v5.0.1 /Users/yosefgamble/github/vizra/vizra-user
 
 
- Test Files  8 passed (8)
-      Tests  177 passed (177)
-   Start at  15:58:58
-   Duration  308ms (transform 39%, tests 38%, import 20%, worker 3%)
+ Test Files  9 passed (9)
+      Tests  206 passed (206)
+   Start at  16:48:09
+   Duration  1.08s (tests 58%, import 25%, transform 15%, worker 1%)
 
 
 > vizra-user@0.0.0 build
 > next build
 
 ▲ Next.js 16.3.5 (Turbopack)
-✓ Running next.config.ts took 67ms
+✓ Running next.config.ts took 75ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 656ms
+✓ Compiled successfully in 604ms
   Running TypeScript ...
-  Finished TypeScript in 882ms ...
+  Finished TypeScript in 916ms ...
   Collecting page data using 5 workers ...
   Generating static pages using 5 workers (0/3) ...
-✓ Generating static pages using 5 workers (3/3) in 208ms
+✓ Generating static pages using 5 workers (3/3) in 211ms
   Finalizing page optimization ...
 
 Route (app)

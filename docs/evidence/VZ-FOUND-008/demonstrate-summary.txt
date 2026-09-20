@@ -2,12 +2,12 @@
 === starting the production server on :3211 ===
 repository: /Users/yosefgamble/github/vizra/vizra-user
 branch:     feat/m0-browser-env
-head sha:   951f18b4660c4959226e7e3d5b9d7ab9ff5740da
-tree state: 8 modified/untracked path(s)
-date:       2026-09-20T19:59:02Z
+head sha:   112291e71cc269934c9aa87b69c021170c557f91
+tree state: 74 modified/untracked path(s)
+date:       2026-09-20T20:46:31Z
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   KCQf5xymMEgEy5wX8OQSi
+build id:   UJr4-8XaHjlck5ZPWBJ-r
 project:    desktop-chromium-1440
 uname:      Darwin arm64
 
@@ -31,6 +31,17 @@ ok   d4a-zero-tests-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/y
 ok   d4b-missing-project-RED (exit 1, matched 'is not in the resolved Playwright configuration') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4b-missing-project-RED.txt
 ok   d4b-missing-project-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4b-missing-project-GREEN.txt
 
+=== D4c — deleting one test drops a project below its floor ===
+ok   d4c-floor-shortfall-RED (exit 1, matched 'the floor is 9') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-RED.txt
+ok   d4c-floor-shortfall-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-GREEN.txt
+
+=== D4c2 — adding a test without raising the floor stays green ===
+ok   d4c2-floor-is-a-minimum-GREEN (exit 0, matched 'desktop-chromium-1440=10/9') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c2-floor-is-a-minimum-GREEN.txt
+
+=== D4d — the lane refuses a filtered run ===
+ok   d4d-filtered-run-RED (exit 1, matched 'the run was FILTERED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4d-filtered-run-RED.txt
+ok   d4d-filtered-run-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4d-filtered-run-GREEN.txt
+
 === D5 — pointed at a development server instead of the production build ===
 ok   d5-dev-server-RED (exit 1, matched 'this is not a production build') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d5-dev-server-RED.txt
 ok   d5-dev-server-GREEN (exit 0, matched '4 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d5-dev-server-GREEN.txt
@@ -41,14 +52,32 @@ ok   d6-image-fixtures-RED (exit 1, matched 'contains browser-harness files') ->
 
 === D7 — a weakened e2e workflow fails the lane guard ===
 ok   d7-lane-guard-GREEN (exit 0, matched 'still drives the built image') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-GREEN.txt
-ok   d7-lane-guard-RED (exit 1, matched 'no longer uploads artifacts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-RED.txt
+ok   d7-lane-step-deleted-RED (exit 1, matched 'no step runs the browser lane') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-deleted-RED.txt
+ok   d7-lane-step-echoed-RED (exit 1, matched 'no step runs the browser lane') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-echoed-RED.txt
+ok   d7-lane-step-or-true-RED (exit 1, matched 'launders the exit code') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-or-true-RED.txt
+ok   d7-lane-step-if-false-RED (exit 1, matched 'must run unconditionally') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-if-false-RED.txt
+ok   d7-lane-guard-artifacts-RED (exit 1, matched 'no step uploads artifacts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-artifacts-RED.txt
+ok   d7-lane-guard-warn-RED (exit 1, matched 'if-no-files-found: error') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-warn-RED.txt
+ok   d7-floor-step-removed-RED (exit 1, matched 'check-coverage-floor-ran.mjs') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-floor-step-removed-RED.txt
 
-=== D8 — a spec importing Playwright's unguarded test fails npm run test ===
-ok   d8-bypass-guard-GREEN (exit 0, matched 'passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-guard-GREEN.txt
-ok   d8-bypass-guard-RED (exit 1, matched 'imports values from @playwright/test directly') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-guard-RED.txt
+=== D8 — a spec reaching Playwright's unguarded test fails the gate ===
+ok   d8-guard-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guard-GREEN.txt
+ok   d8-bypass-namespace-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-namespace-RED.txt
+ok   d8-bypass-single-quotes-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-single-quotes-RED.txt
+ok   d8-bypass-dynamic-import-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-dynamic-import-RED.txt
+ok   d8-bypass-require-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-require-RED.txt
+ok   d8-bypass-reexport-shim-RED (exit 1, matched 'harness entry') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-reexport-shim-RED.txt
+ok   d8-bypass-fails-the-gate-RED (exit 1, matched 'no-unguarded-playwright-import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-fails-the-gate-RED.txt
+ok   d8-guarded-import-catches-the-page-RED (exit 1, matched 'pageerror') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guarded-import-catches-the-page-RED.txt
+ok   d8-tree-is-clean-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-tree-is-clean-GREEN.txt
+
+=== D9 — a signed-URL-shaped query string does not reach an uploaded artifact ===
+ok   d9-artifact-leak-RED (exit 1, matched 'members containing the sentinel:') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-artifact-leak-RED.txt
+ok   d9-redaction-runs-GREEN (exit 0, matched 'redacted URL query strings') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-redaction-runs-GREEN.txt
+ok   d9-artifact-redacted-GREEN (exit 0, matched 'members containing the sentinel: 0') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-artifact-redacted-GREEN.txt
 
 === verdict ===
-halves passed: 18
+halves passed: 39
 halves blocked: 0
 halves failed: 0
 transcripts:   /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008

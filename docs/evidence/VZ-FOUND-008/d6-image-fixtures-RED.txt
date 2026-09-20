@@ -5,6 +5,7 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/demos/
   app/e2e/demos/console-error.demo.ts
   app/e2e/demos/failed-request.demo.ts
+  app/e2e/demos/signed-url-artifact.demo.ts
   app/e2e/demos/uncaught-exception.demo.ts
   app/e2e/harness/
   app/e2e/harness/browser-errors.test.ts
@@ -13,6 +14,7 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/production-build.ts
   app/e2e/harness/redact.test.ts
   app/e2e/harness/redact.ts
+  app/e2e/harness/required-projects.json
   app/e2e/harness/required-projects.ts
   app/e2e/harness/test.ts
   app/e2e/specs/

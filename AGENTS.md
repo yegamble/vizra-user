@@ -127,7 +127,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run lint` / `typecheck` / `test` / `build` | the individual steps |
 | `npm run e2e:install` | download the pinned Chromium the browser lane needs (once) |
 | `npm run e2e` | **the browser lane**: Playwright against the production build, desktop 1440 px and mobile 390 px |
-| `npm run e2e:demos` | run the five red/green demonstrations that prove the harness fails |
+| `npm run e2e:demos` | run the red/green demonstrations that prove the harness fails |
 | `npm run check:contract` | vendored spec ↔ manifest ↔ generated client |
 | `npm run codegen` | regenerate the client from the vendored spec |
 | `node scripts/vendor-contract.mjs --from ../vizra-core` | take a newer contract |
@@ -135,7 +135,9 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | the `e2e` workflow still drives the built image, keeps its coverage floor and uploads artifacts |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step exists, runs exactly `npm run e2e`, is unconditional, targets the built image, and the coverage-floor step follows it |
+| `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` (run after the lane) |
+| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
 | `node scripts/check-spec-refs.mjs` | the vendored contract references nothing outside itself |
@@ -172,23 +174,73 @@ test.use({
 ```
 
 `kind`, a RegExp `match` and a non-blank `reason` are all required, and a policy
-of the wrong shape throws rather than being coerced. Never import `test` from
-`@playwright/test` in a spec — that bypasses the guard, and
-`e2e/harness/browser-errors.test.ts` fails the `frontend` lane if a spec does.
+of the wrong shape throws rather than being coerced.
 
-**Nothing the harness prints carries a query string.** `e2e/harness/redact.ts`
-strips query and fragment from every URL at capture, keeping origin and path.
-The meta `AGENTS.md` forbids logging private signed URLs, and a test harness is
-the widest-shared output this repository has — failure messages, CI logs and
-committed transcripts. This is not hypothetical: the first push of the harness
-committed a Next HMR URL with an opaque `?id=` into the evidence and the secret
-scanner flagged it. The next such value would be a signed media URL from
-vizra-core.
+**A spec may not reach `@playwright/test` at all**, and may take `test`/`expect`
+only from `e2e/harness/test`. That is enforced by the ESLint rule
+`vizra/no-unguarded-playwright-import`, an error in `e2e/specs/**` and
+`e2e/demos/**`, covering every spelling: named, namespace, default,
+side-effect, `require`, dynamic `import()`, either quote style, re-exports, and
+a local shim that re-exports the raw binding. Type-only imports of types are
+allowed; `import type { test }` is not.
 
-**A run that tests nothing is not a pass.** `e2e/harness/coverage-reporter.ts`
-fails the run unless every project in `e2e/harness/required-projects.ts` exists
-in the configuration and actually ran a test. It is on by default;
-`scripts/ci/check-e2e-lane.sh` fails if the workflow ever turns it off.
+This paragraph previously claimed that a regex in
+`e2e/harness/browser-errors.test.ts` caught any such import. **It did not.** The
+regex required braces and double quotes, and an independent verifier walked
+through it twice — `import * as pw from "@playwright/test"` and the named form
+with single quotes — with a spec whose page 404s and throws on every load,
+getting `npm run ci` exit 0 and `npm run e2e` exit 0, "20 passed, coverage
+floor: OK". Matching import syntax was guessing at spellings; the rule works on
+the AST and on the module specifier. `browser-errors.test.ts` now asserts the
+other half — that the rule is actually wired to those paths, as an error.
+
+**No URL query string leaves this repository, in any artifact.** Two layers,
+because they cover different bytes and it matters which is which:
+
+| | Covered by | What it reaches |
+|---|---|---|
+| Harness output — failure messages, `browser-signals.json`, CI log lines, the committed transcripts | `e2e/harness/redact.ts`, at capture | everything the harness itself records |
+| Playwright's own recordings — `trace.zip` members, the HTML report, `error-context.md` | `scripts/ci/redact-artifacts.sh`, before upload | bytes the driver wrote before any harness code saw them |
+
+`redact.ts` alone was NOT enough, and the gap was not theoretical: a verifier
+drove a page holding `?X-Amz-Signature=…` and found it redacted in every
+harness line and present **verbatim** inside `trace.zip` members
+`1-trace.network` and `1-trace.trace` — which the `e2e` lane uploads as a
+14-day artifact. From M1 those are real signed media URLs (ADR-005) and the
+meta `AGENTS.md` forbids publishing them. So the workflow now redacts the
+archives in place before `upload-artifact` runs, keeping origin, path, headers
+and timings readable and dropping the query.
+
+Not covered, deliberately: `.png` screenshots and `.webm` video are rewritten
+by nobody, because a byte substitution could corrupt them and a rendered page
+is pixels rather than a greppable string. `scripts/e2e/demonstrate.sh` (D9)
+greps **every** member of the produced artifacts — binaries included — for a
+sentinel signature value, so that exclusion is verified rather than assumed.
+
+The first push of this harness committed a Next HMR URL with an opaque `?id=`
+into the evidence and the secret scanner flagged it; that is what started all
+of this.
+
+**A run that tests less than it should is not a pass either.** The per-project
+minimum counts live in `e2e/harness/required-projects.json` — an owner-reviewed
+file (`.github/CODEOWNERS` covers `/e2e/harness/`) — and equal the number of
+tests each project runs today. Adding specs raises the real count and never
+fails; **raising the minimum in the same PR is part of adding them**, so the
+ratchet only goes up. Deleting tests until a project falls below its minimum is
+a red lane.
+
+It is checked twice, on purpose. `e2e/harness/coverage-reporter.ts` enforces it
+inside the run, and also refuses a FILTERED run (`--grep`, `--grep-invert`,
+`--shard`, `--project`, a file argument): any filter can select a subset that
+happens to clear the floor, which is exactly how a one-test run once reported
+`coverage floor: OK`. `scripts/ci/check-coverage-floor-ran.mjs` then re-checks
+the same numbers against the finished JSON report **from outside the Playwright
+process**, so deleting the reporter from `playwright.config.ts` — one line, no
+other visible effect — does not remove the floor.
+
+For a deliberately partial local run, set `E2E_COVERAGE_FLOOR=off` and
+understand that such a run proves nothing about coverage.
+`scripts/ci/check-e2e-lane.sh` fails if the workflow ever sets it.
 
 **The fault-injection fixtures never ship.** The demonstrations in `e2e/demos/`
 inject their faults with `page.addInitScript` against the unmodified production

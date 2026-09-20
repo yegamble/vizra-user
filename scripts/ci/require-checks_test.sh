@@ -586,6 +586,84 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# The E2E-LANE guard (scripts/ci/check-e2e-lane.sh -> check-e2e-lane.mjs).
+#
+# THE HOLE THESE CLOSE. The first version of that guard greped the workflow. An
+# independent verifier ran three mutations through it — deleting the
+# `run: npm run e2e` line, replacing it with `echo skipping`, and putting
+# `if: false` on the job — and it printed "OK: ... still drives the built image"
+# for all three. The first two are caught by nothing downstream: the `e2e` job
+# still builds and starts the image, still passes the fixture guard, and still
+# concludes `success`, with no browser opened. `ci-required` then reports that
+# every required check succeeded.
+#
+# The guard now PARSES the workflow, so these cases drive it with mutated
+# workflow fixtures rather than asserting that a grep is clever enough.
+# ---------------------------------------------------------------------------
+lane_script=${E2E_LANE_SCRIPT:-$here/check-e2e-lane.sh}
+real_workflow=$here/../../.github/workflows/e2e.yml
+[ -r "$lane_script" ] || { echo "require-checks_test: $lane_script is missing" >&2; exit 1; }
+[ -r "$real_workflow" ] || { echo "require-checks_test: $real_workflow is missing" >&2; exit 1; }
+
+# lane_expect WANT_RC PATTERN SED_PROGRAM  — mutate the real workflow with sed
+# and drive the guard with the result. Mutating the REAL file keeps these cases
+# honest: a hand-written fixture would drift away from the workflow it stands in
+# for, and would still pass after the workflow was weakened.
+lane_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 program=$3 rc=0
+  local file=$tmp/lane-$cases.yml
+  sed "$program" "$real_workflow" >"$file"
+  bash "$lane_script" "$file" >"$tmp/lane-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/lane-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="the committed e2e workflow passes its own guard"
+lane_expect 0 'still drives the built image' ''
+
+title="deleting the lane step fails by name"
+lane_expect 1 'no step runs the browser lane' '/^        run: npm run e2e$/d'
+
+title="replacing the lane step with an echo fails by name"
+lane_expect 1 'no step runs the browser lane' 's|^        run: npm run e2e$|        run: echo skipping|'
+
+title="appending || true to the lane step fails by name"
+lane_expect 1 'launders the exit code' 's@^        run: npm run e2e$@        run: npm run e2e || true@'
+
+title="wrapping the lane step in a subshell fails by name"
+lane_expect 1 'no step runs the browser lane' 's@^        run: npm run e2e$@        run: (npm run e2e); true@'
+
+title="if: false on the lane step fails by name"
+lane_expect 1 'must run unconditionally' 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        if: false|'
+
+title="continue-on-error on the lane step fails by name"
+lane_expect 1 'continue-on-error' 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        continue-on-error: true|'
+
+title="removing the coverage-floor step fails by name"
+lane_expect 1 'check-coverage-floor-ran' '/run: node scripts\/ci\/check-coverage-floor-ran.mjs/d'
+
+title="removing the artifact redaction fails by name"
+lane_expect 1 'redact-artifacts.sh' '/run: bash scripts\/ci\/redact-artifacts.sh/d'
+
+title="demoting if-no-files-found to warn fails by name"
+lane_expect 1 'if-no-files-found: error' 's|^          if-no-files-found: error$|          if-no-files-found: warn|'
+
+title="pointing the lane at a port nothing publishes fails by name"
+lane_expect 1 'does not match any port' 's|E2E_BASE_URL: http://127.0.0.1:3000|E2E_BASE_URL: http://127.0.0.1:9999|'
+
+title="setting E2E_COVERAGE_FLOOR in the lane fails by name"
+lane_expect 1 'E2E_COVERAGE_FLOOR' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          E2E_COVERAGE_FLOOR: "off"|'
+
+title="a paths filter on a required lane fails by name"
+lane_expect 1 'paths' 's|^  pull_request:$|  pull_request:\n    paths:\n      - "e2e/**"|'
+
+# ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
 #
 # The repository refuses mutable references for GitHub Actions and for the

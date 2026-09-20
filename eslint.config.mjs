@@ -27,6 +27,23 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // THE BROWSER HARNESS. Every file Playwright can collect as a test must
+    // take `test`/`expect` from the guarded harness entry and must not reach
+    // `@playwright/test` at all. An independent verifier walked through the
+    // previous regex-based guard with `import * as pw from "@playwright/test"`
+    // and with single quotes, and got `npm run ci` exit 0 and `npm run e2e`
+    // exit 0 — "20 passed, coverage floor: OK" — on a page that 404s and
+    // throws. `e2e/harness/**` is deliberately NOT listed: it is the module
+    // that must import the real Playwright, and CODEOWNERS covers it.
+    files: ["e2e/specs/**/*.ts", "e2e/demos/**/*.ts"],
+    rules: {
+      "vizra/no-unguarded-playwright-import": [
+        "error",
+        { harnessEntry: "e2e/harness/test" },
+      ],
+    },
+  },
+  {
     // Node scripts and the ESLint rules themselves: printing IS their output.
     // `vizra/no-raw-fetch` deliberately stays ON here — nothing under these
     // directories has any business touching global `fetch`, and switching the
@@ -47,6 +64,13 @@ const eslintConfig = defineConfig([
     // The vendored copy of core's contract (see contracts/manifest.json).
     "contracts/**",
     "coverage/**",
+    // Playwright's own output: the HTML report bundles minified third-party
+    // JavaScript, and test-results holds traces and screenshots. Linting them
+    // produced 3095 problems and a red `npm run ci` the first time a lane ran
+    // before the gate did — a failure with nothing to do with this
+    // repository's code. They are gitignored; this keeps them out of lint too.
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

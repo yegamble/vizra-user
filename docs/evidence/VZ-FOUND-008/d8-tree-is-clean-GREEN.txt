@@ -1,0 +1,5 @@
+$ bash -c npx eslint e2e && echo "OK: no unguarded import anywhere under e2e/"
+
+OK: no unguarded import anywhere under e2e/
+
+[exit 0]

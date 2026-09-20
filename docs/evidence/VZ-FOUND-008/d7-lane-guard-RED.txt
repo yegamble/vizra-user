@@ -1,7 +1,0 @@
-$ bash scripts/ci/check-e2e-lane.sh /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-without-artifacts.yml
-
-::error::the e2e lane no longer tests what it claims to test:
-  it no longer uploads artifacts; a red lane would be undiagnosable.
-  These properties are invisible in a green run, which is why they are asserted here.
-
-[exit 1]

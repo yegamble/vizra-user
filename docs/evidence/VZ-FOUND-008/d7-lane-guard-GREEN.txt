@@ -1,5 +1,5 @@
 $ bash scripts/ci/check-e2e-lane.sh .github/workflows/e2e.yml
 
-OK: .github/workflows/e2e.yml still drives the built image, keeps the coverage floor armed, uploads artifacts, and proves the harness does not ship.
+OK: .github/workflows/e2e.yml still drives the built image, runs `npm run e2e` unconditionally, re-checks the coverage floor after it, and redacts artifacts before uploading them.
 
 [exit 0]

@@ -5,206 +5,83 @@
 #1 DONE 0.0s
 
 #2 resolve image config for docker-image://docker.io/docker/dockerfile:1
-#2 DONE 1.0s
+#2 DONE 1.7s
 
 #3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 done
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 0B / 13.01MB 0.2s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 3.15MB / 13.01MB 0.3s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 5.24MB / 13.01MB 0.5s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 7.34MB / 13.01MB 0.6s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 9.44MB / 13.01MB 0.8s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 12.58MB / 13.01MB 0.9s
-#3 sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 13.01MB / 13.01MB 0.9s done
-#3 extracting sha256:48ca54f0226d3b90064659efd4391d107ad948df73aed877309530e6f3ef19df 0.1s done
-#3 DONE 1.0s
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#3 CACHED
 
 #4 [internal] load metadata for docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#4 DONE 0.6s
+#4 DONE 0.1s
 
 #5 [internal] load .dockerignore
 #5 transferring context: 598B done
 #5 DONE 0.0s
 
-#6 [internal] load build context
-#6 transferring context: 582.95kB 0.0s done
+#6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
+#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
 #6 DONE 0.0s
 
-#7 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 done
-#7 sha256:422fec2897b5fea997a9fe5e593a3d7df5817b146dfe95dce1ca11ec080443e0 448B / 448B 0.1s done
-#7 sha256:19f059763ac032d8a4628ae8713506e801b2221624dc127e44946545a4299a3b 0B / 1.26MB 0.3s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 0B / 49.62MB 0.2s
-#7 sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 0B / 3.99MB 0.2s
-#7 sha256:19f059763ac032d8a4628ae8713506e801b2221624dc127e44946545a4299a3b 1.26MB / 1.26MB 0.4s done
-#7 sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 3.99MB / 3.99MB 0.7s done
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 5.24MB / 49.62MB 0.9s
-#7 extracting sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 0.1s done
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 9.44MB / 49.62MB 1.2s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 12.58MB / 49.62MB 1.4s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 17.83MB / 49.62MB 1.7s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 20.97MB / 49.62MB 1.8s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 24.12MB / 49.62MB 2.0s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 27.26MB / 49.62MB 2.1s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 30.41MB / 49.62MB 2.3s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 34.60MB / 49.62MB 2.4s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 37.75MB / 49.62MB 2.6s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 41.94MB / 49.62MB 2.7s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 45.09MB / 49.62MB 2.9s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 48.23MB / 49.62MB 3.0s
-#7 sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 49.62MB / 49.62MB 3.1s done
-#7 extracting sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5
-#7 extracting sha256:6943333fe3c91cfc9309cb14fc143106237e0a1ecf6d0324b92467ee22356ab5 0.7s done
-#7 DONE 3.9s
-
-#7 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 extracting sha256:19f059763ac032d8a4628ae8713506e801b2221624dc127e44946545a4299a3b 0.0s done
-#7 extracting sha256:422fec2897b5fea997a9fe5e593a3d7df5817b146dfe95dce1ca11ec080443e0 done
-#7 DONE 3.9s
+#7 [internal] load build context
+#7 transferring context: 108.21MB 1.0s done
+#7 DONE 1.0s
 
 #8 [deps 2/4] WORKDIR /app
-#8 DONE 0.2s
+#8 CACHED
 
 #9 [deps 3/4] COPY package.json package-lock.json ./
-#9 DONE 0.0s
+#9 CACHED
 
-#10 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
-#10 0.118 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/APKINDEX.tar.gz
-#10 0.433 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/aarch64/APKINDEX.tar.gz
-#10 0.738 (1/10) Upgrading musl (1.2.5-r9 -> 1.2.5-r11)
-#10 0.816 (2/10) Upgrading busybox (1.37.0-r12 -> 1.37.0-r14)
-#10 0.927 Executing busybox-1.37.0-r14.post-upgrade
-#10 0.949 (3/10) Upgrading busybox-binsh (1.37.0-r12 -> 1.37.0-r14)
-#10 0.984 (4/10) Upgrading alpine-release (3.21.3-r0 -> 3.21.8-r0)
-#10 1.046 (5/10) Upgrading ca-certificates-bundle (20241121-r1 -> 20260909-r0)
-#10 1.099 (6/10) Upgrading libcrypto3 (3.3.3-r0 -> 3.3.7-r1)
-#10 1.272 (7/10) Upgrading libssl3 (3.3.3-r0 -> 3.3.7-r1)
-#10 1.318 (8/10) Upgrading ssl_client (1.37.0-r12 -> 1.37.0-r14)
-#10 1.350 (9/10) Upgrading zlib (1.3.1-r2 -> 1.3.2-r0)
-#10 1.459 (10/10) Upgrading musl-utils (1.2.5-r9 -> 1.2.5-r11)
-#10 1.487 Executing busybox-1.37.0-r14.trigger
-#10 1.490 OK: 10 MiB in 17 packages
-#10 1.807 v22.14.0
-#10 DONE 1.9s
+#10 [deps 4/4] RUN npm ci
+#10 CACHED
 
-#11 [deps 4/4] RUN npm ci
-#11 0.807 npm warn ERESOLVE overriding peer dependency
-#11 0.808 npm warn While resolving: eslint-plugin-import@2.32.0
-#11 0.808 npm warn Found: eslint@10.11.0
-#11 0.808 npm warn node_modules/eslint
-#11 0.808 npm warn   dev eslint@"10.11.0" from the root project
-#11 0.808 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#11 0.808 npm warn
-#11 0.808 npm warn Could not resolve dependency:
-#11 0.808 npm warn peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#11 0.808 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#11 0.808 npm warn   eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
-#11 0.808 npm warn   node_modules/eslint-config-next
-#11 0.808 npm warn   1 more (eslint-import-resolver-typescript)
-#11 0.808 npm warn
-#11 0.808 npm warn Conflicting peer dependency: eslint@9.39.5
-#11 0.808 npm warn node_modules/eslint
-#11 0.808 npm warn   peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#11 0.808 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#11 0.808 npm warn     eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
-#11 0.808 npm warn     node_modules/eslint-config-next
-#11 0.808 npm warn     1 more (eslint-import-resolver-typescript)
-#11 0.836 npm warn ERESOLVE overriding peer dependency
-#11 0.836 npm warn While resolving: eslint-plugin-jsx-a11y@6.10.2
-#11 0.836 npm warn Found: eslint@10.11.0
-#11 0.836 npm warn node_modules/eslint
-#11 0.836 npm warn   dev eslint@"10.11.0" from the root project
-#11 0.836 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#11 0.836 npm warn
-#11 0.836 npm warn Could not resolve dependency:
-#11 0.836 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#11 0.836 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#11 0.836 npm warn   eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
-#11 0.836 npm warn   node_modules/eslint-config-next
-#11 0.836 npm warn
-#11 0.836 npm warn Conflicting peer dependency: eslint@9.39.5
-#11 0.836 npm warn node_modules/eslint
-#11 0.836 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#11 0.836 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#11 0.836 npm warn     eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
-#11 0.836 npm warn     node_modules/eslint-config-next
-#11 0.864 npm warn ERESOLVE overriding peer dependency
-#11 0.864 npm warn While resolving: eslint-plugin-react@7.37.5
-#11 0.864 npm warn Found: eslint@10.11.0
-#11 0.864 npm warn node_modules/eslint
-#11 0.864 npm warn   dev eslint@"10.11.0" from the root project
-#11 0.864 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#11 0.864 npm warn
-#11 0.864 npm warn Could not resolve dependency:
-#11 0.864 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#11 0.864 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#11 0.864 npm warn   eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
-#11 0.864 npm warn   node_modules/eslint-config-next
-#11 0.864 npm warn
-#11 0.864 npm warn Conflicting peer dependency: eslint@9.39.5
-#11 0.864 npm warn node_modules/eslint
-#11 0.864 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#11 0.864 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#11 0.864 npm warn     eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
-#11 0.864 npm warn     node_modules/eslint-config-next
-#11 15.49 
-#11 15.49 added 421 packages, and audited 422 packages in 15s
-#11 15.49 
-#11 15.49 156 packages are looking for funding
-#11 15.49   run `npm fund` for details
-#11 15.49 
-#11 15.49 found 0 vulnerabilities
-#11 15.50 npm notice
-#11 15.50 npm notice New major version of npm available! 10.9.2 -> 12.0.2
-#11 15.50 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
-#11 15.50 npm notice To update run: npm install -g npm@12.0.2
-#11 15.50 npm notice
-#11 DONE 16.7s
+#11 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
+#11 CACHED
 
-#12 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
-#12 DONE 2.7s
+#12 [builder 4/5] COPY . .
+#12 DONE 0.4s
 
-#13 [builder 4/5] COPY . .
-#13 DONE 0.1s
+#13 [builder 5/5] RUN npm run build
+#13 0.312 
+#13 0.312 > vizra-user@0.0.0 build
+#13 0.312 > next build
+#13 0.312 
+#13 0.575 ▲ Next.js 16.3.5 (Turbopack)
+#13 0.597 ✓ Running next.config.ts took 22ms
+#13 0.603 
+#13 0.619   Creating an optimized production build ...
+#13 3.344 ✓ Compiled successfully in 2.6s
+#13 3.346   Running TypeScript ...
+#13 4.612   Finished TypeScript in 1266ms ...
+#13 4.614   Collecting page data using 5 workers ...
+#13 4.861   Generating static pages using 5 workers (0/3) ...
+#13 5.114 ✓ Generating static pages using 5 workers (3/3) in 252ms
+#13 5.116   Finalizing page optimization ...
+#13 5.288 
+#13 5.289 Route (app)
+#13 5.289 ┌ ○ /
+#13 5.289 ├ ○ /_not-found
+#13 5.289 └ ƒ /health
+#13 5.289 
+#13 5.289 
+#13 5.289 ○  (Static)   prerendered as static content
+#13 5.289 ƒ  (Dynamic)  server-rendered on demand
+#13 5.289 
+#13 5.304 npm notice
+#13 5.304 npm notice New major version of npm available! 10.9.2 -> 12.0.2
+#13 5.304 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+#13 5.304 npm notice To update run: npm install -g npm@12.0.2
+#13 5.304 npm notice
+#13 DONE 5.6s
 
-#14 [builder 5/5] RUN npm run build
-#14 0.241 
-#14 0.241 > vizra-user@0.0.0 build
-#14 0.241 > next build
-#14 0.241 
-#14 0.457 ▲ Next.js 16.3.5 (Turbopack)
-#14 0.475 ✓ Running next.config.ts took 18ms
-#14 0.481 
-#14 0.496   Creating an optimized production build ...
-#14 2.977 ✓ Compiled successfully in 2.4s
-#14 2.978   Running TypeScript ...
-#14 4.264   Finished TypeScript in 1285ms ...
-#14 4.265   Collecting page data using 5 workers ...
-#14 4.513   Generating static pages using 5 workers (0/3) ...
-#14 4.770 ✓ Generating static pages using 5 workers (3/3) in 257ms
-#14 4.773   Finalizing page optimization ...
-#14 4.937 
-#14 4.939 Route (app)
-#14 4.939 ┌ ○ /
-#14 4.939 ├ ○ /_not-found
-#14 4.939 └ ƒ /health
-#14 4.939 
-#14 4.939 
-#14 4.939 ○  (Static)   prerendered as static content
-#14 4.939 ƒ  (Dynamic)  server-rendered on demand
-#14 4.939 
-#14 4.953 npm notice
-#14 4.953 npm notice New major version of npm available! 10.9.2 -> 12.0.2
-#14 4.953 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
-#14 4.953 npm notice To update run: npm install -g npm@12.0.2
-#14 4.953 npm notice
-#14 DONE 5.2s
+#14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
+#14 CACHED
 
 #15 [runner 4/6] COPY --from=builder /app/public ./public
-#15 DONE 0.0s
+#15 CACHED
 
 #16 [runner 5/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-#16 DONE 0.2s
+#16 DONE 0.4s
 
 #17 [runner 6/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 #17 DONE 0.0s
@@ -212,13 +89,13 @@
 #18 exporting to image
 #18 exporting layers
 #18 exporting layers 1.4s done
-#18 exporting manifest sha256:11eb330673669bac2ea954099086d71d005a9983b2aa66aa42e2d0b94a3594e3 done
-#18 exporting config sha256:f5a7445818c872a9cf52cf082ea296462d132ce2cd8ef221419735ce745eac1e done
-#18 exporting attestation manifest sha256:97ed433474969bd56273ba836631064ded4c4dabab708b21043bfc5d837f6694 done
-#18 exporting manifest list sha256:625854781feb3f92143b89221bbb34f328fc724500e90677672a58b908621ac0 done
+#18 exporting manifest sha256:9eb3ce849611da653854e5745805d8cdd913acd0c47ef04ffe597e87e0234965 done
+#18 exporting config sha256:e0d9fb5ba2f6f1b65e5ca0772dfeae02ba24ee96a1ec1948345695f3e13f0423 done
+#18 exporting attestation manifest sha256:1a9381e7cf988c56e1e32fc8306d15afaafbe8169a4e49a6749d5c68ad6bd581 done
+#18 exporting manifest list sha256:25af7bdf6313f8a1a959864c76411bc51b9c9101429e35582dca2a7cdc95cd23 done
 #18 naming to docker.io/library/vizra-user:demonstrate done
 #18 unpacking to docker.io/library/vizra-user:demonstrate
-#18 unpacking to docker.io/library/vizra-user:demonstrate 0.4s done
+#18 unpacking to docker.io/library/vizra-user:demonstrate 0.3s done
 #18 DONE 1.8s
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/gfyfpk87am75ycufcvja7k8xs
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/ms2kjytg2qygsg48ncwj8znmg

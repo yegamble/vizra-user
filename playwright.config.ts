@@ -78,7 +78,14 @@ export default defineConfig({
 
   use: {
     baseURL,
-    trace: "retain-on-failure",
+    // `sources: false` keeps the SPEC'S OWN SOURCE out of the trace. The trace
+    // is published as a CI artifact; the spec source is already in the
+    // repository, so embedding it adds nothing to a debugging session and does
+    // add a second copy of whatever a spec happens to contain. The D9
+    // demonstration found the sentinel signature value surviving into
+    // `src/<sha>.ts` inside trace.zip for exactly that reason — the redactor
+    // rewrites URLs, and a bare constant in a spec is not a URL.
+    trace: { mode: "retain-on-failure", sources: false },
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     // Bound every action, so a wedged page fails the lane instead of burning

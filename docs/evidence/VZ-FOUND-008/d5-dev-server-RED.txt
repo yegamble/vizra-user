@@ -1,12 +1,12 @@
-$ env E2E_BASE_URL=http://127.0.0.1:3212 npx playwright test e2e/specs/production-build.spec.ts
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3212 npx playwright test e2e/specs/production-build.spec.ts
 
 
 Running 4 tests using 4 workers
 
-  ✘  1 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
-  ✘  3 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
+  ✘  2 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
+  ✘  3 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.3s)
   ✘  4 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.3s)
-  ✘  2 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.3s)
+  ✘  1 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
 
 
   1) [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker 
@@ -400,10 +400,6 @@ Running 4 tests using 4 workers
     [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
     [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker 
     [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
-
-::error::the browser lane did not satisfy its coverage floor (e2e/harness/required-projects.ts):
-  project "desktop-chromium-1440" ran 0 passing test(s), and the floor is 1. A lane that collects nothing is not a pass (AGENTS.md).
-  project "mobile-chromium-390" ran 0 passing test(s), and the floor is 1. A lane that collects nothing is not a pass (AGENTS.md).
-  Playwright reported "failed" — that answers "did anything fail", not "did anything run".
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
 
 [exit 1]

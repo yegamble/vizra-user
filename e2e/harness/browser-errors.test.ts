@@ -11,10 +11,11 @@
  * discover later, so they run in `npm run test`.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -27,6 +28,7 @@ import {
 } from "./browser-errors";
 
 const e2eRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(e2eRoot, "..");
 
 const consoleRecord: BrowserErrorRecord = {
   kind: "console",
@@ -154,13 +156,32 @@ describe("formatFailure", () => {
 });
 
 /**
- * STRUCTURAL: no spec may import Playwright's own `test`.
+ * STRUCTURAL: every real spec and demo satisfies the guarded-import rule.
  *
- * `e2e/harness/test.ts` is the only guarded entry point. A spec that wrote
- * `import { test } from "@playwright/test"` would compile, run, pass — and be
- * exempt from the console/network guard, which is the one thing this harness
- * exists to provide. That is not a hypothetical: it is the shortest path a
- * hurried author takes, and the editor autocompletes it.
+ * WHAT THIS USED TO BE, AND WHY IT CHANGED. It was a regex over each spec's
+ * source:
+ *
+ *     /^\s*import\s+\{[^}]*\}\s+from\s+"@playwright\/test";?$/gm
+ *
+ * requiring braces AND double quotes. An independent verifier put two specs
+ * into `e2e/specs/` whose page 404s and throws an uncaught error on every
+ * load — `import * as pw from "@playwright/test"` and the named form with
+ * single quotes — and got `npm run ci` exit 0 and `npm run e2e` exit 0,
+ * "20 passed, coverage floor: OK". Matching import syntax is guessing at
+ * spellings.
+ *
+ * The enforcement is now an AST rule, `vizra/no-unguarded-playwright-import`,
+ * whose own cases live in `eslint-rules/no-unguarded-playwright-import.test.mjs`
+ * and cover every spelling: named, namespace, default, side-effect, `require`,
+ * dynamic `import()`, either quote style, re-exports, and a local shim that
+ * re-exports the raw binding.
+ *
+ * This block keeps the other half — that the rule is actually APPLIED to the
+ * real files. A perfect rule wired to no files protects nothing, and "is it
+ * configured for this path" is not something the rule's own unit tests can
+ * answer. So it runs the repository's real ESLint configuration over every
+ * real spec and demo, and fails if any of them reports a violation or if the
+ * sweep finds no files at all.
  */
 describe("specs use the guarded test", () => {
   const files: string[] = [];
@@ -180,17 +201,38 @@ describe("specs use the guarded test", () => {
     expect(files.length).toBeGreaterThanOrEqual(4);
   });
 
-  it.each(files.map((file) => [path.relative(e2eRoot, file), file]))(
-    "%s imports test from the harness, not from @playwright/test",
-    (_label, file) => {
-      const source = readFileSync(file, "utf8");
-      const bareImports = source.match(/^\s*import\s+\{[^}]*\}\s+from\s+"@playwright\/test";?$/gm) ?? [];
-      const valueImports = bareImports.filter((line) => !/^\s*import\s+type\s/.test(line));
-      expect(
-        valueImports,
-        `${file} imports values from @playwright/test directly. Import { test, expect } from ` +
-          `the harness instead, or the browser-error guard does not apply to this spec.`,
-      ).toEqual([]);
-    },
-  );
+  it("applies the guarded-import rule to every one of them", async () => {
+    // The repository's REAL configuration, not a hand-built one: the property
+    // under test is that eslint.config.mjs wires the rule to these paths.
+    const eslint = new ESLint({ cwd: repoRoot });
+    const results = await eslint.lintFiles(files);
+
+    // A file ESLint decided not to lint at all would silently pass, so assert
+    // the sweep covered every file first.
+    expect(results.map((result) => result.filePath).sort()).toEqual(
+      files.map((file) => path.resolve(file)).sort(),
+    );
+
+    const violations = results.flatMap((result) =>
+      result.messages
+        .filter((message) => message.ruleId === "vizra/no-unguarded-playwright-import")
+        .map((message) => `${path.relative(repoRoot, result.filePath)}:${message.line} ${message.message}`),
+    );
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("the rule is configured as an error for e2e/specs, not a warning", async () => {
+    // A rule set to "warn" would report and let the gate pass. Asked of the
+    // real config, for a real path, with a spelling the old regex missed.
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `import * as pw from "@playwright/test";\nconst test = pw.test;\nexport default test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__rule_is_wired__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message, "the rule did not fire on a namespace import in e2e/specs/").toBeDefined();
+    expect(message?.severity, "the rule must be an error, never a warning").toBe(2);
+  });
 });

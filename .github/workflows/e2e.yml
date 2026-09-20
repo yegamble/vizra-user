@@ -104,13 +104,44 @@ jobs:
           E2E_BASE_URL: http://127.0.0.1:3000
         run: npm run e2e
 
+      # The floor, re-checked from OUTSIDE the Playwright process. The
+      # in-process reporter lives in playwright.config.ts, which the pull
+      # request being gated can edit: deleting one line from the `reporter`
+      # array removes the floor with no other visible effect. This step reads
+      # the finished run's own JSON report and the same
+      # e2e/harness/required-projects.json, so the floor survives the deletion
+      # of its own enforcer. scripts/ci/check-e2e-lane.sh requires this step to
+      # follow the lane step.
+      - name: The coverage floor was actually satisfied
+        run: node scripts/ci/check-coverage-floor-ran.mjs
+
       - name: Container logs
         if: always()
         run: docker logs vizra-user-e2e 2>&1 | tail -200 || true
 
+      # PRIVACY, BEFORE ANYTHING LEAVES THE RUNNER. e2e/harness/redact.ts strips
+      # query strings from what the HARNESS prints; it cannot reach Playwright's
+      # own recordings. A verifier found a `?X-Amz-Signature=…` value verbatim
+      # inside trace.zip members `1-trace.network` and `1-trace.trace` while
+      # every harness line showed it redacted. From M1 those are real signed
+      # media URLs, and the meta AGENTS.md forbids publishing them. This step
+      # rewrites the query strings inside the archives too, so what uploads is
+      # still diagnosable (origin, path, headers, timings) and carries no
+      # credential.
+      - name: Redact URL query strings in the artifacts
+        if: failure()
+        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
+
       # Traces, screenshots, videos and the HTML report — the things that make a
       # red lane diagnosable without reproducing it locally. Uploaded on
       # failure; `retain-on-failure` means a green run has nothing to publish.
+      #
+      # `if-no-files-found: error`, not `warn`: this step had never executed
+      # (both runs of this lane were green), so a wrong path would have been a
+      # warning in a log nobody reads, and the ledger's "retained traces for a
+      # deliberately failing spec" would have been unsatisfiable without anyone
+      # noticing. If the lane is red, there ARE artifacts; their absence is a
+      # defect in this workflow.
       - name: Upload Playwright artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -121,7 +152,7 @@ jobs:
             test-results/
             playwright-browsers.txt
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Stop the container
         if: always()

@@ -1,0 +1,28 @@
+{
+  "$comment": [
+    "THE COVERAGE FLOOR. Owner-reviewed: .github/CODEOWNERS covers /e2e/harness/.",
+    "",
+    "Each entry is a MINIMUM number of tests that project must actually run and",
+    "pass. Adding specs raises the real count and never fails this file; lowering",
+    "a number here, or deleting tests until the real count falls below one, is the",
+    "event this file exists to make visible.",
+    "",
+    "It was 1 and 1, which made the green line 'coverage floor: OK (desktop=9",
+    "mobile=9)' a REPORT of what ran rather than a floor that was enforced. An",
+    "independent verifier showed that `--grep \"reports liveness\"` then exited 0",
+    "with one test per project. Wholesale vacuity was caught; attrition was not.",
+    "",
+    "JSON, not TypeScript, because two very different readers need the same",
+    "numbers: e2e/harness/required-projects.ts (the reporter, inside the",
+    "Playwright process) and scripts/ci/check-coverage-floor-ran.mjs (the CI step",
+    "that re-checks the finished run from outside it). A number duplicated in two",
+    "files is a number that drifts.",
+    "",
+    "RAISING THESE IS PART OF EACH UI PR. A slice that adds specs raises its",
+    "project's minimum in the same diff, so the ratchet only ever goes up."
+  ],
+  "projects": {
+    "desktop-chromium-1440": 9,
+    "mobile-chromium-390": 9
+  }
+}
