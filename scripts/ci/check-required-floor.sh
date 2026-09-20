@@ -34,7 +34,26 @@ set -euo pipefail
 #   contract — the generated client matches vizra-core's contract
 # Adding to this list is welcome; removing from it is an owner decision, and
 # the diff says so.
+#
+# The `FLOOR` override exists for this script's own regression suite
+# (`require-checks_test.sh` drives it with mutated manifests). No workflow sets
+# it. An independent verifier found that `FLOOR=" "` — non-empty, so `:-` does
+# not substitute the default — made the loop below iterate zero times and print
+# OK with an empty floor: a vacuous pass in the one script whose entire job is
+# to refuse to pass vacuously, the same defect class as the empty-manifest case
+# the suite already covers. A floor with no lanes in it is now an error, not a
+# pass.
 FLOOR=${FLOOR:-"frontend contract"}
+
+# Word-split exactly as the loop below will, and count what survives.
+floor_lanes=0
+for _lane in $FLOOR; do floor_lanes=$((floor_lanes + 1)); done
+if [ "$floor_lanes" -eq 0 ]; then
+  echo "::error::required-floor guard: FLOOR resolved to no lanes (value: '${FLOOR}')." >&2
+  echo "  An empty floor would pass any manifest, including one that requires nothing." >&2
+  echo "  Unset FLOOR to use the default ('frontend contract'), or name the lanes to enforce." >&2
+  exit 1
+fi
 
 manifest=${1:-.github/required-checks.txt}
 [ -r "$manifest" ] || { echo "::error::required-floor guard: $manifest is missing" >&2; exit 1; }

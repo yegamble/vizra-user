@@ -1,0 +1,18 @@
+# A1 RED (bundle leak) — controlled mutation: a Client Component that inlines a NEXT_PUBLIC_ value
+# This is the leak shape the check exists for: the internal base URL reaching a browser chunk.
+app/leak-probe
+$ cat app/leak-probe/page.tsx
+"use client";
+export default function Leak() {
+  return <p>{process.env.NEXT_PUBLIC_INTERNAL_API_BASE_URL}</p>;
+}
+
+$ NEXT_PUBLIC_INTERNAL_API_BASE_URL=http://api.sentinel.invalid:8080 npm run build   (then the check)
+build EXIT=0
+$ SENTINELS="http://api.sentinel.invalid:8080 https://origin.sentinel.invalid" bash scripts/ci/check-client-bundle.sh
+::error::server-side configuration reached the browser bundle:
+  server-side VALUE 'http://api.sentinel.invalid:8080' appears in:
+      .next/static/chunks/0l68hb_s051w0.js
+  These values are read per request by lib/config.ts and must never be built into a chunk.
+  A module that needs them belongs on the server: it should carry `import "server-only"`.
+EXIT=1

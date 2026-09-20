@@ -49,6 +49,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # BEFORE the generator reads the spec. openapi-typescript resolves
+      # external `$ref` targets through @redocly/openapi-core, http(s)
+      # included, so a pull request that edited the vendored spec (and its
+      # manifest sha256 to match, which any contributor can do) would make this
+      # lane fetch a host of the author's choosing during codegen and splice an
+      # unreviewed schema into a committed artifact. `codegen.mjs` calls the
+      # same guard itself, so `npm run codegen` is covered too; it is a step of
+      # its own here so the lane shows which input it refused.
+      - name: The vendored contract references nothing outside itself
+        run: node scripts/check-spec-refs.mjs
+
       - name: Generated client matches the contract
         run: npm run check:contract
 

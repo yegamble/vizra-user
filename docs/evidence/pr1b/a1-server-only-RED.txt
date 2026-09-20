@@ -1,0 +1,33 @@
+# A1 RED — controlled mutation: `import "server-only";` removed
+
+## Mutation 1: removed from BOTH lib/config.ts and lib/api/fetch.ts (the state PR #1 merged with)
+$ grep -c '^import "server-only";' lib/config.ts lib/api/fetch.ts
+lib/config.ts:0
+lib/api/fetch.ts:0
+$ bash scripts/ci/check-server-only-boundary.sh
+EXIT=1
+::error::the build failed (exit 1), but not on the server-only boundary for every module — this guard proves nothing:
+  lib/config.ts: no server-only diagnostic attributed to it
+  lib/api/fetch.ts: no server-only diagnostic attributed to it
+  Each of lib/config.ts and lib/api/fetch.ts must carry `import "server-only";`.
+
+## Mutation 2: removed from lib/config.ts ONLY.
+## (fetch.ts still fails on next/headers, so this is the case a loose grep would have passed.)
+$ bash scripts/ci/check-server-only-boundary.sh
+EXIT=1
+::error::the build failed (exit 1), but not on the server-only boundary for every module — this guard proves nothing:
+  lib/config.ts: no server-only diagnostic attributed to it
+  Each of lib/config.ts and lib/api/fetch.ts must carry `import "server-only";`.
+
+## Mutation 3: removed from lib/api/fetch.ts ONLY.
+$ bash scripts/ci/check-server-only-boundary.sh
+EXIT=1
+::error::the build failed (exit 1), but not on the server-only boundary for every module — this guard proves nothing:
+  lib/api/fetch.ts: no server-only diagnostic attributed to it
+  Each of lib/config.ts and lib/api/fetch.ts must carry `import "server-only";`.
+
+## restored
+$ git diff --stat lib/
+ lib/api/fetch.ts | 13 ++++++++++---
+ lib/config.ts    | 11 +++++++++++
+ 2 files changed, 21 insertions(+), 3 deletions(-)

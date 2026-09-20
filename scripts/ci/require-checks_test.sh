@@ -493,12 +493,147 @@ title="an empty manifest fails rather than vacuously passing"
 floor_expect 1 'frontend: missing' <<'MANIFEST'
 MANIFEST
 
+# --- the FLOOR value itself ------------------------------------------------
+# A verifier found `FLOOR=" "` printing OK with an empty floor list: non-empty,
+# so `${FLOOR:-default}` does not substitute, and the loop then iterates zero
+# times. That is the same vacuous pass as the empty-manifest case above, one
+# level up — in the script whose whole purpose is to refuse to pass vacuously.
+# These cases drive the FLOOR value rather than the manifest, so `floor_expect`
+# (which fixes FLOOR) cannot express them.
+#
+# floor_env_expect FLOOR_VALUE WANT_RC PATTERN  — against a manifest that
+# requires NOTHING, so a floor that is actually enforced must fail.
+floor_env_expect() {
+  cases=$((cases + 1))
+  local value=$1 want=$2 pattern=$3 rc=0
+  local file=$tmp/floor-env-$cases.txt
+  printf '# no lanes required at all\n' >"$file"
+  FLOOR="$value" bash "$floor_script" "$file" >"$tmp/floor-env-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/floor-env-$cases.out" | cut -c1-200)"
+  elif ! grep -Eq -- "$pattern" "$tmp/floor-env-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/floor-env-$cases.out" | cut -c1-200)"
+  else
+    record 0
+  fi
+}
+
+title="a whitespace-only FLOOR does not pass vacuously"
+floor_env_expect " " 1 'FLOOR resolved to no lanes'
+
+title="a tab/newline-only FLOOR does not pass vacuously"
+floor_env_expect "$(printf '\t\n ')" 1 'FLOOR resolved to no lanes'
+
+title="an empty FLOOR falls back to the default and still enforces it"
+floor_env_expect "" 1 'frontend: missing'
+
+title="a FLOOR naming real lanes still enforces them"
+floor_env_expect "frontend" 1 'frontend: missing'
+
 title="the real manifest in this repository satisfies its own floor"
 cases=$((cases + 1))
 if FLOOR="frontend contract" bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
   record 0
 else
   record 1 "the committed .github/required-checks.txt does not satisfy the floor"
+fi
+
+# ---------------------------------------------------------------------------
+# The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
+#
+# The repository refuses mutable references for GitHub Actions and for the
+# codegen generator and spec; the Docker base image was the one input that
+# escaped that standard (security review FINDING 5). A tag — even an exact
+# patch tag — can be repointed by the registry, so what ships changes with no
+# diff. These cases drive the guard with mutated Dockerfiles, so it cannot rot
+# into a step that passes whatever it is given.
+# ---------------------------------------------------------------------------
+pin_script=${IMAGE_PIN_SCRIPT:-$here/check-image-pins.sh}
+[ -r "$pin_script" ] || { echo "require-checks_test: $pin_script is missing" >&2; exit 1; }
+
+DIGEST=sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
+
+# pin_expect WANT_RC PATTERN [NVMRC_VERSION] <<dockerfile lines
+pin_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 version=${3:-22.14.0} rc=0
+  local dir=$tmp/pin-$cases
+  mkdir -p "$dir"
+  cat >"$dir/Dockerfile"
+  printf '%s\n' "$version" >"$dir/.nvmrc"
+  bash "$pin_script" "$dir/Dockerfile" "$dir/.nvmrc" >"$dir/out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$dir/out" | cut -c1-200)"
+  elif ! grep -Eq -- "$pattern" "$dir/out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$dir/out" | cut -c1-200)"
+  else
+    record 0
+  fi
+}
+
+title="every FROM digest-pinned at the .nvmrc version passes"
+pin_expect 0 'are @sha256-pinned' <<DOCKERFILE
+FROM node:22.14.0-alpine@$DIGEST AS deps
+FROM node:22.14.0-alpine@$DIGEST AS builder
+FROM node:22.14.0-alpine@$DIGEST AS runner
+COPY --from=deps /app/node_modules ./node_modules
+DOCKERFILE
+
+title="an unpinned tag fails by name"
+pin_expect 1 'not pinned to an immutable @sha256 digest' <<DOCKERFILE
+FROM node:22.14.0-alpine AS deps
+DOCKERFILE
+
+title="one unpinned stage among pinned ones still fails"
+pin_expect 1 'not pinned to an immutable @sha256 digest' <<DOCKERFILE
+FROM node:22.14.0-alpine@$DIGEST AS deps
+FROM node:22.14.0-alpine@$DIGEST AS builder
+FROM node:22.14.0-alpine AS runner
+DOCKERFILE
+
+title="an abbreviated digest is refused"
+pin_expect 1 'digest is 12 characters, want 64' <<'DOCKERFILE'
+FROM node:22.14.0-alpine@sha256:9bef0ef1e268 AS deps
+DOCKERFILE
+
+title="bumping .nvmrc without re-resolving the digest fails by name"
+pin_expect 1 "does not match .*'22.15.0'" 22.15.0 <<DOCKERFILE
+FROM node:22.14.0-alpine@$DIGEST AS deps
+DOCKERFILE
+
+title="a matching tag for a bumped .nvmrc passes"
+pin_expect 0 'are @sha256-pinned' 22.15.0 <<DOCKERFILE
+FROM node:22.15.0-alpine@$DIGEST AS deps
+DOCKERFILE
+
+title="a --platform flag does not hide the image from the guard"
+pin_expect 1 'not pinned to an immutable @sha256 digest' <<'DOCKERFILE'
+FROM --platform=linux/amd64 node:22.14.0-alpine AS deps
+DOCKERFILE
+
+title="a commented-out FROM is not a FROM"
+pin_expect 1 'declares no external FROM' <<DOCKERFILE
+# FROM node:22.14.0-alpine@$DIGEST AS deps
+RUN echo hi
+DOCKERFILE
+
+title="a Dockerfile with no external FROM refuses to pass vacuously"
+pin_expect 1 'declares no external FROM' <<'DOCKERFILE'
+FROM scratch
+DOCKERFILE
+
+title="a stage reference is not an external image and needs no digest"
+pin_expect 0 'are @sha256-pinned' <<DOCKERFILE
+FROM node:22.14.0-alpine@$DIGEST AS deps
+FROM deps AS builder
+DOCKERFILE
+
+title="the committed Dockerfile satisfies the image-pin guard"
+cases=$((cases + 1))
+if bash "$pin_script" "$here/../../Dockerfile" "$here/../../.nvmrc" >"$tmp/pin-real.out" 2>&1; then
+  record 0
+else
+  record 1 "the committed Dockerfile is not immutably pinned: $(tr '\n' ' ' <"$tmp/pin-real.out" | cut -c1-300)"
 fi
 
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"

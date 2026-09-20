@@ -1,0 +1,182 @@
+name: supply-chain
+
+# What the runtime is made of (security review FINDING 5, second half).
+#
+# `apk upgrade --no-cache` in the Dockerfile's runner stage and the `@sha256`
+# base-image pin are MITIGATIONS — they control what goes in. Neither DETECTS a
+# known-vulnerable transitive npm package or an OS CVE in the layer that ships.
+# These two lanes are the detection half:
+#
+#   deps-scan   `npm audit` over the committed lockfile — the dependency tree
+#               that `npm ci` installs, in CI and in the image's deps stage.
+#   image-scan  Trivy over the built production image — OS packages AND the
+#               bundled node_modules in the standalone output, so it sees what
+#               actually ships rather than what the lockfile says.
+#
+# NOT IN `.github/required-checks.txt`, DELIBERATELY, AND THE REASON MATTERS.
+# `ci-guard` forbids `continue-on-error`, on purpose: a lane that hides its own
+# failures is worse than no lane. The honest alternative to hiding failures is
+# not to promote the lane to required until its baseline is clean and stays
+# clean, because a scan lane's result depends on the world — a new CVE
+# published against an unfixed Alpine package turns it red with no change to
+# this repository, and a required lane that goes red on its own is how a team
+# learns to merge past red.
+#
+# So these lanes run on every pull request and in the merge queue, fail loudly
+# when they find HIGH or CRITICAL, publish machine-readable results as an
+# artifact, and are read by a human. Promotion to the required set is an
+# owner-reviewed change to `.github/required-checks.txt` (and to the floor in
+# `scripts/ci/check-required-floor.sh`); the PR that proposes it should carry
+# the two conditions: the baseline has been clean for a sustained period, and
+# there is an agreed route for an unfixed upstream CVE — a reviewed, expiring
+# `.trivyignore.yaml` entry — so that "go red for reasons outside the repo"
+# has an answer that is not `continue-on-error`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --- the dependency tree the lockfile pins --------------------------------
+  deps-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # `npm ci`, never `npm install`: the scan must describe the tree that
+      # actually installs, not one npm resolved fresh in the runner.
+      - name: Install dependencies
+        run: npm ci
+
+      # Two runs, on purpose. The first records EVERYTHING, including low and
+      # moderate, so the artifact is a complete picture and the counts in a
+      # review are not the threshold's leftovers. The second is the verdict.
+      # `|| true` on the recording run only: `npm audit` exits non-zero when it
+      # finds anything, and a report that is written is not yet a judgement.
+      - name: Record the full advisory report
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Summarise by severity
+        run: |
+          set -euo pipefail
+          echo "npm audit, all severities (advisories against package-lock.json):"
+          jq -r '.metadata.vulnerabilities
+                 | to_entries[] | "  \(.key): \(.value)"' npm-audit.json
+          {
+            echo "### npm audit"
+            echo ""
+            echo "| severity | count |"
+            echo "| --- | --- |"
+            jq -r '.metadata.vulnerabilities
+                   | to_entries[] | "| \(.key) | \(.value) |"' npm-audit.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The verdict. No `continue-on-error`: when this is red the lane is red,
+      # and a human decides. The lane is not in the required set, so red here
+      # does not block a merge — it is read, not routed around.
+      - name: Fail on high or critical advisories
+        run: npm audit --audit-level=high
+
+      # `always()`, so the artifact exists precisely when it is most wanted:
+      # after the verdict step failed. This is not `continue-on-error` — the
+      # job's conclusion is unchanged.
+      - name: Publish the advisory report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-audit-${{ github.sha }}
+          path: npm-audit.json
+          if-no-files-found: error
+          retention-days: 30
+
+  # --- the image that actually ships ----------------------------------------
+  image-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same build docker-build.yml runs, on the acceptance platform
+      # (ADR-009: ubuntu-24.04, linux/amd64). Built here rather than shared
+      # between jobs so this lane is readable on its own.
+      - name: Build the production image (linux/amd64)
+        run: docker build --tag vizra-user:scan .
+
+      # Scanner version pinned explicitly: the action resolves a default that
+      # moves, and a scan whose engine changes under it cannot be compared with
+      # last week's baseline. The action itself is pinned by commit SHA, which
+      # ci-guard enforces.
+      - name: Record every finding (JSON artifact)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: vizra-user:scan
+          format: json
+          output: trivy-image.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          vuln-type: os,library
+          version: v0.70.0
+
+      - name: Summarise by severity
+        run: |
+          set -euo pipefail
+          echo "Trivy, vizra-user:scan — findings by severity:"
+          jq -r '[.Results[]?.Vulnerabilities[]?.Severity] | group_by(.)
+                 | map({severity: .[0], count: length})[]
+                 | "  \(.severity): \(.count)"' trivy-image.json
+          total=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-image.json)
+          echo "  TOTAL: $total"
+          {
+            echo "### Trivy (production image)"
+            echo ""
+            echo "| severity | count |"
+            echo "| --- | --- |"
+            jq -r '[.Results[]?.Vulnerabilities[]?.Severity] | group_by(.)
+                   | map({severity: .[0], count: length})[]
+                   | "| \(.severity) | \(.count) |"' trivy-image.json
+            echo "| **total** | **$total** |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The verdict, same shape as deps-scan: a separate run whose only job is
+      # to conclude. `ignore-unfixed: false` — an unfixed CVE in the shipped
+      # layer is still something an operator is running, and suppressing it
+      # here would make the lane quieter than the truth.
+      - name: Fail on high or critical findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: vizra-user:scan
+          format: table
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: false
+          exit-code: "1"
+          version: v0.70.0
+
+      - name: Publish the scan report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-image-${{ github.sha }}
+          path: trivy-image.json
+          if-no-files-found: error
+          retention-days: 30

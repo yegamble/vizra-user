@@ -32,6 +32,17 @@ ruleTester.run("no-raw-fetch", rule, {
     // A method named fetch on some other object is not the global.
     { code: `client.fetch(url);`, filename: "app/page.tsx" },
     { code: `const q = { fetch: client.get };`, filename: "app/page.tsx" },
+    // ...including in its computed spelling. Ordinary computed access on an
+    // unrelated object is not the global binding and must stay clean, or the
+    // rule would report half the repository.
+    { code: `client["fetch"](url);`, filename: "app/page.tsx" },
+    { code: `const h = client["fetch"];`, filename: "app/page.tsx" },
+    { code: `registry[name](url);`, filename: "app/page.tsx" },
+    { code: `const v = record[key];`, filename: "app/page.tsx" },
+    { code: `rows[0](url);`, filename: "app/page.tsx" },
+    // A property of globalThis that is demonstrably not fetch.
+    { code: `const c = globalThis["crypto"];`, filename: "app/page.tsx" },
+    { code: `globalThis.crypto.randomUUID();`, filename: "app/page.tsx" },
     // A LOCAL binding named fetch is not the global binding.
     {
       code: `function run(fetch) { return fetch(url); }`,
@@ -107,6 +118,94 @@ ruleTester.run("no-raw-fetch", rule, {
       code: `export default fetch;`,
       filename: "lib/api/fetch.ts",
       errors: [{ messageId: "aliasedFetch" }],
+    },
+
+    // --- the computed-member spelling ---------------------------------------
+    // An independent verifier showed these four producing ZERO messages of any
+    // rule: `MemberExpression` returned immediately on `node.computed`, and the
+    // identity rule does not recognise the call as a fetch. A page could send
+    // `__Host-vizra_session` on a `next: { revalidate: 60 }` request with a
+    // clean lint run — the same shared-cache leak as the alias hole, by the
+    // same mechanism, in a different spelling.
+    {
+      code: `const a = await globalThis["fetch"](url, { headers: { cookie }, next: { revalidate: 60 } });`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "rawFetch" }],
+    },
+    {
+      code: `const b = await window["fetch"](url, { headers: { cookie }, next: { revalidate: 60 } });`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "rawFetch" }],
+    },
+    {
+      code: `const d = await globalThis[\`fetch\`](url, { headers: { cookie } });`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "rawFetch" }],
+    },
+    {
+      code: `window[\`fetch\`](url);`,
+      filename: "components/thing.tsx",
+      errors: [{ messageId: "rawFetch" }],
+    },
+    // As a VALUE it is an alias, so it is an error in every file — including
+    // the one whose direct calls are allowed.
+    {
+      code: `const g = globalThis["fetch"];\nconst c = await g(url, { headers: { cookie }, next: { revalidate: 60 } });`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "aliasedFetch" }],
+    },
+    {
+      code: `const g = globalThis["fetch"];`,
+      filename: "lib/api/fetch.ts",
+      errors: [{ messageId: "aliasedFetch" }],
+    },
+    {
+      code: `const g = window[\`fetch\`];`,
+      filename: "lib/api/fetch.ts",
+      errors: [{ messageId: "aliasedFetch" }],
+    },
+    {
+      code: `wrap(globalThis["fetch"]);`,
+      filename: "lib/api/fetch.ts",
+      errors: [{ messageId: "aliasedFetch" }],
+    },
+    // A computed destructure of the global is the same rebinding.
+    {
+      code: `const { ["fetch"]: d } = globalThis;\nd(url, {});`,
+      filename: "app/probe/page.tsx",
+      errors: [{ messageId: "aliasedFetch" }],
+    },
+
+    // --- genuinely dynamic access on the global object ----------------------
+    // DECISION (verifier FINDING 6, third criterion): reported, not allowed.
+    // The rule cannot read the key, so it cannot rule out "fetch"; the sibling
+    // identity rule already fails closed on an init it cannot read, and nothing
+    // in this repository indexes the global object by a computed name.
+    {
+      code: `const f = globalThis[name];`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "dynamicGlobalMember" }],
+    },
+    {
+      code: `window[name](url, {});`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "dynamicGlobalMember" }],
+    },
+    {
+      code: `globalThis[\`fet\${suffix}\`](url);`,
+      filename: "app/search/page.tsx",
+      errors: [{ messageId: "dynamicGlobalMember" }],
+    },
+    // Also in the allow-listed file: it is not a *readable* direct call.
+    {
+      code: `const f = globalThis[name];`,
+      filename: "lib/api/fetch.ts",
+      errors: [{ messageId: "dynamicGlobalMember" }],
+    },
+    {
+      code: `const { [key]: maybe } = globalThis;`,
+      filename: "app/probe/page.tsx",
+      errors: [{ messageId: "dynamicGlobalMember" }],
     },
   ],
 });

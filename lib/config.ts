@@ -8,7 +8,18 @@
  *
  * A missing value throws. A frontend that silently fell back to a default
  * origin would send a viewer's session cookie somewhere nobody configured.
+ *
+ * SERVER ONLY, AT BUILD TIME. `import "server-only"` makes a Client Component
+ * that imports this module a `next build` FAILURE. Without it, such an import
+ * compiled, bundled and shipped, and failed only in the visitor's browser with
+ * "INTERNAL_API_BASE_URL is not set" — fail-closed, but in the wrong place and
+ * far too late, and after the module had already been served. The computed
+ * `process.env[name]` access below still keeps Next from inlining any of these
+ * values into a client chunk; this is the layer that stops the module reaching
+ * a client chunk at all. (Security review FINDING 4.)
  */
+
+import "server-only";
 
 function required(name: string): string {
   const value = process.env[name];

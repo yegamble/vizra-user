@@ -38,3 +38,21 @@ contract
 # platform (ADR-009: GitHub-hosted ubuntu-24.04, linux/amd64). Path-filtered to
 # the files that can break it.
 ?docker-build
+
+# DELIBERATELY ABSENT: supply-chain.yml's `deps-scan` and `image-scan`.
+#
+# They run on every pull request and in the merge queue, fail loudly on HIGH or
+# CRITICAL, and publish their reports as artifacts — they are simply not part
+# of the required set yet, and the reason is not laziness. A scan lane's result
+# depends on the world: a CVE published tomorrow against an unfixed package
+# turns it red with no change to this repository. `ci-guard` forbids
+# `continue-on-error`, correctly, so the only honest options are "required and
+# occasionally red for reasons outside the PR" or "not required and read by a
+# human". Until there is an agreed route for an unfixed upstream CVE — a
+# reviewed, expiring .trivyignore.yaml entry — the second is the honest one. A
+# required lane that goes red on its own is how a team learns to merge past red.
+#
+# Promoting them is an owner-reviewed change to THIS file and to the floor in
+# scripts/ci/check-required-floor.sh. The baseline as of 2026-09-20 is zero
+# findings in both lanes (see docs/evidence/), so the remaining condition is
+# the CVE-handling route, not the baseline.

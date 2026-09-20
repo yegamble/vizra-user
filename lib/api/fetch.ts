@@ -32,10 +32,17 @@
  * no call site can wait forever on a core that accepts the connection and
  * never answers.
  *
- * Both are server-only. Importing them into a Client Component would put the
- * internal base URL (and, for `viewerFetch`, a cookie read) in the browser
- * bundle, so both throw on a browser global rather than degrading quietly.
+ * Both are server-only, and that is enforced in two places for two different
+ * moments. `import "server-only"` below makes a Client Component importing
+ * either helper a `next build` FAILURE — the module never reaches a client
+ * chunk. `assertServer` stays as defence in depth for the runtime, because a
+ * bundler guarantee and a runtime guarantee fail in different ways and neither
+ * subsumes the other. Before `server-only`, the only control was the runtime
+ * throw: such an import built green and shipped, and failed in the visitor's
+ * browser rather than in CI. (Security review FINDING 4.)
  */
+
+import "server-only";
 
 import { cookies } from "next/headers";
 

