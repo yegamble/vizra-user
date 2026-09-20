@@ -165,8 +165,10 @@ at the wrong server goes red rather than quietly testing something else.
 `e2e/harness/test.ts` has ONE automatic fixture, `vizraHarnessGuard`, which
 attaches the guard **at the browser** for the test's lifetime and writes the
 runtime stamp. For every test, a console error, an uncaught exception, a failed
-request or any HTTP >= 400 response fails the test — whether or not the test
-body looked, and whichever page produced it. The only way past it is per test:
+request or any HTTP >= 400 response **observed by a browser context** fails the
+test — whether or not the test body looked, and whichever page produced it. A
+404 from Playwright's `request` fixture is not a browser signal and is out of
+scope; see § Residuals. The only way past it is per test:
 
 ```ts
 test.use({
@@ -352,8 +354,10 @@ command**.
 
 ### Artifact privacy: what is redacted, and what is NOT
 
-**Covered — URL query strings, fragments, and `Location`.** Two layers, because
-they reach different bytes:
+**Covered — query strings and fragments on URLs that carry a scheme or start at
+`/`, and `Location`.** Two layers, because they reach different bytes. Read the
+scheme-less exception below before relying on this: it is not "every query
+string in every artifact", and this section used to say that it was.
 
 | | Covered by | What it reaches |
 |---|---|---|
@@ -369,6 +373,41 @@ CI artifact from run 35536837315: **239 `?<redacted>`, zero live queries**, host
 and path intact. The upload is gated on
 `steps.redact.outcome == 'success'`, so a redactor that fails publishes nothing
 at all — two bare `if: failure()` conditions are not a sequence.
+
+**NOT covered: a SCHEME-LESS `host:port/path?query`, which is exactly how
+Playwright records a step subtitle.** This section previously claimed "**No URL
+query string leaves this repository, in any artifact**". That sentence is false,
+and an independent verifier reduced it to three lines against the redactor
+itself:
+
+```
+"url":"http://host/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"        ->  ?<redacted>   OK
+"path":"/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"                  ->  ?<redacted>   OK
+"subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"     ->  UNCHANGED     LEAK
+```
+
+`scripts/ci/redact-artifacts.sh`'s absolute program requires `scheme://` and its
+relative program requires the match to begin at `/`; `host:port/path?query`
+satisfies neither. Playwright drops the scheme when it writes a `test.trace` step
+subtitle, so **any `page.goto(signedUrl)` or `page.request.get(signedUrl)`
+produces one**, and the verifier measured a sentinel going 3 members → **1**
+after redaction, surviving in `test.trace`.
+
+**D9 does not exercise this path, and does not claim to.** Its fixture injects
+the signed URL as a *sub-resource* (`img.src = url`) and navigates to `/`; a
+sub-resource never becomes a step subtitle. The demonstration is sound for what
+it covers and blind to this.
+
+**Nothing can leak today**, for the same one reason as everything else in this
+section: no spec touches a signed URL, nothing authenticates, and there is no
+vizra-core. The existing hard rule below — no spec may authenticate, fill a
+credential or touch a real signed URL until the artifact-privacy slice lands —
+is what holds the line, and it is asserted by
+`e2e/harness/no-credentials-in-specs.test.ts`. **The fix is queued with that
+slice**: a third program for authority-relative URLs (an optional `host[:port]`
+before the path), plus a second D9 fixture that reaches the sentinel through
+`page.goto()` so the subtitle path is covered by the demonstration that claims
+to cover it. Not done here.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -479,8 +518,20 @@ exists, runs exactly that command, is unconditional, does not
 `continue-on-error` and drives the container; `require-checks_test.sh` drives
 all of that against mutated workflows. Demonstration D12 removes each of the
 four context listeners in turn and shows the lane going red for three of them —
-and honestly GREEN for `requestfailed`, which none of the three fixtures
-exercises.
+and honestly GREEN for `requestfailed`.
+
+**THE CANARY COVERS THREE OF THE FOUR GUARDED SIGNAL KINDS.** There is no
+`requestfailed` fixture: the three demonstrate a console error, an HTTP 404 and
+an uncaught exception, and a 404 is a *completed response*, not a failed
+request. An independent verifier measured the consequence directly — neutering
+the `console`, `weberror` or `response` listener turns the canary red; neutering
+`requestfailed` leaves it **green**. So the one kind that catches aborted
+requests, connection refused and DNS failures could be dropped from the guard
+and no lane would notice, which is the exact defect class the canary exists to
+close for the other three. **Queued with the harness slice**: a fourth fixture
+that requests a closed port or aborts a route, with expected kinds
+`["requestfailed"]`, so the exact-kind-set assertion covers all four. Not done
+here.
 
 The Docker D6 pair, D5 (`next dev`), D7 (the workflow parser) and D9 (artifact
 redaction) are deliberately NOT in the canary: they need a second image build, a
@@ -518,23 +569,62 @@ as if it were.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
-- **A spec that launches its OWN browser is not guarded at runtime.** The guard
-  attaches to the browser the harness fixture is handed, so it covers the
-  default browser and a `browser` fixture a spec overrides through Playwright's
-  built-in `playwright` fixture (D13g). It does NOT cover a browser obtained by
-  importing a Playwright package and calling `chromium.launch()` directly,
-  because the harness never sees that object. **What catches that:**
-  `vizra/no-unguarded-playwright-import`, which refuses any reference to
-  `@playwright/test`, `playwright/test` or `playwright` anywhere under `e2e/`
-  except `e2e/harness/**` — in every spelling, with inline directives disabled —
-  plus review. **What does not:** the runtime stamp (such a test is still
-  stamped, because it still came from the harness `test`), the coverage floor,
-  the canary and the workflow parser. This is the one shape where lint is the
-  only automated control, and it is written here rather than implied.
+- **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED is not guarded, and
+  nothing catches that today.** The guard attaches to the browser the fixture
+  receives and wraps that instance's `newContext` / `newPage` as **own**
+  properties. Anything that produces a context without going through those own
+  properties escapes. An independent verifier measured three such routes, each
+  from a spec in `e2e/specs/` importing only the harness `test`:
+
+  | Route | Result |
+  |---|---|
+  | `Object.getPrototypeOf(browser).newContext.call(browser)` | **unguarded** — the wrapper is an own property; the prototype method is still reachable |
+  | `browser.browserType().launch()` | **unguarded** |
+  | `playwright.chromium.launchPersistentContext(dir)` | **unguarded** |
+  | `Object.getPrototypeOf(browser).newPage.call(browser)` | guarded — the prototype's `newPage` calls `this.newContext`, which is the wrapper |
+
+  Each of the three passed the **complete** gate on a page that 404s a
+  sub-resource and throws on every load: lint green, lane exit 0 with
+  `20 passed, coverage floor: OK (10/9 10/9), harness stamp: OK (20 verified)`,
+  and the out-of-process check exit 0.
+
+  **This paragraph previously said the shape was "importing a Playwright
+  package and calling `chromium.launch()`" and named
+  `vizra/no-unguarded-playwright-import` as what catches it. That was false.**
+  `import { chromium } from "@playwright/test"` is indeed refused by the rule —
+  but none of the three routes above imports anything, so the rule never sees
+  them; `browserType` and `launchPersistentContext` appear nowhere in the rule,
+  the harness or the CI scripts. **Nothing catches these today**: not the rule,
+  not the runtime stamp (such a test still came from the harness `test`, so it
+  is still stamped), not the coverage floor, not the canary, not the workflow
+  parser. The only control is review, and the routes are at least conspicuous —
+  none has an innocent reading in a repository with one app and one browser.
+
+  **Queued as the next harness slice**, in the verifier's own shape: a teardown
+  assertion in `vizraHarnessGuard` that `browser.contexts()` holds no context
+  the guard never saw (which closes the prototype route and any future creation
+  path on a browser the harness holds, with no monkey-patching), plus
+  `.browserType(`, `.launch(` and `.launchPersistentContext(` added to the lint
+  rule for the specs. Not done here; do not read this bullet as if it were.
 - **The harness-owned-fixture ban is lint.** Replacing `vizraHarnessGuard` is
   refused by the rule and, at runtime, costs the spec its stamp — which both
   floor checks refuse. Replacing `page`, `context` or `browser` is legitimate,
   is not refused, and is covered by the guard (D13, eight shapes).
+- **The flush window is finite.** The guard flushes every guarded page after the
+  test body returns and then asserts. A fault scheduled `0 ms` after the body
+  returns is caught; an independent verifier measured faults at **50 ms and
+  150 ms being missed**. That is inherent to asserting at a point in time rather
+  than a defect to redesign around, but a spec whose page misbehaves only after
+  it has finished is not covered, and this file should not imply otherwise.
+- **The `request` fixture is out of the guard's scope, by design.** The guard
+  watches BROWSER signals — console, page errors, failed requests and HTTP >= 400
+  *responses observed by a browser context*. A 404 from Playwright's
+  `APIRequestContext` (`request.get(...)`, `page.request.get(...)`) is not one
+  of those and does not fail a test. That is correct — a spec using `request`
+  asserts the status itself — but "any HTTP >= 400 response fails the test"
+  above reads as if it were covered, so it is stated here: it is not.
+- **The canary covers three of the four guarded kinds.** `requestfailed` has no
+  fixture; see the canary section. Queued.
 - **`e2e/harness/no-credentials-in-specs.test.ts` is a tripwire, not a proof.**
   It sweeps every `.ts` under `e2e/` except `e2e/harness/**` and matches a named
   list of patterns; it catches the accident, not the determined author. Measured

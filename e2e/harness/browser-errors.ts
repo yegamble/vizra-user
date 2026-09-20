@@ -163,10 +163,32 @@ function pageUrl(page: Page | null | undefined): string {
  *   - a spec that overrides the `browser` fixture — the harness fixture takes
  *     `browser` as a dependency, so it guards whichever browser the spec built.
  *
- * NOT covered, and stated in AGENTS.md rather than implied: a spec that launches
- * its OWN browser (`chromium.launch()`), which requires importing a Playwright
- * package. That is refused by `vizra/no-unguarded-playwright-import` — lint, not
- * runtime — and the honest description of that residual lives in AGENTS.md.
+ * NOT COVERED, and nothing else catches it today. The wrapping below is on the
+ * browser instance's OWN properties, so any route to a context that does not go
+ * through them escapes. An independent verifier measured three, each from a
+ * spec importing only the harness `test`, each passing the complete gate on a
+ * page that 404s and throws:
+ *
+ *     Object.getPrototypeOf(browser).newContext.call(browser)
+ *     browser.browserType().launch()
+ *     playwright.chromium.launchPersistentContext(dir)
+ *
+ * (`Object.getPrototypeOf(browser).newPage.call(browser)` IS caught, because the
+ * prototype's `newPage` calls `this.newContext` — the wrapper.) None of the
+ * three imports a Playwright package, so `vizra/no-unguarded-playwright-import`
+ * cannot see them; the runtime stamp, the coverage floor, the canary and the
+ * workflow parser do not either. Review is the only control. This module used
+ * to describe the residual as "a spec that launches its OWN browser, which
+ * requires importing a Playwright package … refused by the lint rule"; that was
+ * false, and AGENTS.md § Residuals now states it in terms of the OBJECT the
+ * harness was never handed. Closing it — a teardown assertion that
+ * `browser.contexts()` holds no unguarded context, plus three method names in
+ * the lint rule — is queued as the next harness slice and is NOT done here.
+ *
+ * ALSO NOT COVERED, by design: Playwright's `request` fixture. The kinds below
+ * are BROWSER signals; an `APIRequestContext` 404 is not one and does not fail
+ * a test. And the flush window is finite — a fault scheduled 0 ms after the
+ * body returns is caught, one at 50 ms or 150 ms is not.
  */
 export type BrowserGuard = {
   /** Everything observed, in order, across every guarded context. */

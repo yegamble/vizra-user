@@ -34,6 +34,30 @@ so a second page, a fresh context, a popup or an overridden fixture cannot move
 the hole. See D13 below and the "WHY AT THE BROWSER, AND WHY ONE FIXTURE"
 section of `AGENTS.md`.
 
+### Round 5 — DOCS ONLY, no executable line changed
+
+Verification at `c669e40` returned **PASS**: FINDING 11 closed, and the class
+with it — the verifier's exploit plus ten more shapes all red with lint green,
+the merged fixture failing closed at both layers in all three override
+spellings, honest overrides still green, five consecutive clean runs of the real
+suite, and zero removed test lines. Three REQUIRED/SHOULD follow-ups were raised
+(**Findings 12, 13, 14**) and are **queued as their own slices, deliberately not
+fixed here**.
+
+What this round does is make every sentence true. Two passages in `AGENTS.md`
+were **false as written**, and one limit each in the canary and the guard was
+unstated:
+
+| # | Passage | Was | Is |
+|---|---|---|---|
+| 12 | the own-browser residual | "importing a Playwright package and calling `chromium.launch()` … **What catches that:** `vizra/no-unguarded-playwright-import`" | stated in terms of *the object the harness was never handed*, with the three measured import-free routes, and "**nothing catches these today**" |
+| 13 | artifact privacy | "**No URL query string leaves this repository, in any artifact**" | scheme-less `host:port/path?query` survives — which is how Playwright writes a step subtitle — with the three-line reduction, why D9 misses it, and why nothing can leak today |
+| 14 | the canary | implied all four guarded kinds were covered | "**covers three of the four**"; `requestfailed` has no fixture and its removal is silent |
+| — | two unstated limits | — | the flush window is finite (0 ms caught, 50 ms and 150 ms missed), and the `request` fixture is out of scope by design |
+
+A false guarantee is worse than a stated gap, because it is trusted. These are
+now stated.
+
 ## Environment
 See `environment.txt` (machine-written). Darwin arm64, Node v22.14.0,
 Playwright 1.63.0, Chromium `chromium-1243` / `chromium_headless_shell-1243`
@@ -80,7 +104,7 @@ npm run e2e:demos    # every transcript in this directory, regenerated
 |---|---|---|---|
 | 9 — a spec at `e2e/other/x.spec.ts` was collected by Playwright (`testDir: "./e2e"`) and linted by neither guard (both enumerated `e2e/specs` + `e2e/demos`): `npm run ci` 0, the lane 0 with `coverage floor: OK (10/9 10/9)`, the out-of-process floor 0, the credential sweep blind — on a page that 404s and throws | BLOCKER | **the guarantee moved to the runtime.** `e2e/harness/test.ts` stamps every test it runs with an HMAC over that test's identity under a per-run key a spec cannot read; `e2e/harness/stamp-reporter.ts` (in process) and `scripts/ci/check-coverage-floor-ran.mjs` (out of process) both fail a run in which a test SUCCEEDED without a valid stamp, naming the file. Collection narrowed to `e2e/specs` (`e2e/demos` for the demo runner) and the ESLint glob widened to `e2e/**` minus `e2e/harness/**`, so the file is neither collected nor unlinted — but neither of those is the control | **D11**, eleven halves: all three historical doors plus two forgery attempts plus the out-of-process half with the in-process reporter deleted |
 | 10 — the workflow parser located the upload with `steps.find(...)`, so a SECOND, ungated `actions/upload-artifact` step passed; when the redactor fails, it publishes the unredacted tree | REQUIRED | `.filter`: every uploader step must carry `failure() && steps.redact.outcome == 'success'`, and an uploader that is not `actions/upload-artifact` is recognised as one | **D7b**, three halves, plus 4 fixture cases in `require-checks_test.sh` |
-| residual — neutering `e2e/harness/browser-errors.ts` while leaving its identifiers in place is SILENT in CI: `npm run test` 0, `check-e2e-lane.sh` 0 (string presence only), the lane 0, and `npm run e2e:demos` is not a CI lane | (verifier's note) | `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane and requires each of the three fault-injection fixtures to fail **for its own named reason** — per-reason, not a count, because with the `response` listener dead the 404 fixture still fails on the console error it also produces | **D12**, five halves: each listener neutered in turn, plus 6 fixture cases in `require-checks_test.sh` |
+| residual — neutering `e2e/harness/browser-errors.ts` while leaving its identifiers in place is SILENT in CI: `npm run test` 0, `check-e2e-lane.sh` 0 (string presence only), the lane 0, and `npm run e2e:demos` is not a CI lane | (verifier's note) | `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane and requires each of the three fault-injection fixtures to fail for its own reason (the "named reason" wording here was superseded in round 4 — see below — because it was overstated; the canary now asserts the exact SET of record kinds) | **D12**, five halves: each listener neutered in turn, plus 6 fixture cases in `require-checks_test.sh` |
 
 ### Round 4 — Finding 11, and the canary's overclaim
 
@@ -248,15 +272,49 @@ rewriting is verified rather than assumed.
   editing `e2e/harness/**`, `playwright.config.ts` or `eslint-rules/**`, which
   `npm run test` and the D12 canary make loud but which no control in this
   repository can forbid.
-- **A spec that launches its OWN browser** by importing a Playwright package and
-  calling `chromium.launch()` is not guarded at runtime — the harness never sees
-  that object. Refused by `vizra/no-unguarded-playwright-import` and by review;
-  **not** by the stamp (such a test is still stamped), the floor, the canary or
-  the parser. The one shape where lint is the only automated control, recorded
-  in AGENTS.md's residuals rather than implied. Note the contrast with D13g: a
-  `browser` fixture overridden through Playwright's built-in `playwright`
-  fixture needs no import, so lint cannot see it — and the runtime does catch
-  that one.
+- **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED is not guarded, and
+  nothing catches it today** (verifier FINDING 12, OPEN — required, not
+  blocking). The guard wraps the browser instance's OWN `newContext`/`newPage`,
+  so any route around those own properties escapes. Three were measured, each
+  from a spec importing only the harness `test`, each passing the **complete**
+  gate — lint green, lane 0 with `20 passed, floor OK 10/9 10/9, stamp OK (20)`,
+  out-of-process 0 — on a page that 404s a sub-resource and throws:
+  `Object.getPrototypeOf(browser).newContext.call(browser)`,
+  `browser.browserType().launch()`, and
+  `playwright.chromium.launchPersistentContext(dir)`.
+  (`Object.getPrototypeOf(browser).newPage.call(browser)` IS caught — the
+  prototype's `newPage` calls `this.newContext`, the wrapper.)
+  **An earlier version of this bullet, and of `AGENTS.md`, said the shape was
+  "importing a Playwright package and calling `chromium.launch()`" and named the
+  lint rule as what catches it. That was false**: `import { chromium }` is
+  indeed red, but none of the three routes imports anything, so the rule never
+  sees them — and neither do the stamp (such a test is still stamped), the
+  floor, the canary or the parser. Review is the only control. Queued as the
+  next harness slice: a teardown assertion that `browser.contexts()` holds no
+  unguarded context, plus `.browserType(` / `.launch(` /
+  `.launchPersistentContext(` in the lint rule. Not fixed in this PR.
+- **The artifact redactor misses SCHEME-LESS URLs** (verifier FINDING 13, OPEN —
+  required before M1). `host:port/path?query` matches neither the absolute
+  program (needs `scheme://`) nor the relative one (must begin at `/`), and that
+  is exactly how Playwright writes a `test.trace` step subtitle — so any
+  `page.goto(signedUrl)` produces one. Measured: a sentinel went 3 members → 1
+  after redaction, surviving in `test.trace`. **D9 does not exercise this path**:
+  its sentinel is a sub-resource (`img.src = url`), and a sub-resource never
+  becomes a step subtitle. Nothing can leak today — no spec touches a signed URL
+  — and the hard rule in `AGENTS.md` is what holds that. `AGENTS.md`'s former
+  absolute claim, "No URL query string leaves this repository, in any artifact",
+  was false as written and is corrected. Queued with the artifact-privacy slice.
+- **The canary covers three of the four guarded signal kinds** (verifier
+  FINDING 14, OPEN — should). Neutering `console`, `weberror` or `response`
+  turns it red; neutering **`requestfailed` leaves it green**, because none of
+  the three fixtures produces a failed request (a 404 is a completed response).
+  Queued: a fourth fixture against a closed port or an aborted route.
+- **The flush window is finite.** A fault scheduled 0 ms after the test body
+  returns is caught; the verifier measured 50 ms and 150 ms being missed.
+  Inherent to asserting at a point in time, not a defect to redesign around.
+- **Playwright's `request` fixture is out of the guard's scope, by design.** An
+  `APIRequestContext` 404 is not a browser signal and does not fail a test — the
+  spec asserts the status itself. Correct, and now stated.
 - **`.github/CODEOWNERS` still enforces nothing** until a ruleset on `main`
   requires Code Owner review, which is an owner action outside any pull request.
   Wherever the evidence or `AGENTS.md` says "owner-reviewed", that precondition

@@ -76,6 +76,16 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
  * The cost of separate invocations is one browser launch each — a few seconds —
  * and it buys per-fixture isolation, without which "must NOT contain" could
  * never be asserted at all.
+ *
+ * WHAT THIS DOES NOT COVER: `requestfailed`, the fourth guarded signal kind.
+ * None of the three fixtures produces one — a 404 is a COMPLETED response, not
+ * a failed request — so an independent verifier measured that removing the
+ * `requestfailed` listener from the guard leaves this canary GREEN, while
+ * removing `console`, `weberror` or `response` turns it red. One of the four
+ * kinds the guard watches (aborted requests, connection refused, DNS failures)
+ * therefore has no canary coverage. A fourth fixture against a closed port or
+ * an aborted route, with expected kinds ["requestfailed"], is queued as the
+ * next harness slice and is NOT done here. AGENTS.md says the same.
  */
 const CANARIES = [
   {
