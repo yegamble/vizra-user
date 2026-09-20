@@ -33,8 +33,8 @@ AssertionError: /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__bypass.sp
 
  Test Files  1 failed (1)
       Tests  1 failed | 21 passed (22)
-   Start at  15:52:50
-   Duration  107ms (transform 52%, import 23%, tests 20%, worker 5%)
+   Start at  16:00:10
+   Duration  135ms (transform 60%, import 19%, tests 16%, worker 4%)
 
 
 [exit 1]

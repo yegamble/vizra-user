@@ -11,6 +11,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/browser-errors.ts
   app/e2e/harness/coverage-reporter.ts
   app/e2e/harness/production-build.ts
+  app/e2e/harness/redact.test.ts
+  app/e2e/harness/redact.ts
   app/e2e/harness/required-projects.ts
   app/e2e/harness/test.ts
   app/e2e/specs/

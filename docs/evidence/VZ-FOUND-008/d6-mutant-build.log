@@ -8,11 +8,11 @@
 #2 DONE 0.0s
 
 #3 [internal] load build context
-#3 transferring context: 50.66kB done
+#3 transferring context: 57.12kB done
 #3 DONE 0.0s
 
-#4 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:e79a4efd9ad95f4b0d02b9e66c2ac11dd96a0d991f1512da82060e8055cb99f2
-#4 resolve docker.io/library/vizra-user:demonstrate@sha256:e79a4efd9ad95f4b0d02b9e66c2ac11dd96a0d991f1512da82060e8055cb99f2 done
+#4 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:625854781feb3f92143b89221bbb34f328fc724500e90677672a58b908621ac0
+#4 resolve docker.io/library/vizra-user:demonstrate@sha256:625854781feb3f92143b89221bbb34f328fc724500e90677672a58b908621ac0 0.0s done
 #4 DONE 0.0s
 
 #5 [2/2] COPY e2e ./e2e
@@ -20,12 +20,12 @@
 
 #6 exporting to image
 #6 exporting layers 0.0s done
-#6 exporting manifest sha256:5f1cbe751d20f6bd974928feb61c066293404a8961886623adf682b4193522bd done
-#6 exporting config sha256:b09867d64ef5d2d7e1a20d48c4c6234a3302092ef6c26c5c587d2b2675a694ce done
-#6 exporting attestation manifest sha256:c2b5d7b580c6318e5351ab494ce8898b7fbb861b253cdb63c9625ce31ee267f9 done
-#6 exporting manifest list sha256:6a8017e9536b3740d36e5f342a58c1a84a25fff7a6ae5d1b22204467ae86a840 done
+#6 exporting manifest sha256:c44bec53d9b09c8959d792dc1528cfecfb0360be974cfb854c43ff887b42c16b done
+#6 exporting config sha256:b1bf0e402b745150a28908a1dae9e3a22b8c5658655ac19130f3297f9deb3476 done
+#6 exporting attestation manifest sha256:a8f03e7bc4ff6c1342f6fd02f90b354625341f42c95857642330105fed66e630 done
+#6 exporting manifest list sha256:6718887f19dd512ae4b3cadffed71e2d4b18e876cacf1bbf6e5f9e571559ed98 done
 #6 naming to docker.io/library/vizra-user:demonstrate-with-fixtures done
 #6 unpacking to docker.io/library/vizra-user:demonstrate-with-fixtures done
 #6 DONE 0.1s
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/jlzs6snvscoqr3ctwf65tc883
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/z37ca4e28pjn08l93n3yjk3xg

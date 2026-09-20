@@ -27,6 +27,8 @@
 
 import type { Page, Response } from "@playwright/test";
 
+import { redactUrl } from "./redact";
+
 /**
  * Request URL substrings that only a Next development server serves. Taken
  * from the measured dev document, not from memory.
@@ -65,11 +67,15 @@ export function probeProductionBuild(page: Page): ProductionProbe {
   const staticCacheControl: string[] = [];
   const documentResponses: Response[] = [];
 
+  // Redacted at capture, not at print: nothing downstream — a failure message,
+  // an attached artifact, a committed transcript — can then leak a query string
+  // by forgetting to call the redactor. The markers below only ever look at the
+  // path, so nothing is lost.
   page.on("request", (request) => {
-    requestedUrls.push(request.url());
+    requestedUrls.push(redactUrl(request.url()));
   });
   page.on("websocket", (ws) => {
-    webSocketUrls.push(ws.url());
+    webSocketUrls.push(redactUrl(ws.url()));
   });
   page.on("response", (response) => {
     if (response.url().includes("/_next/static/")) {

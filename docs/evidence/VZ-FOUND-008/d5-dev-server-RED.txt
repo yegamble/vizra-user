@@ -3,10 +3,10 @@ $ env E2E_BASE_URL=http://127.0.0.1:3212 npx playwright test e2e/specs/productio
 
 Running 4 tests using 4 workers
 
-  ✘  1 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.1s)
-  ✘  2 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.1s)
-  ✘  4 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.2s)
-  ✘  3 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.2s)
+  ✘  1 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
+  ✘  3 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (1.3s)
+  ✘  4 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.3s)
+  ✘  2 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (1.3s)
 
 
   1) [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker 
@@ -17,7 +17,7 @@ Running 4 tests using 4 workers
         http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
         http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?id=rnklgYoLPML1LsOv4G3D9
+        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
       - the RSC flight build id is "development": this server is `next dev`.
       - /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -48,7 +48,7 @@ Running 4 tests using 4 workers
     +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
     +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?id=rnklgYoLPML1LsOv4G3D9",
+    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -80,12 +80,12 @@ Running 4 tests using 4 workers
     Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=rnklgYoLPML1LsOv4G3D9' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=rnklgYoLPML1LsOv4G3D9' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ Running 4 tests using 4 workers
         http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
         http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?id=fD-mR9so_4VqGU55pBX4G
+        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
     the RSC flight build id is "development": this server is `next dev`.
     /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -144,7 +144,7 @@ Running 4 tests using 4 workers
     +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
     +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?id=fD-mR9so_4VqGU55pBX4G",
+    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -176,12 +176,12 @@ Running 4 tests using 4 workers
     Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=fD-mR9so_4VqGU55pBX4G' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=fD-mR9so_4VqGU55pBX4G' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ Running 4 tests using 4 workers
         http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
         http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?id=Xgl-ssFo9hOw1PuJBvT9u
+        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
       - the RSC flight build id is "development": this server is `next dev`.
       - /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -241,7 +241,7 @@ Running 4 tests using 4 workers
     +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
     +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?id=Xgl-ssFo9hOw1PuJBvT9u",
+    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -273,12 +273,12 @@ Running 4 tests using 4 workers
     Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=Xgl-ssFo9hOw1PuJBvT9u' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=Xgl-ssFo9hOw1PuJBvT9u' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -306,7 +306,7 @@ Running 4 tests using 4 workers
         http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
         http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?id=Y9Ye7SVDnZeIRERhMt2qM
+        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
     the RSC flight build id is "development": this server is `next dev`.
     /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -337,7 +337,7 @@ Running 4 tests using 4 workers
     +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
     +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?id=Y9Ye7SVDnZeIRERhMt2qM",
+    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -369,12 +369,12 @@ Running 4 tests using 4 workers
     Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=Y9Ye7SVDnZeIRERhMt2qM' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?id=Y9Ye7SVDnZeIRERhMt2qM' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────

@@ -176,6 +176,15 @@ of the wrong shape throws rather than being coerced. Never import `test` from
 `@playwright/test` in a spec — that bypasses the guard, and
 `e2e/harness/browser-errors.test.ts` fails the `frontend` lane if a spec does.
 
+**Nothing the harness prints carries a query string.** `e2e/harness/redact.ts`
+strips query and fragment from every URL at capture, keeping origin and path.
+The meta `AGENTS.md` forbids logging private signed URLs, and a test harness is
+the widest-shared output this repository has — failure messages, CI logs and
+committed transcripts. This is not hypothetical: the first push of the harness
+committed a Next HMR URL with an opaque `?id=` into the evidence and the secret
+scanner flagged it. The next such value would be a signed media URL from
+vizra-core.
+
 **A run that tests nothing is not a pass.** `e2e/harness/coverage-reporter.ts`
 fails the run unless every project in `e2e/harness/required-projects.ts` exists
 in the configuration and actually ran a test. It is on by default;

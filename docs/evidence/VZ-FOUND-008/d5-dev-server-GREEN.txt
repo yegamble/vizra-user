@@ -3,12 +3,12 @@ $ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test e2e/specs/productio
 
 Running 4 tests using 4 workers
 
-  ✓  1 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (786ms)
-  ✓  4 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (823ms)
-  ✓  3 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (836ms)
-  ✓  2 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (808ms)
+  ✓  1 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (793ms)
+  ✓  2 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (829ms)
+  ✓  4 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (843ms)
+  ✓  3 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (863ms)
 
-  4 passed (1.3s)
+  4 passed (1.4s)
 e2e coverage floor: OK (desktop-chromium-1440=2 mobile-chromium-390=2).
 
 [exit 0]

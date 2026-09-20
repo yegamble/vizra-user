@@ -52,6 +52,8 @@
 
 import type { Page, Request, Response, ConsoleMessage } from "@playwright/test";
 
+import { redactUrl, redactUrlsInText } from "./redact";
+
 /** The four signal kinds the guard watches. */
 export type BrowserErrorKind =
   | "console"
@@ -82,21 +84,24 @@ export type AllowedBrowserError = {
   readonly reason: string;
 };
 
+// Every URL below goes through `redact.ts` first — origin and path are kept,
+// query strings and fragments are not. See that module for why a test harness
+// is where a signed URL leaks into a log.
 function describeConsole(message: ConsoleMessage): string {
   const location = message.location();
   const at = location.url
-    ? ` (${location.url}:${location.lineNumber}:${location.columnNumber})`
+    ? ` (${redactUrl(location.url)}:${location.lineNumber}:${location.columnNumber})`
     : "";
-  return `console.error: ${message.text()}${at}`;
+  return `console.error: ${redactUrlsInText(message.text())}${at}`;
 }
 
 function describeRequestFailed(request: Request): string {
   const failure = request.failure();
-  return `requestfailed: ${request.method()} ${request.url()} — ${failure?.errorText ?? "unknown error"}`;
+  return `requestfailed: ${request.method()} ${redactUrl(request.url())} — ${failure?.errorText ?? "unknown error"}`;
 }
 
 function describeResponse(response: Response): string {
-  return `http ${response.status()}: ${response.request().method()} ${response.url()}`;
+  return `http ${response.status()}: ${response.request().method()} ${redactUrl(response.url())}`;
 }
 
 /**
@@ -108,14 +113,14 @@ function describeResponse(response: Response): string {
 export function collectBrowserErrors(page: Page): BrowserErrorRecord[] {
   const records: BrowserErrorRecord[] = [];
   const push = (kind: BrowserErrorKind, detail: string) => {
-    records.push({ kind, detail, where: page.url() });
+    records.push({ kind, detail, where: redactUrl(page.url()) });
   };
 
   page.on("console", (message) => {
     if (message.type() === "error") push("console", describeConsole(message));
   });
   page.on("pageerror", (error) => {
-    push("pageerror", `pageerror: ${error.message}`);
+    push("pageerror", `pageerror: ${redactUrlsInText(error.message)}`);
   });
   page.on("requestfailed", (request) => {
     push("requestfailed", describeRequestFailed(request));

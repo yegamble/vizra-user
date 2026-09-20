@@ -80,6 +80,24 @@ Notes on the RED halves, because the mutation matters more than the exit code:
   `.dockerignore` is used so the mutation can actually happen) and shows the
   guard naming the files.
 
+## One defect found by CI on the first push, and fixed
+The first push committed the Next dev server's HMR WebSocket URL —
+`ws://127.0.0.1:3212/_next/hmr?id=<opaque>` — into the D5 transcript, and the
+repository's secret scanner flagged it. That value was an ephemeral Next HMR
+session id and harmless — but the scanner read the shape correctly: the
+harness was copying opaque query-string values out of a page into failure
+messages, CI logs and committed evidence. The next such value would be a signed
+media URL from vizra-core, and the meta `AGENTS.md` says never to log private
+signed URLs.
+
+`e2e/harness/redact.ts` now strips the query string and fragment from every URL
+the harness prints, at capture rather than at print, keeping origin and path.
+`e2e/harness/redact.test.ts` pins it. The flagged string itself is deliberately
+not reproduced anywhere in this repository — not in the fix, not in the tests,
+not here — because committing a token-shaped high-entropy string into a test
+file is the habit this module exists to break. The transcripts in this directory
+were regenerated afterwards and contain no raw query string.
+
 ## What did NOT run, and is not claimed
 - **Safari / WebKit.** Chromium only, by design (the VZ-FOUND-008 ledger entry's
   negative case). Nothing here claims Safari behaviour.
