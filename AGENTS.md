@@ -125,6 +125,9 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run dev` | development server |
 | `npm run ci` | **the gate**: `lint`, `typecheck`, `test`, `build` |
 | `npm run lint` / `typecheck` / `test` / `build` | the individual steps |
+| `npm run e2e:install` | download the pinned Chromium the browser lane needs (once) |
+| `npm run e2e` | **the browser lane**: Playwright against the production build, desktop 1440 px and mobile 390 px |
+| `npm run e2e:demos` | run the five red/green demonstrations that prove the harness fails |
 | `npm run check:contract` | vendored spec ↔ manifest ↔ generated client |
 | `npm run codegen` | regenerate the client from the vendored spec |
 | `node scripts/vendor-contract.mjs --from ../vizra-core` | take a newer contract |
@@ -132,11 +135,66 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
+| `bash scripts/ci/check-e2e-lane.sh` | the `e2e` workflow still drives the built image, keeps its coverage floor and uploads artifacts |
+| `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
 | `node scripts/check-spec-refs.mjs` | the vendored contract references nothing outside itself |
 
 Run `npm run ci` before opening a PR. A missing command or dependency is
 BLOCKED, never a pass.
+
+## The browser lane (VZ-FOUND-008)
+No UI feature is VERIFIED because it renders. The meta `AGENTS.md` (step 4)
+requires the running **production-mode** UI to be exercised in a real browser,
+desktop and mobile, with console and network errors treated as failures. That is
+what `npm run e2e` is, and every later UI slice proves itself through it.
+
+**It drives a production build, always.** In CI the `e2e` workflow builds this
+repository's Dockerfile, runs the image and points the harness at the container.
+Locally `scripts/e2e/serve-production.mjs` runs the standalone server exactly as
+the image's `CMD` does — `next dev` is never a valid target, and
+`e2e/specs/production-build.spec.ts` asserts five independent production markers
+(no dev-only bundles, no HMR WebSocket, no `<nextjs-portal>` overlay, a build id
+that is not `development`, immutable `/_next/static` caching) so a lane pointed
+at the wrong server goes red rather than quietly testing something else.
+
+**Default-deny on browser errors.** `e2e/harness/test.ts` replaces Playwright's
+`page` fixture so that, for every test, a console error, an uncaught exception,
+a failed request or any HTTP >= 400 response fails the test in teardown —
+whether or not the test body looked. The only way past it is per test:
+
+```ts
+test.use({
+  browserErrorPolicy: {
+    allow: [{ kind: "response", match: /\/icon\.svg$/, reason: "not built yet (VZ-...)" }],
+  },
+});
+```
+
+`kind`, a RegExp `match` and a non-blank `reason` are all required, and a policy
+of the wrong shape throws rather than being coerced. Never import `test` from
+`@playwright/test` in a spec — that bypasses the guard, and
+`e2e/harness/browser-errors.test.ts` fails the `frontend` lane if a spec does.
+
+**A run that tests nothing is not a pass.** `e2e/harness/coverage-reporter.ts`
+fails the run unless every project in `e2e/harness/required-projects.ts` exists
+in the configuration and actually ran a test. It is on by default;
+`scripts/ci/check-e2e-lane.sh` fails if the workflow ever turns it off.
+
+**The fault-injection fixtures never ship.** The demonstrations in `e2e/demos/`
+inject their faults with `page.addInitScript` against the unmodified production
+server — there is no `app/` route to delete — and
+`scripts/ci/check-no-test-fixtures-in-image.sh` proves the built image contains
+neither a harness path nor the `__vizra_e2e_fixture__` token.
+
+**What this lane does NOT cover, and does not claim.** Chromium only: no WebKit,
+so Safari behaviour is not claimed. No accessibility engine yet — VZ-A11Y-001 is
+M1, and the seam is documented in `e2e/harness/test.ts` where the axe assertion
+belongs. No visual baselines: `toHaveScreenshot` is unused on purpose, because
+approving a baseline is a reviewed act of its own.
+
+Evidence, including the red and green transcript of every demonstration, is in
+`docs/evidence/VZ-FOUND-008/`.
 
 ## CI and merge
 One required status check, `ci-required` (ADR-002). It reads
@@ -165,8 +223,10 @@ floor. Read them; do not route around them.
 so the file that defines the gate is editable by the pull request the gate is
 gating — deleting one line used to merge green with lint, typecheck, tests and
 the build never having had to pass. `scripts/ci/check-required-floor.sh` fixes
-a floor (`frontend`, `contract`) in a separate file and fails by name when the
-manifest stops demanding it, whether by deletion or by demotion to `?optional`.
+a floor (`frontend`, `contract`, `e2e`) in a separate file and fails by name
+when the manifest stops demanding it, whether by deletion or by demotion to
+`?optional`. Adding `e2e` to that floor is an owner-reviewed change, and so is
+ever taking it out.
 
 Adding, renaming or removing a required lane is an owner-reviewed change
 (`.github/CODEOWNERS` covers `.github/`, `scripts/ci/`, `eslint-rules/` and
@@ -176,7 +236,13 @@ floor to turn a PR green.
 
 ## Pins
 Versions come from ADR-001 and are verified on the npm registry before they are
-written. Change one only in a PR that also records why. Node is pinned once, in
+written. Change one only in a PR that also records why. ADR-001 pins no browser
+tooling, so `@playwright/test` is pinned here instead: **1.63.0**, exact and
+never a range, confirmed as `latest` on the npm registry on 2026-09-20. The
+browser it resolves is recorded with it — Chromium `chromium-1243` /
+`chromium_headless_shell-1243` (Chrome for Testing 153.0.8010.12), and the
+`e2e` lane prints `playwright install --dry-run chromium` into its artifacts so
+every run records what it actually downloaded. Node is pinned once, in
 `.nvmrc`, and read from there by CI and by the Dockerfile's base image tag —
 keep the three in step. The Dockerfile's `FROM` lines additionally carry an
 `@sha256` digest (a tag can be repointed by the registry, which would change

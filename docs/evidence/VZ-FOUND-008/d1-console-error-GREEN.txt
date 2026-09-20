@@ -1,0 +1,10 @@
+$ demos e2e/demos/console-error.demo.ts --grep GREEN
+
+
+Running 1 test using 1 worker
+
+  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:54:7 › GREEN: the same console.error, allow-listed with a written reason › passes, and only this exact message is forgiven (227ms)
+
+  1 passed (634ms)
+
+[exit 0]

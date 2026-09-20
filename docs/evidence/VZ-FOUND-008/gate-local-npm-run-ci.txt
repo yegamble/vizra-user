@@ -1,0 +1,51 @@
+
+> vizra-user@0.0.0 ci
+> npm run lint && npm run typecheck && npm run test && npm run build
+
+
+> vizra-user@0.0.0 lint
+> eslint
+
+
+> vizra-user@0.0.0 typecheck
+> tsc --noEmit
+
+
+> vizra-user@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/yosefgamble/github/vizra/vizra-user
+
+
+ Test Files  7 passed (7)
+      Tests  168 passed (168)
+   Start at  15:49:39
+   Duration  312ms (tests 39%, transform 35%, import 23%, worker 2%)
+
+
+> vizra-user@0.0.0 build
+> next build
+
+▲ Next.js 16.3.5 (Turbopack)
+✓ Running next.config.ts took 63ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 801ms
+  Running TypeScript ...
+  Finished TypeScript in 1095ms ...
+  Collecting page data using 5 workers ...
+  Generating static pages using 5 workers (0/3) ...
+✓ Generating static pages using 5 workers (3/3) in 213ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+└ ƒ /health
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+[exit 0]

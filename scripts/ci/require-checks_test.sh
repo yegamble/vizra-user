@@ -493,6 +493,51 @@ title="an empty manifest fails rather than vacuously passing"
 floor_expect 1 'frontend: missing' <<'MANIFEST'
 MANIFEST
 
+# --- the e2e lane in the floor (VZ-FOUND-008) ------------------------------
+# The browser lane is the only check that a page works in a browser at all;
+# every later UI slice's evidence runs through it. These cases drive the
+# DEFAULT floor (no FLOOR override), so they fail if someone quietly drops
+# `e2e` from the default value in check-required-floor.sh as well as from the
+# manifest.
+#
+# floor_default_expect WANT_RC PATTERN <<manifest lines
+floor_default_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 rc=0
+  local file=$tmp/floor-default-$cases.txt
+  cat >"$file"
+  bash "$floor_script" "$file" >"$tmp/floor-default-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/floor-default-$cases.out" | cut -c1-200)"
+  elif ! grep -Eq -- "$pattern" "$tmp/floor-default-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/floor-default-$cases.out" | cut -c1-200)"
+  else
+    record 0
+  fi
+}
+
+title="the DEFAULT floor demands the browser lane"
+floor_default_expect 1 'e2e: missing' <<'MANIFEST'
+frontend
+contract
+?guard
+MANIFEST
+
+title="marking the browser lane optional fails the floor guard by name"
+floor_default_expect 1 'e2e: marked optional' <<'MANIFEST'
+frontend
+contract
+?e2e
+MANIFEST
+
+title="a manifest with all three floor lanes satisfies the default floor"
+floor_default_expect 0 'still requires the floor' <<'MANIFEST'
+frontend
+contract
+e2e
+?guard
+MANIFEST
+
 # --- the FLOOR value itself ------------------------------------------------
 # A verifier found `FLOOR=" "` printing OK with an empty floor list: non-empty,
 # so `${FLOOR:-default}` does not substitute, and the loop then iterates zero
@@ -530,9 +575,11 @@ floor_env_expect "" 1 'frontend: missing'
 title="a FLOOR naming real lanes still enforces them"
 floor_env_expect "frontend" 1 'frontend: missing'
 
-title="the real manifest in this repository satisfies its own floor"
+title="the real manifest in this repository satisfies the DEFAULT floor"
+# No FLOOR override: this is the case that would catch a pull request that
+# removed a lane from BOTH the manifest and the floor's default value.
 cases=$((cases + 1))
-if FLOOR="frontend contract" bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
+if bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
   record 0
 else
   record 1 "the committed .github/required-checks.txt does not satisfy the floor"

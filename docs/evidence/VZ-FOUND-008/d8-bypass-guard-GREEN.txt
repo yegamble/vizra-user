@@ -1,0 +1,13 @@
+$ npx vitest run e2e/harness/browser-errors.test.ts
+
+
+ RUN  v5.0.1 /Users/yosefgamble/github/vizra/vizra-user
+
+
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+   Start at  15:52:49
+   Duration  165ms (transform 62%, import 20%, tests 13%, worker 5%)
+
+
+[exit 0]

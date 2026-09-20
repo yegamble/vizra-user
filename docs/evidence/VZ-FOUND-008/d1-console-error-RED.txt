@@ -1,0 +1,52 @@
+$ demos e2e/demos/console-error.demo.ts --grep RED
+
+
+Running 1 test using 1 worker
+
+  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (663ms)
+
+
+  1) [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
+
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [console] console.error: __vizra_e2e_fixture__ console.error demonstration (D1)
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+
+       at harness/test.ts:86
+
+      84 |     const unallowed = unallowedRecords(records, allowedBrowserErrors);
+      85 |     if (unallowed.length > 0) {
+    > 86 |       throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+         |             ^
+      87 |     }
+      88 |   },
+      89 | });
+        at Object.page (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:86:13)
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/demos-console-error.demo.t-dd49d-s-nothing-about-the-console-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
+
+[exit 1]

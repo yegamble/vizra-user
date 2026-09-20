@@ -14,6 +14,17 @@ next-env.d.ts
 # testing
 /coverage
 /test-results
+# Playwright's HTML report and its raw results. Never committed: they are CI
+# artifacts (uploaded by .github/workflows/e2e.yml on failure) and a committed
+# report would be a stale claim about a run nobody can reproduce.
+/playwright-report
+# Written and deleted by scripts/e2e/demonstrate.sh (the D4b controlled
+# mutation). It must never be committed: it is a configuration with a required
+# project removed.
+/playwright.config.missing-project.ts
+/Dockerfile.fixtures-mutant
+/Dockerfile.fixtures-mutant.dockerignore
+/e2e/specs/__bypass.spec.ts
 
 # typescript
 *.tsbuildinfo

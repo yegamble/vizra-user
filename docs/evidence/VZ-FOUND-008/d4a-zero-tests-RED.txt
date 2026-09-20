@@ -1,0 +1,11 @@
+$ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --grep __no_test_matches_this__
+
+Error: No tests found
+
+
+::error::the browser lane did not satisfy its coverage floor (e2e/harness/required-projects.ts):
+  project "desktop-chromium-1440" ran 0 passing test(s), and the floor is 1. A lane that collects nothing is not a pass (AGENTS.md).
+  project "mobile-chromium-390" ran 0 passing test(s), and the floor is 1. A lane that collects nothing is not a pass (AGENTS.md).
+  Playwright reported "failed" — that answers "did anything fail", not "did anything run".
+
+[exit 1]

@@ -1,0 +1,22 @@
+$ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --config playwright.config.missing-project.ts
+
+
+Running 9 tests using 4 workers
+
+  ✓  1 [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (398ms)
+  ✓  2 [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (433ms)
+  ✓  3 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (434ms)
+  ✓  4 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (507ms)
+  ✓  7 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (223ms)
+  ✓  6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (372ms)
+  ✓  5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (683ms)
+  ✓  8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (699ms)
+  ✓  9 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (673ms)
+
+  9 passed (2.0s)
+
+::error::the browser lane did not satisfy its coverage floor (e2e/harness/required-projects.ts):
+  project "mobile-chromium-390" is not in the resolved Playwright configuration (configured: desktop-chromium-1440). A required viewport was removed or renamed.
+  Playwright reported "passed" — that answers "did anything fail", not "did anything run".
+
+[exit 1]

@@ -1,0 +1,22 @@
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with-fixtures
+
+::error::fixture guard: the built image contains browser-harness files:
+  app/e2e/
+  app/e2e/demos/
+  app/e2e/demos/console-error.demo.ts
+  app/e2e/demos/failed-request.demo.ts
+  app/e2e/demos/uncaught-exception.demo.ts
+  app/e2e/harness/
+  app/e2e/harness/browser-errors.test.ts
+  app/e2e/harness/browser-errors.ts
+  app/e2e/harness/coverage-reporter.ts
+  app/e2e/harness/production-build.ts
+  app/e2e/harness/required-projects.ts
+  app/e2e/harness/test.ts
+  app/e2e/specs/
+  app/e2e/specs/health.spec.ts
+  app/e2e/specs/home.spec.ts
+  app/e2e/specs/production-build.spec.ts
+  The harness must never ship. Check .dockerignore and the Dockerfile's COPY lines.
+
+[exit 1]

@@ -12,7 +12,11 @@ name: ci-guard
 #   6. a script under scripts/ci fails `bash -n` or `shellcheck -x`,
 #   7. a Dockerfile FROM is not pinned to an @sha256 digest at the .nvmrc
 #      version (scripts/ci/check-image-pins.sh),
-#   8. the `ci-required` fan-in or its guards fail their own regression suite.
+#   8. the `ci-required` fan-in or its guards fail their own regression suite,
+#   9. the `e2e` browser lane stops driving the built image, disarms its
+#      coverage floor, stops uploading artifacts, or stops proving that the
+#      harness is absent from the shipped image
+#      (scripts/ci/check-e2e-lane.sh).
 #
 # ADR-002 asks the fan-in guard to reject `continue-on-error` on a required
 # lane and to reject an empty test selection. (2) is the first. The second is
@@ -26,6 +30,8 @@ on:
       - ".github/required-checks.txt"
       - "scripts/ci/**"
       - "vitest.config.mts"
+      - "playwright.config.ts"
+      - "e2e/harness/**"
       - "Dockerfile"
       - ".nvmrc"
   pull_request:
@@ -34,6 +40,8 @@ on:
       - ".github/required-checks.txt"
       - "scripts/ci/**"
       - "vitest.config.mts"
+      - "playwright.config.ts"
+      - "e2e/harness/**"
       - "Dockerfile"
       - ".nvmrc"
   merge_group:
@@ -130,6 +138,14 @@ jobs:
 
       - name: The ci-required fan-in and its guards stay fail-closed
         run: bash scripts/ci/require-checks_test.sh
+
+      # The browser lane's value rests on properties no passing run shows:
+      # that it drives the BUILT IMAGE rather than a dev server, that the
+      # coverage floor is armed so a run collecting nothing fails, that it
+      # publishes traces and the report when it goes red, and that it proves
+      # the fault-injection harness is not inside the image it tests.
+      - name: The e2e lane still tests what it claims to test
+        run: bash scripts/ci/check-e2e-lane.sh
 
       - name: frontend-ci runs the canonical gate
         run: |

@@ -1,0 +1,128 @@
+name: e2e
+
+# The browser lane (VZ-FOUND-008).
+#
+# WHAT IT DRIVES. The PRODUCTION IMAGE — the same Dockerfile the release
+# builds, built here on the acceptance platform (ADR-009: GitHub-hosted
+# `ubuntu-24.04`, linux/amd64), started as a container, and driven through
+# Playwright at 1440 px and 390 px. Not `next dev`, and not `next build` output
+# served some other way: `e2e/specs/production-build.spec.ts` asserts five
+# independent production markers, so a lane pointed at the wrong server goes
+# red instead of quietly testing something else.
+#
+# WHY NO PATH FILTER. This lane is REQUIRED (`.github/required-checks.txt`,
+# and the floor in `scripts/ci/check-required-floor.sh`). A path-filtered
+# required lane passes by never running, which is the failure mode
+# `ci-required` exists to prevent. It runs on every pull request and every
+# merge-queue entry.
+#
+# COVERAGE. Chromium only, and labelled as such — the VZ-FOUND-008 ledger entry
+# requires that WebKit/Safari is not claimed. No accessibility engine yet
+# (VZ-A11Y-001, M1) and no visual baselines: approving a baseline is a reviewed
+# act of its own and this lane does not take one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Exactly the browsers the two projects need, at the revision the pinned
+      # @playwright/test resolves — `--with-deps` adds the system libraries the
+      # runner image does not ship. No Firefox, no WebKit: they are not in the
+      # projects and downloading them would be time spent on coverage this lane
+      # does not claim.
+      - name: Install the pinned Chromium
+        run: npm run e2e:install -- --with-deps
+
+      - name: Record the browser revision
+        run: |
+          set -euo pipefail
+          npx playwright --version
+          npx playwright install --dry-run chromium | tee playwright-browsers.txt
+
+      # The image under test is the one the release builds. `docker-build.yml`
+      # proves the Dockerfile builds; this lane proves the thing it produces
+      # actually serves a working UI.
+      - name: Build the production image (linux/amd64)
+        run: docker build --tag vizra-user:e2e .
+
+      # The harness must not be able to reach a fixture route, because none
+      # ships. Asserted against the image's own filesystem rather than trusted
+      # from .dockerignore.
+      - name: The image contains no browser-harness file or fixture
+        run: bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e
+
+      - name: Start the production image
+        run: |
+          set -euo pipefail
+          docker run --detach --name vizra-user-e2e --publish 3000:3000 \
+            --env INTERNAL_API_BASE_URL=http://api.sentinel.invalid:8080 \
+            --env PUBLIC_ORIGIN=http://127.0.0.1:3000 \
+            vizra-user:e2e
+          for _ in $(seq 1 30); do
+            if curl --silent --fail --max-time 2 http://127.0.0.1:3000/health -o /dev/null; then
+              echo "the image is serving"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::the production image never answered /health"
+          docker logs vizra-user-e2e 2>&1 | tail -80
+          exit 1
+
+      # The lane. `E2E_BASE_URL` makes the harness drive the container and start
+      # no server of its own. The coverage floor in
+      # e2e/harness/coverage-reporter.ts is ON by default and is NOT disabled
+      # here — a run that collects nothing must fail.
+      - name: Browser lane (desktop 1440, mobile 390)
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+        run: npm run e2e
+
+      - name: Container logs
+        if: always()
+        run: docker logs vizra-user-e2e 2>&1 | tail -200 || true
+
+      # Traces, screenshots, videos and the HTML report — the things that make a
+      # red lane diagnosable without reproducing it locally. Uploaded on
+      # failure; `retain-on-failure` means a green run has nothing to publish.
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            playwright-browsers.txt
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Stop the container
+        if: always()
+        run: docker rm --force vizra-user-e2e > /dev/null 2>&1 || true
