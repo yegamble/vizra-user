@@ -663,6 +663,51 @@ lane_expect 1 'E2E_COVERAGE_FLOOR' 's|^          E2E_BASE_URL: http://127.0.0.1:
 title="a paths filter on a required lane fails by name"
 lane_expect 1 'paths' 's|^  pull_request:$|  pull_request:\n    paths:\n      - "e2e/**"|'
 
+# --- the upload must be gated on the redaction having SUCCEEDED -------------
+# Both steps used to carry a bare `if: failure()`, and nothing linked them.
+# GitHub's `failure()` is true when ANY earlier step failed, so a redactor that
+# exits non-zero — exit 2 on a missing perl/unzip/zip, exit 1 on a repack
+# failure — satisfies its own condition and the UNREDACTED tree is published
+# for 14 days. Fail-open, in the one place it matters.
+
+title="an upload gated on bare failure() fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|^        if: failure() && steps.redact.outcome == 'success'\$|        if: failure()|"
+
+title="an upload gated on the wrong step's outcome fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|steps.redact.outcome == 'success'|steps.something_else.outcome == 'success'|"
+
+title="an upload gated on the redactor merely having RUN fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|steps.redact.outcome == 'success'|steps.redact.conclusion != 'skipped'|"
+
+title="removing the redaction step's id fails by name"
+lane_expect 1 'no .id:.' '/^        id: redact$/d'
+
+title="marking the redaction step continue-on-error fails by name"
+lane_expect 1 'redaction step sets .continue-on-error' 's|^        id: redact$|        id: redact\n        continue-on-error: true|'
+
+# Moving the redaction AFTER the upload, rather than deleting it: the step is
+# still there, still runs, and still redacts — just too late. A guard that only
+# checked for the step's existence would pass this.
+title="redacting after uploading fails by name"
+cases=$((cases + 1))
+reorder=$tmp/lane-reorder.yml
+{
+  sed '/^      - name: Redact URL query strings in the artifacts$/,/^        run: bash scripts\/ci\/redact-artifacts.sh test-results playwright-report$/d' "$real_workflow"
+  printf '      - name: Redact URL query strings in the artifacts\n'
+  printf '        id: redact\n'
+  printf '        if: failure()\n'
+  printf '        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report\n'
+} >"$reorder"
+reorder_rc=0
+bash "$lane_script" "$reorder" >"$tmp/lane-reorder.out" 2>&1 || reorder_rc=$?
+if [ "$reorder_rc" -ne 1 ]; then
+  record 1 "exit $reorder_rc, want 1: $(tr '\n' ' ' <"$tmp/lane-reorder.out" | cut -c1-220)"
+elif ! grep -Eq -- 'uploaded BEFORE they are redacted' "$tmp/lane-reorder.out"; then
+  record 1 "output does not name the ordering: $(tr '\n' ' ' <"$tmp/lane-reorder.out" | cut -c1-220)"
+else
+  record 0
+fi
+
 # ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
 #

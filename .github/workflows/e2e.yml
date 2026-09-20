@@ -128,13 +128,25 @@ jobs:
       # rewrites the query strings inside the archives too, so what uploads is
       # still diagnosable (origin, path, headers, timings) and carries no
       # credential.
+      #
+      # The upload below is gated on THIS step having succeeded, not merely on
+      # the job having failed. `failure()` is true when any earlier step failed,
+      # so with both steps on a bare `if: failure()` a redactor that exits
+      # non-zero — exit 2 on a missing perl/unzip/zip, exit 1 on a repack
+      # failure — satisfies its own condition and the unredacted tree is
+      # published for 14 days. Fail-open on the privacy control, in the one
+      # place it matters.
       - name: Redact URL query strings in the artifacts
+        id: redact
         if: failure()
         run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
 
       # Traces, screenshots, videos and the HTML report — the things that make a
       # red lane diagnosable without reproducing it locally. Uploaded on
       # failure; `retain-on-failure` means a green run has nothing to publish.
+      #
+      # If the redaction did not succeed, NOTHING is published: a red lane with
+      # no artifact is a worse debugging experience and the correct one.
       #
       # `if-no-files-found: error`, not `warn`: this step had never executed
       # (both runs of this lane were green), so a wrong path would have been a
@@ -143,7 +155,7 @@ jobs:
       # noticing. If the lane is red, there ARE artifacts; their absence is a
       # defect in this workflow.
       - name: Upload Playwright artifacts
-        if: failure()
+        if: failure() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}

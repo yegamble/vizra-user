@@ -50,13 +50,28 @@
 
 import path from "node:path";
 
-const PACKAGE = "@playwright/test";
+/**
+ * Every package that can yield a runnable `test`, or the browser API a spec
+ * could drive around the harness.
+ *
+ * `playwright/test` is here because an independent verifier found that
+ * `import * as pw from "playwright/test"` passed lint and RAN — the unscoped
+ * package re-exports the same runner. It failed the lane only because loading a
+ * second runner copy breaks the real tests, which is a module-loading accident,
+ * not a control. `playwright` (the library, not the runner) is here for the
+ * same reason one level down: nothing in a spec has any business launching its
+ * own browser.
+ *
+ * Subpaths count: `@playwright/test/reporter`, `playwright/lib/…`, anything
+ * under a banned root.
+ */
+const PACKAGES = ["@playwright/test", "playwright/test", "playwright"];
 const GUARDED_NAMES = new Set(["test", "expect"]);
 
-/** Does this specifier string name the Playwright test package (or a subpath)? */
+/** Does this specifier string name a banned package (or a subpath of one)? */
 function referencesPlaywright(value) {
   if (typeof value !== "string") return false;
-  return value === PACKAGE || value.startsWith(`${PACKAGE}/`);
+  return PACKAGES.some((name) => value === name || value.startsWith(`${name}/`));
 }
 
 /** The cooked string of a Literal or a no-substitution template literal. */

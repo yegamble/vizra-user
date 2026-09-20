@@ -3,8 +3,8 @@ $ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright t
 
 Running 2 tests using 2 workers
 
-  ✘  2 [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (512ms)
-  ✘  1 [mobile-chromium-390] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (520ms)
+  ✘  2 [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (377ms)
+  ✘  1 [mobile-chromium-390] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed (406ms)
 
 
   1) [desktop-chromium-1440] › e2e/specs/__bypass.spec.ts:4:5 › a page that 404s and throws, with the guard bypassed 
@@ -12,11 +12,11 @@ Running 2 tests using 2 workers
     Error: The page produced 3 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
+      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
+          at: http://127.0.0.1:3211/
       [response] http 404: GET http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png
           at: http://127.0.0.1:3211/
       [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_EV3_MISSING.png:0:0)
-          at: http://127.0.0.1:3211/
-      [pageerror] pageerror: VERIFIER_EV3_UNCAUGHT
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with

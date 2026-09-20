@@ -2,12 +2,12 @@
 === starting the production server on :3211 ===
 repository: /Users/yosefgamble/github/vizra/vizra-user
 branch:     feat/m0-browser-env
-head sha:   112291e71cc269934c9aa87b69c021170c557f91
-tree state: 74 modified/untracked path(s)
-date:       2026-09-20T20:46:31Z
+head sha:   44dac201c120e2a6d0c689cf53aafb218ca341a3
+tree state: 15 modified/untracked path(s)
+date:       2026-09-20T21:28:15Z
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   UJr4-8XaHjlck5ZPWBJ-r
+build id:   AO99S1Yq3ybjwJvFxhB29
 project:    desktop-chromium-1440
 uname:      Darwin arm64
 
@@ -59,6 +59,10 @@ ok   d7-lane-step-if-false-RED (exit 1, matched 'must run unconditionally') -> /
 ok   d7-lane-guard-artifacts-RED (exit 1, matched 'no step uploads artifacts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-artifacts-RED.txt
 ok   d7-lane-guard-warn-RED (exit 1, matched 'if-no-files-found: error') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-warn-RED.txt
 ok   d7-floor-step-removed-RED (exit 1, matched 'check-coverage-floor-ran.mjs') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-floor-step-removed-RED.txt
+ok   d7-upload-not-gated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-upload-not-gated-RED.txt
+ok   d7-upload-gated-on-ran-not-succeeded-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-upload-gated-on-ran-not-succeeded-RED.txt
+ok   d7-redact-step-has-no-id-RED (exit 1, matched 'no `id:`') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-step-has-no-id-RED.txt
+ok   d7-redact-continue-on-error-RED (exit 1, matched 'redaction step sets') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-continue-on-error-RED.txt
 
 === D8 — a spec reaching Playwright's unguarded test fails the gate ===
 ok   d8-guard-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guard-GREEN.txt
@@ -67,7 +71,13 @@ ok   d8-bypass-single-quotes-RED (exit 1, matched 'must not reference') -> /User
 ok   d8-bypass-dynamic-import-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-dynamic-import-RED.txt
 ok   d8-bypass-require-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-require-RED.txt
 ok   d8-bypass-reexport-shim-RED (exit 1, matched 'harness entry') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-reexport-shim-RED.txt
+ok   d8-bypass-eslint-disable-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-RED.txt
+ok   d8-bypass-eslint-disable-all-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-all-RED.txt
+ok   d8-bypass-disable-next-line-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-disable-next-line-RED.txt
+ok   d8-bypass-inline-severity-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-inline-severity-RED.txt
+ok   d8-bypass-unscoped-package-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-unscoped-package-RED.txt
 ok   d8-bypass-fails-the-gate-RED (exit 1, matched 'no-unguarded-playwright-import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-fails-the-gate-RED.txt
+ok   d8-eslint-disable-fails-npm-run-ci-RED (exit 1, matched 'no-unguarded-playwright-import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-eslint-disable-fails-npm-run-ci-RED.txt
 ok   d8-guarded-import-catches-the-page-RED (exit 1, matched 'pageerror') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guarded-import-catches-the-page-RED.txt
 ok   d8-tree-is-clean-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-tree-is-clean-GREEN.txt
 
@@ -76,8 +86,12 @@ ok   d9-artifact-leak-RED (exit 1, matched 'members containing the sentinel:') -
 ok   d9-redaction-runs-GREEN (exit 0, matched 'redacted URL query strings') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-redaction-runs-GREEN.txt
 ok   d9-artifact-redacted-GREEN (exit 0, matched 'members containing the sentinel: 0') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-artifact-redacted-GREEN.txt
 
+=== D10 — a spec that handles a credential fails the cheap lane ===
+ok   d10-no-credentials-GREEN (exit 0, matched 'passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-no-credentials-GREEN.txt
+ok   d10-credential-spec-RED (exit 1, matched 'appears to handle a credential') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-credential-spec-RED.txt
+
 === verdict ===
-halves passed: 39
+halves passed: 51
 halves blocked: 0
 halves failed: 0
 transcripts:   /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008

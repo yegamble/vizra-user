@@ -73,9 +73,12 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       code: `export async function go(page: import("@playwright/test").Page) { await page.goto("/"); }`,
       filename: DEMO,
     },
-    // A string that merely contains the package name as a substring of a
-    // different package must not be reported.
+    // A package whose name merely STARTS WITH a banned one is a different
+    // package and must not be reported — the match is on the whole name or a
+    // path segment boundary, never on a prefix.
     { code: `import x from "@playwright/test-extras-not-real";`, filename: SPEC },
+    { code: `import x from "playwright-extra";`, filename: SPEC },
+    { code: `import x from "playwrightish";`, filename: SPEC },
   ],
 
   invalid: [
@@ -209,10 +212,45 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       errors: [{ messageId: "packageReference" }],
     },
 
+    // ---- the UNSCOPED package, which re-exports the same runner ----------
+    // A verifier found that `import * as pw from "playwright/test"` passed
+    // lint and RAN. It failed the lane only because loading a second runner
+    // copy breaks the real tests — a module-loading accident, not a control.
+    {
+      name: "playwright/test namespace (the verifier's unscoped spelling)",
+      code: `import * as pw from "playwright/test";\nconst test = pw.test;`,
+      filename: SPEC,
+      errors: [{ messageId: "packageReference" }],
+    },
+    {
+      name: "playwright/test named form",
+      code: `import { expect, test } from "playwright/test";`,
+      filename: SPEC,
+      errors: [{ messageId: "packageReference" }],
+    },
+    {
+      name: "the unscoped library itself — a spec has no business launching a browser",
+      code: `import { chromium } from "playwright";`,
+      filename: SPEC,
+      errors: [{ messageId: "packageReference" }],
+    },
+    {
+      name: "a subpath of the unscoped package",
+      code: `const { test } = require("playwright/lib/index");`,
+      filename: SPEC,
+      errors: [{ messageId: "packageReference" }],
+    },
+
     // ---- the same bans apply to demos -------------------------------------
     {
       name: "a demo may not bypass the guard either",
       code: `import * as pw from "@playwright/test";`,
+      filename: DEMO,
+      errors: [{ messageId: "packageReference" }],
+    },
+    {
+      name: "a demo may not use the unscoped spelling either",
+      code: `import * as pw from "playwright/test";`,
       filename: DEMO,
       errors: [{ messageId: "packageReference" }],
     },

@@ -22,6 +22,8 @@
 #       spelling an independent verifier walked through the previous guard with
 #   D9  a signed-URL-shaped query string does not survive into an uploaded
 #       artifact, trace.zip members included
+#   D10 a spec that handles a credential fails the cheap lane — the hard line
+#       that holds until the artifact-privacy slice lands
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -61,7 +63,9 @@ cleanup() {
   rm -f "$repo/playwright.config.missing-project.ts" \
     "$repo/Dockerfile.fixtures-mutant" \
     "$repo/Dockerfile.fixtures-mutant.dockerignore" \
-    "$repo/e2e/specs/__bypass.spec.ts"
+    "$repo/e2e/specs/__bypass.spec.ts" \
+    "$repo/e2e/specs/__shim.ts" \
+    "$repo/e2e/specs/__cred.spec.ts"
 }
 trap cleanup EXIT
 
@@ -340,6 +344,29 @@ sed '/run: node scripts\/ci\/check-coverage-floor-ran.mjs/d' .github/workflows/e
 half d7-floor-step-removed-RED 1 "check-coverage-floor-ran.mjs" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
+# The fail-open the redact/upload pair had. `failure()` is true when ANY earlier
+# step failed, so two bare `if: failure()` steps are not a sequence: a redactor
+# that exits non-zero — exit 2 on a missing perl/unzip/zip, exit 1 on a repack
+# failure — satisfies its own condition and the UNREDACTED tree is published.
+sed "s|^        if: failure() && steps.redact.outcome == 'success'\$|        if: failure()|" \
+  .github/workflows/e2e.yml > "$mutant"
+half d7-upload-not-gated-RED 1 "not gated on the redaction having SUCCEEDED" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+sed "s|steps.redact.outcome == 'success'|steps.redact.conclusion != 'skipped'|" \
+  .github/workflows/e2e.yml > "$mutant"
+half d7-upload-gated-on-ran-not-succeeded-RED 1 "not gated on the redaction having SUCCEEDED" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+sed '/^        id: redact$/d' .github/workflows/e2e.yml > "$mutant"
+half d7-redact-step-has-no-id-RED 1 "no \`id:\`" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+sed 's|^        id: redact$|        id: redact\n        continue-on-error: true|' \
+  .github/workflows/e2e.yml > "$mutant"
+half d7-redact-continue-on-error-RED 1 "redaction step sets" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
 rm -f "$mutant"
 
 # --- D8 a spec that bypasses the guard fails the cheap lane ----------------
@@ -411,11 +438,55 @@ write_bypass 'import { expect, test } from "./__shim";'
 half d8-bypass-reexport-shim-RED 1 "harness entry" -- npx eslint "$bypass" "$repo/e2e/specs/__shim.ts"
 rm -f "$repo/e2e/specs/__shim.ts"
 
+# (f) the verifier's SECOND bypass: one inline comment. This bought a complete
+#     exemption — `npm run ci` 0, the full lane 0 with "20 passed, floor OK",
+#     both floor checks 0, the lane guard 0 — on a page that 404s and throws.
+#     `linterOptions: { noInlineConfig: true }` turns off every comment form at
+#     once, so all four spellings below are inert.
+write_bypass '/* eslint-disable vizra/no-unguarded-playwright-import */
+import { expect, test } from "../harness/test";
+import { test as raw } from "@playwright/test";
+void raw;'
+half d8-bypass-eslint-disable-RED 1 "must not reference" -- npx eslint "$bypass"
+
+write_bypass '/* eslint-disable */
+import { expect, test } from "../harness/test";
+import { test as raw } from "@playwright/test";
+void raw;'
+half d8-bypass-eslint-disable-all-RED 1 "must not reference" -- npx eslint "$bypass"
+
+write_bypass 'import { expect, test } from "../harness/test";
+// eslint-disable-next-line vizra/no-unguarded-playwright-import
+import { test as raw } from "@playwright/test";
+void raw;'
+half d8-bypass-disable-next-line-RED 1 "must not reference" -- npx eslint "$bypass"
+
+write_bypass '/* eslint vizra/no-unguarded-playwright-import: "off" */
+import { expect, test } from "../harness/test";
+import { test as raw } from "@playwright/test";
+void raw;'
+half d8-bypass-inline-severity-RED 1 "must not reference" -- npx eslint "$bypass"
+
+# (g) the UNSCOPED package, which re-exports the same runner. It used to pass
+#     lint and RUN; it failed the lane only because loading a second runner copy
+#     breaks the real tests, which is a module-loading accident, not a control.
+write_bypass 'import * as pw from "playwright/test";
+const { test, expect } = pw;'
+half d8-bypass-unscoped-package-RED 1 "must not reference" -- npx eslint "$bypass"
+
 # The whole gate, not just the lint step: the namespace spelling must now stop
 # `npm run ci`, which is what went green on a broken page before.
 write_bypass 'import * as pw from "@playwright/test";
 const { test, expect } = pw;'
 half d8-bypass-fails-the-gate-RED 1 "no-unguarded-playwright-import" -- npm run lint
+rm -f "$bypass"
+
+# And the exact exploit, through the whole gate: `npm run ci` must now be red.
+write_bypass '/* eslint-disable vizra/no-unguarded-playwright-import */
+import { expect, test } from "../harness/test";
+import { test as raw } from "@playwright/test";
+void raw;'
+half d8-eslint-disable-fails-npm-run-ci-RED 1 "no-unguarded-playwright-import" -- npm run ci
 rm -f "$bypass"
 
 # And the same spec body, with the import corrected to the harness entry, is
@@ -454,6 +525,30 @@ half d9-redaction-runs-GREEN 0 "redacted URL query strings" \
 
 half d9-artifact-redacted-GREEN 0 "members containing the sentinel: 0" \
   -- bash scripts/e2e/sweep-artifacts.sh "$sentinel" "$repo/test-results" "$readable"
+
+# --- D10 no spec authenticates until the artifact-privacy slice lands -------
+# The redactor covers query strings, fragments and Location. It does NOT cover
+# Authorization/Cookie/Set-Cookie headers, bodies, console tokens, DOM
+# snapshots, or Playwright call parameters — the `page.fill` channel a login
+# spec uses. Nothing leaks today only because nothing here authenticates; that
+# is an accident of scope, so it is asserted.
+log "D10 — a spec that handles a credential fails the cheap lane"
+half d10-no-credentials-GREEN 0 "passed" \
+  -- npx vitest run e2e/harness/no-credentials-in-specs.test.ts
+
+cat > "$repo/e2e/specs/__cred.spec.ts" <<'CRED'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { expect, test } from "../harness/test";
+
+test("a login-shaped spec", async ({ page }) => {
+  await page.goto("/");
+  await page.fill("#password", "hunter2");
+  await expect(page.locator("h1")).toBeVisible();
+});
+CRED
+half d10-credential-spec-RED 1 "appears to handle a credential" \
+  -- npx vitest run e2e/harness/no-credentials-in-specs.test.ts
+rm -f "$repo/e2e/specs/__cred.spec.ts"
 
 # --- verdict ---------------------------------------------------------------
 log "verdict"

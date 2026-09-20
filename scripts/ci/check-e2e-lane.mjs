@@ -33,8 +33,9 @@
  *   5. the coverage-floor step FOLLOWS it;
  *   6. the image is built and started, and proved free of harness fixtures,
  *      before the lane runs;
- *   7. artifacts are redacted and uploaded on failure, with
- *      `if-no-files-found: error`;
+ *   7. artifacts are redacted and then uploaded on failure, with the upload
+ *      gated on `steps.<redact>.outcome == 'success'` — two bare `failure()`
+ *      conditions are not a sequence — and with `if-no-files-found: error`;
  *   8. nothing starts a development server, and nothing sets
  *      `E2E_COVERAGE_FLOOR`;
  *   9. the workflow triggers on `pull_request` and `merge_group`.
@@ -218,13 +219,31 @@ if (!job) {
     }
   }
 
-  // (7) artifacts: redacted, then uploaded, with a loud missing-path.
+  // (7) artifacts: redacted, then uploaded, with a loud missing-path — and the
+  //     upload gated on the redaction having SUCCEEDED, not merely on the job
+  //     having failed. `failure()` is true whenever any earlier step failed, so
+  //     two bare `if: failure()` steps are not a sequence: a redactor that
+  //     exits non-zero (exit 2 on a missing perl/unzip/zip, exit 1 on a repack
+  //     failure) satisfies its own condition and the unredacted tree ships.
   const redactStep = steps.find((step) => runOf(step).includes(REDACT_SCRIPT));
   if (!redactStep) {
     add(
       `no step runs \`${REDACT_SCRIPT}\`. Playwright's traces carry raw query strings that ` +
         "e2e/harness/redact.ts cannot reach; uploading them unredacted publishes signed URLs.",
     );
+  } else {
+    if (typeof redactStep.id !== "string" || redactStep.id.trim() === "") {
+      add(
+        "the redaction step has no `id:`, so the upload step cannot be gated on whether it " +
+          "succeeded.",
+      );
+    }
+    if (hidesFailure(redactStep["continue-on-error"])) {
+      add(
+        "the redaction step sets `continue-on-error`, which would report `success` however it " +
+          "exited — the gate below would then always open.",
+      );
+    }
   }
   const uploadStep = steps.find((step) => usesOf(step).startsWith("actions/upload-artifact@"));
   if (!uploadStep) {
@@ -233,6 +252,24 @@ if (!job) {
     const uploadPath = String(uploadStep.with?.path ?? "");
     for (const wanted of ["playwright-report", "test-results"]) {
       if (!uploadPath.includes(wanted)) add(`the artifact upload no longer includes \`${wanted}\`.`);
+    }
+    // The gate. The upload's `if:` must name the redaction step's OUTCOME.
+    const uploadIf = String(uploadStep.if ?? "");
+    const redactId = typeof redactStep?.id === "string" ? redactStep.id.trim() : "";
+    const gate = redactId === "" ? null : new RegExp(`steps\\.${redactId}\\.outcome\\s*==\\s*'success'`);
+    if (!uploadIf.includes("failure()")) {
+      add("the artifact upload is not gated on `failure()`.");
+    }
+    if (gate === null || !gate.test(uploadIf)) {
+      add(
+        "the artifact upload is not gated on the redaction having SUCCEEDED. It must read " +
+          `\`if: failure() && steps.${redactId || "<redact-step-id>"}.outcome == 'success'\`; ` +
+          `it reads \`${uploadIf || "(nothing)"}\`. With two bare \`failure()\` conditions a ` +
+          "redactor that exits non-zero still lets the unredacted tree be published.",
+      );
+    }
+    if (hidesFailure(uploadStep["continue-on-error"])) {
+      add("the artifact upload sets `continue-on-error`, hiding a failed publish.");
     }
     if (String(uploadStep.with?.["if-no-files-found"] ?? "") !== "error") {
       add(

@@ -221,6 +221,83 @@ describe("specs use the guarded test", () => {
     expect(violations, violations.join("\n")).toEqual([]);
   });
 
+  /**
+   * INLINE DIRECTIVES ARE OFF for these directories.
+   *
+   * The rule was, until `linterOptions: { noInlineConfig: true }`, optional: an
+   * independent verifier put `/* eslint-disable vizra/no-unguarded-playwright-import *​/`
+   * above an unguarded import in a spec whose page 404s a sub-resource and
+   * throws on every load, and got `npm run ci` exit 0, the full lane exit 0
+   * with "20 passed, coverage floor: OK", both floor checks exit 0 and the lane
+   * guard exit 0. `reportUnusedDisableDirectives` cannot help, because the
+   * directive is USED; and this very sweep lints through the same ESLint, so it
+   * inherited the suppression.
+   *
+   * Two assertions, because either alone rots: the SETTING must be present in
+   * the resolved configuration, and the BEHAVIOUR must hold for every comment
+   * form — a future ESLint could keep the option and change what it covers.
+   */
+  it("the resolved config for e2e/specs and e2e/demos forbids inline config", async () => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    for (const file of ["e2e/specs/home.spec.ts", "e2e/demos/console-error.demo.ts"]) {
+      const config = (await eslint.calculateConfigForFile(path.join(repoRoot, file))) as {
+        linterOptions?: { noInlineConfig?: boolean };
+      };
+      expect(
+        config.linterOptions?.noInlineConfig,
+        `${file} must resolve to linterOptions.noInlineConfig === true, or one comment ` +
+          "turns the browser-error guard off for that file",
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["/* eslint-disable vizra/no-unguarded-playwright-import */", "block disable, rule named"],
+    ["/* eslint-disable */", "block disable, no rule named"],
+    ["/* eslint vizra/no-unguarded-playwright-import: \"off\" */", "inline severity override"],
+  ])("an inline directive (%s) does not exempt a spec", async (directive) => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `${directive}\nimport { test } from "@playwright/test";\nexport default test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__inline_directive__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message, `the directive suppressed the rule: ${directive}`).toBeDefined();
+    expect(message?.severity, "and it must still be an error").toBe(2);
+  });
+
+  it("eslint-disable-next-line does not exempt the line after it either", async () => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `// eslint-disable-next-line vizra/no-unguarded-playwright-import\n` +
+        `import { test } from "@playwright/test";\nexport default test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__inline_directive_next__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message).toBeDefined();
+    expect(message?.severity).toBe(2);
+  });
+
+  it("the unscoped `playwright/test` spelling is refused by the rule, not by luck", async () => {
+    // It used to pass lint and RUN; it failed the lane only because loading a
+    // second runner copy breaks the real tests. That is an accident, not a
+    // control.
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `import * as pw from "playwright/test";\nexport default pw.test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__unscoped__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message).toBeDefined();
+    expect(message?.severity).toBe(2);
+  });
+
   it("the rule is configured as an error for e2e/specs, not a warning", async () => {
     // A rule set to "warn" would report and let the gate pass. Asked of the
     // real config, for a real path, with a spelling the old regex missed.

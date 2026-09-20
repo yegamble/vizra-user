@@ -23,7 +23,10 @@ test.describe("RED: an unexpected console.error", () => {
     page,
   }) => {
     await page.addInitScript((token) => {
-      // eslint-disable-next-line no-console -- the fault under demonstration
+      // The console call IS the fault under demonstration. `no-console` is
+      // turned off for e2e/demos/** in eslint.config.mjs, by configuration
+      // rather than by a comment: `noInlineConfig` is set for these
+      // directories, so a disable comment here would be inert.
       console.error(token);
     }, FIXTURE_TOKEN);
 
@@ -53,7 +56,10 @@ test.describe("GREEN: the same console.error, allow-listed with a written reason
 
   test("passes, and only this exact message is forgiven", async ({ page }) => {
     await page.addInitScript((token) => {
-      // eslint-disable-next-line no-console -- the fault under demonstration
+      // The console call IS the fault under demonstration. `no-console` is
+      // turned off for e2e/demos/** in eslint.config.mjs, by configuration
+      // rather than by a comment: `noInlineConfig` is set for these
+      // directories, so a disable comment here would be inert.
       console.error(token);
     }, FIXTURE_TOKEN);
 

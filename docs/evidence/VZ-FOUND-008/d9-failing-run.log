@@ -1,7 +1,7 @@
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test (696ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test (691ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test 

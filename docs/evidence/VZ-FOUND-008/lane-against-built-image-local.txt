@@ -1,6 +1,6 @@
-$ E2E_BASE_URL=http://127.0.0.1:3302 npm run e2e   # against the BUILT IMAGE (local, native arm64)
+$ E2E_BASE_URL=http://127.0.0.1:3303 npm run e2e   # against the BUILT IMAGE (local, native arm64)
 
-image: sha256:bf685ef1ee1bfafc7125fa37f124d71b33d42f1158ed1faeb490a769fd95863e arch: arm64/linux
+image: sha256:4597d9d3c668f24d6c949abdfd1bbee047361d9fe2e565b3ebb1bef143aa3d78 arch: arm64/linux
 
 
 > vizra-user@0.0.0 e2e
@@ -9,26 +9,26 @@ image: sha256:bf685ef1ee1bfafc7125fa37f124d71b33d42f1158ed1faeb490a769fd95863e a
 
 Running 18 tests using 4 workers
 
-  ✓   4 [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (656ms)
-  ✓   3 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (688ms)
-  ✓   2 [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (712ms)
-  ✓   1 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (735ms)
-  ✓   7 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (258ms)
-  ✓   6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (379ms)
-  ✓   5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (679ms)
-  ✓   8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (747ms)
-  ✓   9 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (666ms)
-  ✓  10 [mobile-chromium-390] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (295ms)
-  ✓  11 [mobile-chromium-390] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (255ms)
-  ✓  13 [mobile-chromium-390] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (336ms)
-  ✓  12 [mobile-chromium-390] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (757ms)
-  ✓  14 [mobile-chromium-390] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (398ms)
-  ✓  15 [mobile-chromium-390] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (348ms)
-  ✓  16 [mobile-chromium-390] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (265ms)
-  ✓  17 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (719ms)
-  ✓  18 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (715ms)
+  ✓   1 [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (820ms)
+  ✓   4 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (817ms)
+  ✓   2 [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (835ms)
+  ✓   3 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (1.0s)
+  ✓   7 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (303ms)
+  ✓   5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (434ms)
+  ✓   6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (760ms)
+  ✓   8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (770ms)
+  ✓   9 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (785ms)
+  ✓  10 [mobile-chromium-390] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (324ms)
+  ✓  12 [mobile-chromium-390] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (340ms)
+  ✓  13 [mobile-chromium-390] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (339ms)
+  ✓  11 [mobile-chromium-390] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (764ms)
+  ✓  14 [mobile-chromium-390] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (359ms)
+  ✓  15 [mobile-chromium-390] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (419ms)
+  ✓  16 [mobile-chromium-390] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (278ms)
+  ✓  17 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (786ms)
+  ✓  18 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (719ms)
 
-  18 passed (4.0s)
+  18 passed (4.3s)
 e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9).
 [lane exit 0]
 

@@ -184,6 +184,26 @@ side-effect, `require`, dynamic `import()`, either quote style, re-exports, and
 a local shim that re-exports the raw binding. Type-only imports of types are
 allowed; `import type { test }` is not.
 
+The unscoped `playwright/test` and `playwright` are banned too: the first
+re-exports the same runner, and a spec has no business launching its own
+browser. Until they were added to the rule's list, `playwright/test` failed the
+lane only because loading a second runner copy breaks the real tests — a
+module-loading accident, not a control.
+
+**`linterOptions: { noInlineConfig: true }` is set for both directories, and
+that line is load-bearing.** Without it the rule was optional: a verifier put
+`/* eslint-disable vizra/no-unguarded-playwright-import */` above an unguarded
+import in a spec whose page 404s a sub-resource and throws on every load, and
+got `npm run ci` exit 0, the full lane exit 0 with "20 passed, coverage floor:
+OK", both floor checks exit 0 and the lane guard exit 0.
+`reportUnusedDisableDirectives` cannot help — the directive is *used* — and the
+vitest sweep lints through the same ESLint, so it inherited the suppression.
+`noInlineConfig` turns off every comment form at once rather than naming the
+ones known today. `browser-errors.test.ts` asserts both the setting and the
+behaviour, so neither can be dropped quietly; `no-console` is therefore turned
+off for `e2e/demos/**` by configuration rather than by a comment, because the
+console call there IS the fault under demonstration.
+
 This paragraph previously claimed that a regex in
 `e2e/harness/browser-errors.test.ts` caught any such import. **It did not.** The
 regex required braces and double quotes, and an independent verifier walked
@@ -191,11 +211,12 @@ through it twice — `import * as pw from "@playwright/test"` and the named form
 with single quotes — with a spec whose page 404s and throws on every load,
 getting `npm run ci` exit 0 and `npm run e2e` exit 0, "20 passed, coverage
 floor: OK". Matching import syntax was guessing at spellings; the rule works on
-the AST and on the module specifier. `browser-errors.test.ts` now asserts the
-other half — that the rule is actually wired to those paths, as an error.
+the AST and on the module specifier.
 
-**No URL query string leaves this repository, in any artifact.** Two layers,
-because they cover different bytes and it matters which is which:
+### Artifact privacy: what is redacted, and what is NOT
+
+**Covered — URL query strings, fragments, and `Location`.** Two layers, because
+they reach different bytes:
 
 | | Covered by | What it reaches |
 |---|---|---|
@@ -206,16 +227,48 @@ because they cover different bytes and it matters which is which:
 drove a page holding `?X-Amz-Signature=…` and found it redacted in every
 harness line and present **verbatim** inside `trace.zip` members
 `1-trace.network` and `1-trace.trace` — which the `e2e` lane uploads as a
-14-day artifact. From M1 those are real signed media URLs (ADR-005) and the
-meta `AGENTS.md` forbids publishing them. So the workflow now redacts the
-archives in place before `upload-artifact` runs, keeping origin, path, headers
-and timings readable and dropping the query.
+14-day artifact. Verified end to end afterwards, including in the real uploaded
+CI artifact from run 35536837315: **239 `?<redacted>`, zero live queries**, host
+and path intact. The upload is gated on
+`steps.redact.outcome == 'success'`, so a redactor that fails publishes nothing
+at all — two bare `if: failure()` conditions are not a sequence.
 
-Not covered, deliberately: `.png` screenshots and `.webm` video are rewritten
-by nobody, because a byte substitution could corrupt them and a rendered page
-is pixels rather than a greppable string. `scripts/e2e/demonstrate.sh` (D9)
-greps **every** member of the produced artifacts — binaries included — for a
-sentinel signature value, so that exclusion is verified rather than assumed.
+**NOT covered. Read this list before you decide a red lane is safe to share.**
+Measured channel by channel against a failing run:
+
+| Channel | Where it survives |
+|---|---|
+| `Authorization` request header | `1-trace.network` |
+| `Cookie` request header | `1-trace.network` |
+| `Set-Cookie` response header | `1-trace.network` |
+| `x-amz-security-token` and other vendor token headers | `1-trace.network` |
+| request bodies (`postData`) | `resources/*` |
+| response bodies | `resources/*` |
+| a non-URL token in a console message | `*-trace.trace` |
+| DOM snapshots and attachments | `*-trace.trace` |
+| **Playwright call parameters** — `page.fill` / `page.evaluate` arguments, the channel a login spec uses | `*-trace.trace` |
+| artifact file and directory names (they derive from test titles) | everywhere |
+| `.png` screenshots and `.webm` video (excluded on purpose: a byte substitution corrupts them, and a rendered page is pixels, not a greppable string) | as recorded |
+
+Earlier wording here offered "keeping origin, path, **headers** and timings
+readable" as a feature. Headers are the uncovered channel; that sentence is
+gone.
+
+**The rule that follows, and it is a hard line.** Until the artifact-privacy
+slice lands (header, body, DOM and call-parameter redaction — its own slice, not
+this one): **no spec may authenticate, fill a credential, or touch a real signed
+URL.** The traces are safe today for exactly one reason — nothing in this
+repository authenticates: there is no vizra-core, no session cookie and no
+signed URL. That is an accident of scope, not a control, so
+`e2e/harness/no-credentials-in-specs.test.ts` asserts it in the `frontend` lane:
+`addCookies`, `storageState`, `setExtraHTTPHeaders`, `httpCredentials`,
+`Authorization`, `Bearer`, `Set-Cookie`, `.fill(`, credential-shaped
+identifiers and signed-URL shapes are all refused in `e2e/specs/**` and
+`e2e/demos/**`, with one allow-list entry — D9's sentinel — carrying a written
+reason. A slice that needs to log in lands the privacy slice first, or waits.
+
+When that slice lands, the first authenticating spec proves its coverage with
+`scripts/e2e/sweep-artifacts.sh`, which already performs exactly this search.
 
 The first push of this harness committed a Next HMR URL with an opaque `?id=`
 into the evidence and the secret scanner flagged it; that is what started all

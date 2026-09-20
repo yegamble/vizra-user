@@ -3,15 +3,15 @@ $ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --config playwright
 
 Running 9 tests using 4 workers
 
-  ✓  3 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (337ms)
-  ✓  4 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (336ms)
-  ✓  2 [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (346ms)
-  ✓  1 [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (369ms)
-  ✓  7 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (226ms)
-  ✓  6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (334ms)
-  ✓  5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (717ms)
-  ✓  8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (706ms)
-  ✓  9 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (675ms)
+  ✓  1 [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (329ms)
+  ✓  4 [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (311ms)
+  ✓  2 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (359ms)
+  ✓  3 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (370ms)
+  ✓  7 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (198ms)
+  ✓  6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (290ms)
+  ✓  8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (666ms)
+  ✓  5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (729ms)
+  ✓  9 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (624ms)
 
   9 passed (1.7s)
 

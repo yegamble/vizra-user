@@ -36,12 +36,39 @@ const eslintConfig = defineConfig([
     // throws. `e2e/harness/**` is deliberately NOT listed: it is the module
     // that must import the real Playwright, and CODEOWNERS covers it.
     files: ["e2e/specs/**/*.ts", "e2e/demos/**/*.ts"],
+    // NO INLINE CONFIG IN THESE DIRECTORIES. The rule below was, until this
+    // line, optional: an independent verifier put
+    // `/* eslint-disable vizra/no-unguarded-playwright-import */` above an
+    // unguarded import in a spec whose page 404s a sub-resource and throws on
+    // every load, and got `npm run ci` exit 0, the full lane exit 0 with
+    // "20 passed, coverage floor: OK", both floor checks exit 0 and the lane
+    // guard exit 0. `reportUnusedDisableDirectives` does not help, because the
+    // directive is USED; and the vitest sweep lints through this same
+    // configuration, so it inherited the suppression too.
+    //
+    // `noInlineConfig` turns off EVERY inline comment form at once —
+    // `eslint-disable`, `eslint-disable-next-line`, `/* eslint rule: off */`,
+    // `/* global */` — rather than naming the ones known today. A control that
+    // is off by default for any file that asks is not default-deny, and
+    // AGENTS.md states as reviewed contract that a spec may not reach
+    // `@playwright/test` at all.
+    linterOptions: { noInlineConfig: true },
     rules: {
       "vizra/no-unguarded-playwright-import": [
         "error",
         { harnessEntry: "e2e/harness/test" },
       ],
     },
+  },
+  {
+    // The demonstrations deliberately make a page log an error — the console
+    // call IS the fault under demonstration — and with `noInlineConfig` above
+    // they can no longer say so with a disable comment. Turning `no-console`
+    // off here, by configuration, is the honest replacement: it is visible in
+    // this file, it is scoped to `e2e/demos/**`, and it does not reach any
+    // product path or any spec. `e2e/specs/**` keeps `no-console` as an error.
+    files: ["e2e/demos/**/*.ts"],
+    rules: { "no-console": "off" },
   },
   {
     // Node scripts and the ESLint rules themselves: printing IS their output.

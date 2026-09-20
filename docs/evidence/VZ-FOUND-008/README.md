@@ -5,8 +5,9 @@ Issue: yegamble/vizra#1 (VZ-ISSUE-001). Execution plan (meta repo):
 `docs/plans/2026-09-20-vizra-user-pr3-browser-env.md`.
 
 **Status: READY_FOR_REVIEW.** Not VERIFIED — no ledger entry reaches VERIFIED on
-a builder's own evidence. This is **fix round 1 of 2** after an independent
-verifier returned FAIL on `112291e` with two blocking findings and three more.
+a builder's own evidence. This is **fix round 2 of 2**. Round 1 (at `44dac20`)
+closed four of the verifier's five findings; re-verification returned FAIL "on
+one line" with Findings 6, 7 and 8, all closed here.
 
 ## Environment
 See `environment.txt` (machine-written). Darwin arm64, Node v22.14.0,
@@ -40,7 +41,19 @@ npm run e2e:demos    # every transcript in this directory, regenerated
 | 4 — a `?X-Amz-Signature=…` value was redacted in every harness line and present verbatim inside uploaded `trace.zip` members | REQUIRED | `scripts/ci/redact-artifacts.sh` runs before upload; `trace.sources` disabled | **D9** |
 | 5 — the `if: failure()` upload had never executed and `if-no-files-found: warn` would hide a wrong path | NIT | `if-no-files-found: error`; the path proved on a throwaway PR | **`ci-artifact-proof.md`** — a real CI run, the artifact GitHub stored, downloaded and swept: 182 files, 8 archives, sentinel in **0** members, path readable in 46 |
 
-One more defect surfaced during this round, by the new tests rather than by a
+### Round 2 — Findings 6, 7, 8
+
+| Finding | Severity | Closed by | Demonstrated |
+|---|---|---|---|
+| 6 — `/* eslint-disable vizra/no-unguarded-playwright-import */` bought a spec a complete exemption: `npm run ci` 0, the full lane 0 with "20 passed, floor OK", both floor checks 0, the lane guard 0, on a page that 404s and throws | BLOCKER | `linterOptions: { noInlineConfig: true }` on the `e2e/specs/**` + `e2e/demos/**` block — every comment form at once, not the ones known today — plus `playwright/test` and `playwright` added to the rule's package list. Two tests pin it: the resolved config must carry the setting, and the behaviour must hold for each directive form | **D8**, six new halves (`d8-bypass-eslint-disable`, `-disable-all`, `-disable-next-line`, `-inline-severity`, `-unscoped-package`, `d8-eslint-disable-fails-npm-run-ci`) |
+| 7 — the redact step and the upload step both carried bare `if: failure()`, so a redactor that exits non-zero still published the unredacted tree | REQUIRED | the redact step has `id: redact`; the upload is `if: failure() && steps.redact.outcome == 'success'`; the parser asserts exactly that relationship | **D7**, four new halves, plus 6 fixture cases in `require-checks_test.sh`, plus the forced-failure CI proof in `ci-redactor-failure-proof.md` |
+| 8 — AGENTS.md said no query string leaves the repository and then offered "headers readable" as a feature | SHOULD | the section now states what IS covered (query strings, fragments, `Location`) and tabulates every channel that is NOT, and adds the hard line: no spec may authenticate, fill a credential or touch a real signed URL until the artifact-privacy slice lands — asserted by `e2e/harness/no-credentials-in-specs.test.ts` | **D10** |
+
+`no-console` for `e2e/demos/**` moved from an inline comment to the config, because
+with `noInlineConfig` a disable comment there is inert; the console call in a
+demo IS the fault under demonstration.
+
+One more defect surfaced during round 1, by the new tests rather than by a
 reviewer: `ci-guard` never ran `npm ci`, so the parser-based lane guard could
 not load its `yaml` dependency and 13 of the new regression cases failed in CI
 with "Cannot find package 'yaml'". The job now installs from the lockfile, the
@@ -51,14 +64,14 @@ module-resolution stack, and `ci-guard`'s path filter now includes
 ## The lane
 | File | What it shows |
 |---|---|
-| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **9 files / 206 tests**, 0 skipped |
+| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **10 files / 227 tests**, 0 skipped |
 | `lane-against-built-image-local.txt` | `npm run e2e` against the **built Docker image** (arm64, local): 18 passed, `coverage floor: OK (desktop=9/9 mobile=9/9)`, and the out-of-process floor guard exit 0 |
 | `browser-revision.txt` | the exact browser build the harness resolved |
 | `server-production.log`, `server-development.log` | the two servers the demonstrations drove |
 
 ## The demonstrations
 Red against a controlled mutation, green when restored. Summary of the run that
-produced these files: `demonstrate-summary.txt` — **39 halves passed, 0 blocked,
+produced these files: `demonstrate-summary.txt` — **51 halves passed, 0 blocked,
 0 failed.**
 
 | # | Requirement | Transcripts |
@@ -73,9 +86,10 @@ produced these files: `demonstrate-summary.txt` — **39 halves passed, 0 blocke
 | D4d | the lane **refuses a filtered run** (the verifier's `--grep "reports liveness"`) | `d4d-filtered-run-{RED,GREEN}.txt` |
 | D5 | pointing at `next dev` fails | `d5-dev-server-{RED,GREEN}.txt` |
 | D6 | the built image carries no harness file or fixture token | `d6-image-fixtures-{RED,GREEN}.txt` |
-| D7 | a weakened `e2e` workflow fails the lane guard — **step deleted, echo-replaced, `\|\| true`, `if: false`**, artifacts removed, `if-no-files-found: warn`, floor step removed | `d7-*.txt` (8) |
-| D8 | a spec reaching the unguarded `test` fails the gate — **namespace, single quotes, dynamic `import()`, `require`, a re-export shim**, and the whole `npm run lint` | `d8-*.txt` (8) |
+| D7 | a weakened `e2e` workflow fails the lane guard — step deleted, echo-replaced, `\|\| true`, `if: false`, artifacts removed, `if-no-files-found: warn`, floor step removed, **upload not gated on the redactor, gated on "ran" rather than "succeeded", redact step with no `id`, redact step `continue-on-error`** | `d7-*.txt` (12) |
+| D8 | a spec reaching the unguarded `test` fails the gate — namespace, single quotes, dynamic `import()`, `require`, a re-export shim, **four inline-directive forms, the unscoped `playwright/test`**, and the whole `npm run lint` and `npm run ci` | `d8-*.txt` (14) |
 | D9 | a signed-URL-shaped query string does not reach an uploaded artifact | `d9-artifact-leak-RED.txt`, `d9-redaction-runs-GREEN.txt`, `d9-artifact-redacted-GREEN.txt` |
+| D10 | a spec that handles a credential fails the cheap lane | `d10-no-credentials-GREEN.txt`, `d10-credential-spec-RED.txt` |
 
 Notes where the mutation matters more than the exit code:
 
@@ -118,8 +132,13 @@ rewriting is verified rather than assumed.
 - **Accessibility** — no engine (VZ-A11Y-001, M1). Seam documented in
   `e2e/harness/test.ts`.
 - **Visual baselines** — `toHaveScreenshot` unused; none committed.
-- **Request/response BODIES** — `redact-artifacts.sh` covers query strings and
-  fragments, not `postData` or stored response blobs. Stated in that script's
-  header and in `AGENTS.md`, not silently assumed.
+- **Headers, bodies, console tokens, DOM snapshots and Playwright call
+  parameters.** `redact-artifacts.sh` covers query strings, fragments and
+  `Location` only. Every uncovered channel is now tabulated in `AGENTS.md` with
+  where it survives, and the hard line that follows — no spec may authenticate,
+  fill a credential or touch a real signed URL until the artifact-privacy slice
+  lands — is asserted by `e2e/harness/no-credentials-in-specs.test.ts`, not left
+  as prose. The redaction of those channels is explicitly **not** attempted in
+  this PR; it is its own slice.
 - **An API-backed journey** — there is no vizra-core; the frontend runs on
   sentinel configuration.
