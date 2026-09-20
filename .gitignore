@@ -65,3 +65,5 @@ yarn-error.log*
 # reporter AFTER a run, read by scripts/ci/check-coverage-floor-ran.mjs. Never
 # committed: it is a per-run secret and a committed one would be forgeable.
 /.vizra-e2e
+/e2e/specs/__guard.spec.ts
+/.console-error.demo.ts.bak

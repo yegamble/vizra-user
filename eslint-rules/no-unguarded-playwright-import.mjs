@@ -161,6 +161,7 @@ const rule = {
         properties: {
           harnessEntry: { type: "string" },
           sealedModules: { type: "array", items: { type: "string" } },
+          harnessFixtures: { type: "array", items: { type: "string" } },
         },
         additionalProperties: false,
       },
@@ -176,12 +177,29 @@ const rule = {
         "This file must not re-export from `{{specifier}}`. Re-exporting makes the unguarded `test` reachable from a spec that looks compliant.",
       sealedModule:
         "This file must not reference `{{specifier}}`. `{{sealed}}` holds the per-run key that proves at runtime which tests went through the guarded harness; a file that can reach it could sign a stamp for a test the browser-error guard never ran. Import { test, expect } from the harness entry ({{entry}}) and let the harness stamp it.",
+      harnessFixtureOverride:
+        "`test.extend` may not replace the harness's own fixture `{{name}}`. That fixture is where the browser-error guard and the runtime stamp both live; replacing it is how a spec would keep the stamp and lose the guard. Overriding `page`, `context` or `browser` is fine — the guard attaches at the browser and covers whatever those fixtures produce.",
+      harnessFixtureUnreadable:
+        "`test.extend` was given something this rule cannot read in full ({{what}}), so it cannot rule out an override of the harness's own fixtures ({{fixtures}}). Write the fixtures as literal properties at the call site. This fails closed on purpose: the guard and the runtime stamp live in one of those fixtures.",
     },
   },
 
   create(context) {
     const entry = context.options[0]?.harnessEntry ?? "e2e/harness/test";
     const sealed = context.options[0]?.sealedModules ?? [];
+    /**
+     * Fixture names the harness owns. `test.extend` may not replace these.
+     *
+     * NOT a ban on `test.extend`. Overriding `page`, `context` or `browser` is a
+     * documented, legitimate thing to do — a locale, a viewport, a second
+     * context — and the guard now attaches at the BROWSER, so it covers whatever
+     * those fixtures produce. What it may not cover is its own removal, and the
+     * guard plus the runtime stamp live in one automatic fixture precisely so
+     * that removing the guard removes the stamp. This rule makes that attempt
+     * fail in `npm run ci` instead of only at runtime. It is the early warning;
+     * the control is that an unstamped pass is refused by two checks.
+     */
+    const harnessFixtures = new Set(context.options[0]?.harnessFixtures ?? []);
     const filename = context.filename ?? context.getFilename();
 
     /**
@@ -255,6 +273,67 @@ const rule = {
               node: imported,
               messageId: "wrongSource",
               data: { name: importedName ?? localName, specifier, entry },
+            });
+          }
+        }
+      },
+
+      /**
+       * `something.extend({ … })` — the fixtures object may not name a fixture
+       * the harness owns. Read fail-closed: anything the rule cannot see in
+       * full (a spread, a computed key, a variable) is reported, because it
+       * could be exactly the override this exists to refuse.
+       */
+      CallExpression(node) {
+        if (harnessFixtures.size === 0) return;
+        const callee = node.callee;
+        const isExtend =
+          callee?.type === "MemberExpression" &&
+          !callee.computed &&
+          callee.property?.type === "Identifier" &&
+          callee.property.name === "extend";
+        if (!isExtend) return;
+
+        const fixtures = [...harnessFixtures].join(", ");
+        const argument = node.arguments?.[0];
+        if (argument === undefined) return;
+        if (argument.type !== "ObjectExpression") {
+          context.report({
+            node: argument,
+            messageId: "harnessFixtureUnreadable",
+            data: { what: `a ${argument.type}`, fixtures },
+          });
+          return;
+        }
+        for (const property of argument.properties ?? []) {
+          if (property.type === "SpreadElement") {
+            context.report({
+              node: property,
+              messageId: "harnessFixtureUnreadable",
+              data: { what: "a spread element", fixtures },
+            });
+            continue;
+          }
+          const key = property.key;
+          if (property.computed) {
+            context.report({
+              node: property,
+              messageId: "harnessFixtureUnreadable",
+              data: { what: "a computed key", fixtures },
+            });
+            continue;
+          }
+          const name =
+            key?.type === "Identifier"
+              ? key.name
+              : key?.type === "Literal" && typeof key.value === "string"
+                ? key.value
+                : undefined;
+          if (name !== undefined && harnessFixtures.has(name)) {
+            context.report({
+              node: property,
+              messageId: "harnessFixtureOverride",
+              data: { name },
             });
           }
         }

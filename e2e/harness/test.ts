@@ -3,9 +3,9 @@
  *
  * It is Playwright's `test` with two extra, non-optional things:
  *
- *   1. the browser-error guard runs in fixture teardown for EVERY test, so no
- *      spec can pass while the page is logging errors, throwing, or 404-ing its
- *      own resources;
+ *   1. the browser-error guard runs for EVERY test, over EVERY context and page
+ *      the test creates, so no spec can pass while a page is logging errors,
+ *      throwing, or 404-ing its own resources;
  *   2. an automatic fixture STAMPS every test this `test` runs, and
  *      `e2e/harness/stamp-reporter.ts` (inside the run) and
  *      `scripts/ci/check-coverage-floor-ran.mjs` (from outside it, against the
@@ -42,13 +42,14 @@
 import { test as base, expect } from "@playwright/test";
 
 import {
-  collectBrowserErrors,
   DENY_ALL,
-  flushBrowserEvents,
+  flushGuardedPages,
   formatFailure,
+  guardBrowser,
   unallowedRecords,
   validatePolicy,
   type BrowserErrorPolicy,
+  type BrowserGuard,
 } from "./browser-errors";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
 
@@ -72,12 +73,21 @@ export type VizraFixtures = {
   browserErrorPolicy: BrowserErrorPolicy;
 
   /**
-   * The runtime proof that this test went through this module. Automatic and
-   * not meant to be referenced by a spec; it exists so that a test the harness
-   * did NOT run is distinguishable from one it did, at runtime rather than by
-   * reading the spec's import line.
+   * THE GUARD AND THE STAMP, IN ONE AUTOMATIC FIXTURE.
+   *
+   * They used to be two: an `auto` fixture that stamped, and a `page` override
+   * that guarded. `test.extend` replaces one without the other, and an
+   * independent verifier did exactly that — kept the stamp, replaced `page`,
+   * and got the whole gate green on a page that 404s and throws. One fixture
+   * means "stamped" implies "guarded": removing the guard removes the stamp,
+   * which both the in-process reporter and the out-of-process check already
+   * refuse.
+   *
+   * Automatic and not meant to be referenced by a spec.
+   * `vizra/no-unguarded-playwright-import` refuses a spec that overrides this
+   * name — as the early warning, not as the control.
    */
-  vizraHarnessStamp: void;
+  vizraHarnessGuard: BrowserGuard;
 };
 
 export const test = base.extend<VizraFixtures>({
@@ -85,14 +95,63 @@ export const test = base.extend<VizraFixtures>({
   // or describe scope and is visible in the diff of the spec that needs it.
   browserErrorPolicy: [DENY_ALL, { option: true }],
 
-  // THE RUNTIME PROOF. `auto: true`, so it runs for every test this `test`
-  // starts — including a test that never touches `page`. The annotation is an
-  // HMAC over the test's own identity under a per-run key a spec cannot read
-  // (e2e/harness/stamp.ts); `@playwright/test`'s own `test` produces nothing of
-  // the kind, so a spec that bypasses this module is RED at runtime in both the
-  // in-process reporter and the out-of-process report check, by name.
-  vizraHarnessStamp: [
-    async ({}, runTest, testInfo) => {
+  // THE GUARD **AND** THE RUNTIME PROOF, in one `auto: true` fixture that a
+  // spec cannot replace without losing the stamp.
+  //
+  // IT DEPENDS ON `browser`, NOT ON `page`, AND THAT IS THE POINT. Attaching to
+  // one page guarded one page: the verifier's exploit overrode the `page`
+  // fixture to hand back a page from a context the guard had never seen, kept
+  // its stamp, and passed on a page that 404s and throws. Guarding a second page
+  // would only move the hole to a popup or a fresh context. So the guard is
+  // installed on the BROWSER — at BrowserContext level, which covers every page
+  // in every context, including popups and new tabs — for this test's lifetime,
+  // and `guardBrowser` restores what it wrapped in teardown. If a spec overrides
+  // the `browser` fixture, Playwright hands THAT browser here and it is the one
+  // guarded.
+  //
+  // WHY `context` IS A DECLARED DEPENDENCY, AND WHY NOT `page`. It is there
+  // purely for ORDERING, and the ordering was measured rather than assumed:
+  //
+  //   - depending on `browser` alone, Playwright sets this automatic fixture up
+  //     FIRST and therefore tears it down LAST. A probe printed `pages=0` at
+  //     that moment: the context was already closed, so the flush had nothing
+  //     to flush, late events were lost, and the trace of the failure this
+  //     fixture reports had already been written (a demonstration that inspects
+  //     that trace went from 21 members to 8).
+  //   - depending on `page` fixes the teardown but moves the setup: the guard
+  //     is installed after an overridden `page` fixture has already built its
+  //     context, so a spec that navigates INSIDE its own fixture and never in
+  //     the body escaped. Measured: that spec passed on a broken page.
+  //   - depending on `context` gives both. Playwright's `page` fixture does not
+  //     close the page — the context does — so at this fixture's teardown the
+  //     page is still open (`pages=1`, measured) while the wrapping was
+  //     installed before `page` was ever created. The pre-navigation spec above
+  //     now fails with all three records.
+  //
+  // A spec that overrides `page` to build its own context still gets the
+  // default context created (this fixture depends on it); that costs one unused
+  // context per test and is what makes the wrapper present before the override
+  // runs. Any context that already exists is swept as well.
+  vizraHarnessGuard: [
+    async ({ browser, context, browserErrorPolicy }, runTest, testInfo) => {
+      const policyProblems = validatePolicy(browserErrorPolicy);
+      if (policyProblems.length > 0) {
+        throw new Error(policyProblems.join("\n"));
+      }
+
+      const allowedBrowserErrors = browserErrorPolicy.allow;
+
+      // Declared for ordering only (see the note above). The guard never
+      // touches this context directly: it watches the browser, and this context
+      // is guarded like any other.
+      void context;
+
+      const guard = guardBrowser(browser);
+
+      // The stamp is written when the test STARTS, so a test that times out or
+      // crashes is still stamped and the two checks stay independent of each
+      // other. It cannot be written without this fixture running, and this
+      // fixture is where the guard is installed: stamped implies guarded.
       testInfo.annotations.push({
         type: STAMP_ANNOTATION,
         description: signStamp({
@@ -103,50 +162,47 @@ export const test = base.extend<VizraFixtures>({
           retry: testInfo.retry,
         }),
       });
-      await runTest();
+
+      try {
+        await runTest(guard);
+
+        // The page is still OPEN here — measured, not assumed (`pages=1`).
+        // Playwright's `page` fixture does not close the page; the `context`
+        // fixture does, and this fixture is torn down before it.
+        await flushGuardedPages(guard);
+
+        // Attach everything observed, pass or fail: a passing run's record is
+        // what makes "no errors" evidence rather than an absence of looking.
+        await testInfo.attach("browser-signals.json", {
+          body: JSON.stringify(
+            {
+              contextsGuarded: guard.contextCount(),
+              records: guard.records,
+              allowed: allowedBrowserErrors.map((entry) => ({
+                kind: entry.kind,
+                match: String(entry.match),
+                reason: entry.reason,
+              })),
+            },
+            null,
+            2,
+          ),
+          contentType: "application/json",
+        });
+
+        const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+        if (unallowed.length > 0) {
+          throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+        }
+      } finally {
+        // The browser is worker-scoped and shared by every test in this worker.
+        // Leaving a wrapper or a listener behind would make one test's fixture
+        // observe the next test's pages, so it is restored however this ends.
+        guard.dispose();
+      }
     },
     { auto: true },
   ],
-
-  // Override `page` so the guard is armed before the test body can navigate,
-  // and asserted after the test body has finished — including when the body
-  // never looked at the console at all.
-  page: async ({ page, browserErrorPolicy }, runTest, testInfo) => {
-    const policyProblems = validatePolicy(browserErrorPolicy);
-    if (policyProblems.length > 0) {
-      throw new Error(policyProblems.join("\n"));
-    }
-    const allowedBrowserErrors = browserErrorPolicy.allow;
-
-    const records = collectBrowserErrors(page);
-
-    await runTest(page);
-
-    await flushBrowserEvents(page);
-
-    // Attach everything observed, pass or fail: a passing run's record is what
-    // makes "no errors" evidence rather than an absence of looking.
-    await testInfo.attach("browser-signals.json", {
-      body: JSON.stringify(
-        {
-          records,
-          allowed: allowedBrowserErrors.map((entry) => ({
-            kind: entry.kind,
-            match: String(entry.match),
-            reason: entry.reason,
-          })),
-        },
-        null,
-        2,
-      ),
-      contentType: "application/json",
-    });
-
-    const unallowed = unallowedRecords(records, allowedBrowserErrors);
-    if (unallowed.length > 0) {
-      throw new Error(formatFailure(unallowed, allowedBrowserErrors));
-    }
-  },
 });
 
 export { expect };

@@ -6,12 +6,12 @@
 === starting the production server on :3211 ===
 repository: /Users/yosefgamble/github/vizra/vizra-user
 branch:     feat/m0-browser-env
-head sha:   0ac9fb6a820d50ef030f86f053409b967d2beec8
-tree state: 80 modified/untracked path(s)
-date:       2026-09-20T22:28:26Z
+head sha:   f6f1f59a7c15a15e50c052602c3da88a425e5d35
+tree state: 60 modified/untracked path(s)
+date:       2026-09-20T23:19:19Z
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   OGmpENwsXEURPF7JRPhZK
+build id:   c6yaIr8T7TLyVIamOY6v8
 project:    desktop-chromium-1440
 uname:      Darwin arm64
 
@@ -119,10 +119,26 @@ ok   d12-canary-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') 
 ok   d12-console-listener-neutered-RED (exit 1, matched 'console-error.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-console-listener-neutered-RED.txt
 ok   d12-pageerror-listener-neutered-RED (exit 1, matched 'uncaught-exception.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-pageerror-listener-neutered-RED.txt
 ok   d12-response-listener-neutered-RED (exit 1, matched 'http 404') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-response-listener-neutered-RED.txt
+ok   d12-requestfailed-listener-neutered-GREEN (exit 0, matched 'exact set of record kinds') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-requestfailed-listener-neutered-GREEN.txt
 ok   d12-canary-restored-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-canary-restored-GREEN.txt
+ok   d12e-fixture-fault-type-swapped-RED (exit 1, matched 'failed for the WRONG reason') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12e-fixture-fault-type-swapped-RED.txt
+ok   d12e-fixture-restored-GREEN (exit 0, matched 'exact set of record kinds') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12e-fixture-restored-GREEN.txt
+
+=== D13 — the guard is attached at the browser, so every page a test creates is guarded ===
+ok   d13a-overridden-page-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13a-overridden-page-fixture-RED.txt
+ok   d13b-second-page-in-default-context-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13b-second-page-in-default-context-RED.txt
+ok   d13c-browser-newContext-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13c-browser-newContext-in-body-RED.txt
+ok   d13d-browser-newPage-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13d-browser-newPage-in-body-RED.txt
+ok   d13e-overridden-context-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13e-overridden-context-fixture-RED.txt
+ok   d13e2-override-navigates-in-the-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13e2-override-navigates-in-the-fixture-RED.txt
+ok   d13f-popup-window-open-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13f-popup-window-open-RED.txt
+ok   d13g-overridden-browser-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13g-overridden-browser-fixture-RED.txt
+ok   d13h-honest-override-stays-GREEN (exit 0, matched '1 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13h-honest-override-stays-GREEN.txt
+ok   d13i-harness-fixture-override-refused-RED (exit 1, matched 'may not replace the harness') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13i-harness-fixture-override-refused-RED.txt
+ok   d13i-page-override-stays-lint-clean-GREEN (exit 0, matched 'page override is legal') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13i-page-override-stays-lint-clean-GREEN.txt
 
 === verdict ===
-halves passed: 74
+halves passed: 88
 halves blocked: 0
 halves failed: 0
 transcripts:   /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008

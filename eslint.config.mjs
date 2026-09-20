@@ -77,6 +77,23 @@ const eslintConfig = defineConfig([
           // ran. `claimSigner()` already refuses a second claim inside a worker,
           // so this is the cheap half of a control that also holds at runtime.
           sealedModules: ["e2e/harness/stamp", "e2e/harness/stamp-reporter"],
+          // The fixtures the harness owns. `test.extend` may not replace these:
+          // the browser-error guard and the runtime stamp live in
+          // `vizraHarnessGuard`, so replacing it is how a spec would keep the
+          // stamp and lose the guard — which is exactly what a verifier did to
+          // the previous two-fixture design. Overriding `page`, `context` or
+          // `browser` is NOT banned and must not be: the guard attaches at the
+          // browser and covers whatever those fixtures produce, and a harness
+          // nobody can extend is a harness people work around.
+          //
+          // `vizraHarnessStamp` is the fixture's old name, kept in the list so
+          // that a spec written against the previous design fails loudly rather
+          // than silently declaring an unused fixture.
+          harnessFixtures: [
+            "vizraHarnessGuard",
+            "vizraHarnessStamp",
+            "browserErrorPolicy",
+          ],
         },
       ],
     },

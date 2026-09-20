@@ -5,7 +5,7 @@ $ env E2E_BASE_URL=http://127.0.0.1:3211 node scripts/ci/harness-canary.mjs
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (206ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (258ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
@@ -56,7 +56,7 @@ e2e harness stamp: OK (0 succeeding result(s) verified).
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (887ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (684ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
@@ -100,7 +100,7 @@ e2e harness stamp: OK (0 succeeding result(s) verified).
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (273ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (353ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 

@@ -29,7 +29,14 @@
 #       door, plus two the verifier has not tried, plus the out-of-process half
 #       with the in-process reporter deleted
 #   D12 THE CANARY. Neutering the guard's own listeners, one at a time, turns
-#       the required `e2e` lane red — the case that was silent in CI
+#       the required `e2e` lane red — the case that was silent in CI — and a
+#       fixture that fails for the WRONG reason turns it red too
+#   D13 STAMPED IMPLIES GUARDED. The guard is attached at the BROWSER, so every
+#       context and page a test creates is guarded: the verifier's fixture-
+#       override exploit, a second page, a fresh context, `browser.newPage`, an
+#       overridden `context`, an override that navigates inside ITSELF, a popup,
+#       and an overridden `browser` — plus the inverse control, that an HONEST
+#       override on a healthy page stays green
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -73,9 +80,15 @@ cleanup() {
     "$repo/e2e/specs/__shim.ts" \
     "$repo/e2e/specs/__cred.spec.ts" \
     "$repo/e2e/specs/__stamp.spec.ts" \
+    "$repo/e2e/specs/__guard.spec.ts" \
     "$repo/eslint.config.no-inline-config.mjs" \
     "$repo/playwright.config.no-stamp-reporter.ts"
   rm -rf "$repo/e2e/other"
+  # D12e swaps the console fixture's fault type; restore it whatever happens.
+  if [ -f "$repo/.console-error.demo.ts.bak" ]; then
+    cp "$repo/.console-error.demo.ts.bak" "$repo/e2e/demos/console-error.demo.ts"
+    rm -f "$repo/.console-error.demo.ts.bak"
+  fi
   # D12 replaces e2e/harness/browser-errors.ts with a mutant; restore it
   # whatever happens, including on Ctrl-C, so an interrupted run never leaves a
   # neutered guard on disk.
@@ -856,35 +869,341 @@ cp "$guard_file" "$repo/.browser-errors.ts.bak"
 half d12-canary-GREEN 0 "failed all 3 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
-# (a) the console listener stops recording. The console-error fixture then
-#     passes, so the canary sees two failures instead of three.
-sed 's|if (message.type() === "error") push("console", describeConsole(message));|void message;|' \
+# The mutations remove ONE listener registration at a time, from the
+# BrowserContext the guard attaches to. The handler stays defined (`void
+# onConsole;` keeps it referenced) so the file still compiles and every
+# identifier the lane guard greps for is still present — which is the point:
+# this is the mutation that every other check in CI is blind to.
+
+# (a) the console listener is never registered. The console-error fixture then
+#     passes, so the canary sees the wrong failure count for that fixture.
+sed 's|context.on("console", onConsole);|void onConsole;|' \
   "$repo/.browser-errors.ts.bak" > "$guard_file"
 half d12-console-listener-neutered-RED 1 "console-error.demo.ts" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
-# (b) the pageerror listener stops recording. The single quotes are deliberate:
-#     the `${...}` is TypeScript source to be matched literally, not a shell
-#     expansion.
-# shellcheck disable=SC2016
-sed 's|push("pageerror", `pageerror: ${redactUrlsInText(error.message)}`);|void error;|' \
+# (b) the page-error listener is never registered. `weberror` is the
+#     BrowserContext spelling of the page-level `pageerror`.
+sed 's|context.on("weberror", onWebError);|void onWebError;|' \
   "$repo/.browser-errors.ts.bak" > "$guard_file"
 half d12-pageerror-listener-neutered-RED 1 "uncaught-exception.demo.ts" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
-# (c) the response listener stops recording. This one is the sharpest: the 404
-#     ALSO produces a console error, so the fixture still fails — just not for
-#     its own reason. A canary that only counted failures would pass here; this
-#     one requires the named diagnostic `http 404`, and goes red.
-sed 's|if (response.status() >= 400) push("response", describeResponse(response));|void response;|' \
+# (c) the response listener is never registered. This one is the sharpest: the
+#     404 ALSO produces a console error, so the fixture still FAILS — just not
+#     for its own reason. A canary that only counted failures would pass here;
+#     this one requires the named diagnostic `http 404`, and goes red.
+sed 's|context.on("response", onResponse);|void onResponse;|' \
   "$repo/.browser-errors.ts.bak" > "$guard_file"
 half d12-response-listener-neutered-RED 1 "http 404" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# (d) the requestfailed listener is never registered. Added with the browser-
+#     level rewrite: four listeners now, so four mutations.
+sed 's|context.on("requestfailed", onRequestFailed);|void onRequestFailed;|' \
+  "$repo/.browser-errors.ts.bak" > "$guard_file"
+half d12-requestfailed-listener-neutered-GREEN 0 "exact set of record kinds" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
 cp "$repo/.browser-errors.ts.bak" "$guard_file"
 rm -f "$repo/.browser-errors.ts.bak"
 half d12-canary-restored-GREEN 0 "failed all 3 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# (e) a fixture that fails for the WRONG REASON. The first canary required each
+#     fixture's diagnostic to appear somewhere in one combined output, and an
+#     independent verifier showed that claim was overstated: replacing
+#     `console.error(token)` with a 404 sub-resource left the canary GREEN,
+#     because Chromium reports the failed load on the console and the harness
+#     formats it as `console.error: Failed to load resource…`. The fixture then
+#     demonstrated a control nobody had asked it to demonstrate. The canary now
+#     runs each fixture alone and asserts the exact SET of record KINDS.
+demo_console="$repo/e2e/demos/console-error.demo.ts"
+cp "$demo_console" "$repo/.console-error.demo.ts.bak"
+sed 's|      console.error(token);|      const i = new Image(); i.src = "/__vizra_e2e_fixture__/swapped-" + token + ".png"; document.body.appendChild(i);|' \
+  "$repo/.console-error.demo.ts.bak" > "$demo_console"
+half d12e-fixture-fault-type-swapped-RED 1 "failed for the WRONG reason" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+cp "$repo/.console-error.demo.ts.bak" "$demo_console"
+rm -f "$repo/.console-error.demo.ts.bak"
+half d12e-fixture-restored-GREEN 0 "exact set of record kinds" \
+  -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
+
+# --- D13 STAMPED IMPLIES GUARDED -------------------------------------------
+# The guard and the stamp used to be two fixtures: an `auto` fixture that
+# stamped, and a `page` override that guarded. `test.extend` replaces one
+# without the other, and an independent verifier did exactly that — four lines
+# of ordinary Playwright, lint-clean, in a normal spec, touching no gate file:
+#
+#     const test = base.extend({
+#       page: async ({ browser }, provide) => {
+#         const ctx = await browser.newContext();
+#         await provide(await ctx.newPage());
+#       },
+#     });
+#
+# On a page that 404s a sub-resource and throws on every load that gave
+# `npm run ci` 0, the lane 0 with "20 passed, coverage floor: OK, harness stamp:
+# OK (20 verified)", the out-of-process check 0, the canary 0 and the workflow
+# parser 0. The stamp proved "this test came from the harness `test` object";
+# the claim is "this test ran the guard".
+#
+# Guarding a second page would only move the hole to a popup or a fresh context,
+# so the guard is now attached at the BROWSER, at BrowserContext level, for the
+# test's lifetime. Every half below uses the same broken-page body and differs
+# only in HOW the page was obtained. Each runs Playwright directly — lint is not
+# what is being demonstrated.
+log "D13 — the guard is attached at the browser, so every page a test creates is guarded"
+
+guard_spec="$repo/e2e/specs/__guard.spec.ts"
+
+write_guard_spec() {
+  # $1 = the whole spec source. Kept as one argument rather than pieced together,
+  # because each attack obtains its page differently and the difference IS the
+  # demonstration.
+  {
+    printf '// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.\n'
+    printf '%s\n' "$1"
+  } > "$guard_spec"
+}
+
+# The fault, injected into whichever page the attack produced. Identical every
+# time: a sub-resource that 404s and an uncaught exception on every load.
+BREAK='await target.addInitScript(() => {
+    globalThis.addEventListener("DOMContentLoaded", () => {
+      const img = new Image();
+      img.src = "/VERIFIER_F6_MISSING.png";
+      document.body.appendChild(img);
+      setTimeout(() => {
+        throw new Error("VERIFIER_F6_UNCAUGHT");
+      }, 0);
+    });
+  });'
+
+guard_half() {
+  # guard_half NAME -- the spec source on stdin
+  local name=$1
+  write_guard_spec "$(cat)"
+  half "$name" 1 "browser error(s) that no allow-list entry covers" \
+    -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+    npx playwright test "$guard_spec" --project="$project"
+}
+
+# (a) THE VERIFIER'S EXPLOIT, VERBATIM.
+guard_half d13a-overridden-page-fixture-RED <<EOF
+import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const ctx = await browser.newContext();
+    await provide(await ctx.newPage());
+  },
+});
+
+test("stamped, guard never ran", async ({ page }) => {
+  const target = page;
+  $BREAK
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (b) a SECOND PAGE in the default context — the page fixture is untouched.
+guard_half d13b-second-page-in-default-context-RED <<EOF
+import { test, expect } from "../harness/test";
+
+test("a second page in the same context", async ({ page }) => {
+  const target = await page.context().newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (c) a FRESH CONTEXT created inside the test body.
+guard_half d13c-browser-newContext-in-body-RED <<EOF
+import { test, expect } from "../harness/test";
+
+test("a context the harness never handed out", async ({ page, browser }) => {
+  const context = await browser.newContext();
+  const target = await context.newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await context.close();
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (d) browser.newPage(), which creates its own context implicitly.
+guard_half d13d-browser-newPage-in-body-RED <<EOF
+import { test, expect } from "../harness/test";
+
+test("browser.newPage makes its own context", async ({ page, browser }) => {
+  const target = await browser.newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (e) an overridden CONTEXT fixture — one level up from the verifier's attack.
+guard_half d13e-overridden-context-fixture-RED <<EOF
+import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  context: async ({ browser }, provide) => {
+    const context = await browser.newContext();
+    await provide(context);
+    await context.close();
+  },
+});
+
+test("an overridden context fixture", async ({ page }) => {
+  const target = page;
+  $BREAK
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (e2) an overridden PAGE fixture that NAVIGATES INSIDE ITSELF and never in the
+#     body. This is the sharpest ordering case and it decided the fixture's
+#     dependency list. With `page` as the ordering dependency the guard was
+#     installed after the override had already built its context and navigated,
+#     and this spec PASSED on a broken page — measured. With `context` as the
+#     ordering dependency the wrapper is installed before `page` is ever built,
+#     and the page is still open at assertion time; both properties hold at once.
+guard_half d13e2-override-navigates-in-the-fixture-RED <<EOF
+import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const context = await browser.newContext();
+    const target = await context.newPage();
+    $BREAK
+    await target.goto("$prod_url/");
+    await target.waitForLoadState("networkidle");
+    await provide(target);
+    await context.close();
+  },
+});
+
+test("the body never navigates; the fixture already did", async ({ page }) => {
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (f) a POPUP the page opens itself. No fixture is overridden at all; the page
+#     simply produces a second page the harness never saw.
+guard_half d13f-popup-window-open-RED <<'EOF'
+import { test, expect } from "../harness/test";
+
+test("a popup the page opened itself", async ({ page }) => {
+  await page.goto("/");
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.evaluate(() => {
+      globalThis.open("/?popup=1", "_blank");
+    }),
+  ]);
+  await popup.waitForLoadState("domcontentloaded");
+  await popup.evaluate(() => {
+    const img = new Image();
+    img.src = "/VERIFIER_F6_MISSING.png";
+    document.body.appendChild(img);
+    setTimeout(() => {
+      throw new Error("VERIFIER_F6_UNCAUGHT");
+    }, 0);
+  });
+  await popup.waitForTimeout(500);
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (g) an overridden BROWSER fixture. The harness fixture takes `browser` as a
+#     dependency, so Playwright hands it the spec's browser and that is the one
+#     guarded. Note this needs no Playwright import: `playwright` is a built-in
+#     fixture, so lint cannot see this one at all — the runtime is the only thing
+#     that catches it, which is exactly the point.
+guard_half d13g-overridden-browser-fixture-RED <<EOF
+import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  browser: [
+    async ({ playwright }, provide) => {
+      const browser = await playwright.chromium.launch();
+      await provide(browser);
+      await browser.close();
+    },
+    { scope: "worker" },
+  ],
+});
+
+test("a browser the spec launched through the built-in fixture", async ({ page }) => {
+  const target = page;
+  $BREAK
+  await page.goto("$prod_url/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (h) THE INVERSE CONTROL, and it matters as much as the seven above. An HONEST
+#     override — a different viewport and locale, on a HEALTHY page — must stay
+#     GREEN. A harness nobody can extend is a harness people work around, and
+#     banning `test.extend` wholesale would have been the easy, wrong fix.
+write_guard_spec 'import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const context = await browser.newContext({
+      viewport: { width: 1024, height: 768 },
+      locale: "en-GB",
+    });
+    const page = await context.newPage();
+    await provide(page);
+    await context.close();
+  },
+});
+
+test("an honest page override, on a healthy page, stays green", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  expect(page.viewportSize()?.width).toBe(1024);
+});'
+half d13h-honest-override-stays-GREEN 0 "1 passed" \
+  -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+  npx playwright test "$guard_spec" --project="$project"
+
+# And the lint early warning, which is NOT the control: replacing the harness's
+# own fixture is refused, while overriding `page` is not.
+half d13i-harness-fixture-override-refused-RED 1 "may not replace the harness" \
+  -- bash -c 'cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test as base } from "../harness/test";
+const test = base.extend({ vizraHarnessGuard: async ({}, run) => { await run(); } });
+export default test;
+SPEC
+npx eslint e2e/specs/__guard.spec.ts'
+
+half d13i-page-override-stays-lint-clean-GREEN 0 "page override is legal" \
+  -- bash -c 'cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test as base } from "../harness/test";
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const context = await browser.newContext({ locale: "en-GB" });
+    await provide(await context.newPage());
+  },
+});
+export default test;
+SPEC
+npx eslint e2e/specs/__guard.spec.ts && echo "OK: a page override is legal — the guard attaches at the browser"'
+
+rm -f "$guard_spec"
 
 # --- verdict ---------------------------------------------------------------
 log "verdict"

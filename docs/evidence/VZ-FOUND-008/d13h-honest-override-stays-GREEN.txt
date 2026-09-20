@@ -1,0 +1,12 @@
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440
+
+
+Running 1 test using 1 worker
+
+  ✓  1 [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:16:1 › an honest page override, on a healthy page, stays green (146ms)
+
+  1 passed (532ms)
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (1 succeeding result(s) verified).
+
+[exit 0]

@@ -50,7 +50,15 @@
  * action of a test could arrive after the assertion and be lost.
  */
 
-import type { Page, Request, Response, ConsoleMessage } from "@playwright/test";
+import type {
+  Browser,
+  BrowserContext,
+  ConsoleMessage,
+  Page,
+  Request,
+  Response,
+  WebError,
+} from "@playwright/test";
 
 import { redactUrl, redactUrlsInText } from "./redact";
 
@@ -104,32 +112,190 @@ function describeResponse(response: Response): string {
   return `http ${response.status()}: ${response.request().method()} ${redactUrl(response.url())}`;
 }
 
+/** Best-effort page URL for a record's `where`; never throws. */
+function pageUrl(page: Page | null | undefined): string {
+  try {
+    return page ? redactUrl(page.url()) : "";
+  } catch {
+    return "";
+  }
+}
+
 /**
- * Attach the collectors to a page and return the accumulating record list.
+ * THE GUARD, ATTACHED AT THE BROWSER — not at one page.
  *
- * Listeners are attached before any navigation so that errors raised during the
- * first document load are caught too.
+ * WHY NOT `page.on(...)`. It used to be exactly that, inside an override of the
+ * `page` fixture, and an independent verifier walked straight through it with
+ * four lines of ordinary Playwright:
+ *
+ *     const test = base.extend({
+ *       page: async ({ browser }, provide) => {
+ *         const ctx = await browser.newContext();
+ *         await provide(await ctx.newPage());
+ *       },
+ *     });
+ *
+ * `test.extend` replaces one fixture without the other, so the spec kept its
+ * harness stamp — the stamp fixture was separate and still ran — while the
+ * guard was simply gone. `npm run ci` exit 0, the lane exit 0 with "20 passed,
+ * coverage floor: OK, harness stamp: OK (20 verified)", both floor checks exit
+ * 0, the canary exit 0, the workflow parser exit 0, on a page that 404s a
+ * sub-resource and throws on every load. The stamp proved "this test came from
+ * the harness `test` object"; the ledger claims "this test ran the guard".
+ *
+ * Tying the guard to a second page would only move the hole: the next one is a
+ * popup, a new tab, or `browser.newContext()` in the test body. So the guard is
+ * attached to the BROWSER for the test's lifetime, at BrowserContext level —
+ * `console`, `weberror`, `requestfailed` and `response` all exist on
+ * `BrowserContext` in the installed Playwright 1.63.0 types
+ * (`playwright-core/types/types.d.ts`, checked, not assumed), and a context
+ * event fires for EVERY page in that context, popups and new tabs included.
+ *
+ * Coverage, therefore:
+ *
+ *   - the default `context`/`page` fixtures;
+ *   - a spec that overrides `page` or `context` (their context already exists
+ *     when this runs, and is swept);
+ *   - `browser.newContext()` and `browser.newPage()` called during the test
+ *     (both are wrapped for the test's lifetime and restored afterwards);
+ *   - `context.newPage()`, and popups/new tabs the page opens itself (a context
+ *     listener covers every page in the context);
+ *   - a spec that overrides the `browser` fixture — the harness fixture takes
+ *     `browser` as a dependency, so it guards whichever browser the spec built.
+ *
+ * NOT covered, and stated in AGENTS.md rather than implied: a spec that launches
+ * its OWN browser (`chromium.launch()`), which requires importing a Playwright
+ * package. That is refused by `vizra/no-unguarded-playwright-import` — lint, not
+ * runtime — and the honest description of that residual lives in AGENTS.md.
  */
-export function collectBrowserErrors(page: Page): BrowserErrorRecord[] {
+export type BrowserGuard = {
+  /** Everything observed, in order, across every guarded context. */
+  readonly records: BrowserErrorRecord[];
+  /** Every page currently open in a guarded context (for the flush). */
+  pages(): Page[];
+  /** How many contexts the guard is watching — asserted by the harness tests. */
+  contextCount(): number;
+  /** Restore the wrapped methods and detach every listener. */
+  dispose(): void;
+};
+
+export function guardBrowser(browser: Browser): BrowserGuard {
   const records: BrowserErrorRecord[] = [];
-  const push = (kind: BrowserErrorKind, detail: string) => {
-    records.push({ kind, detail, where: redactUrl(page.url()) });
+  const guarded = new Set<BrowserContext>();
+  const detach: Array<() => void> = [];
+
+  const push = (kind: BrowserErrorKind, detail: string, where: string) => {
+    records.push({ kind, detail, where });
   };
 
-  page.on("console", (message) => {
-    if (message.type() === "error") push("console", describeConsole(message));
-  });
-  page.on("pageerror", (error) => {
-    push("pageerror", `pageerror: ${redactUrlsInText(error.message)}`);
-  });
-  page.on("requestfailed", (request) => {
-    push("requestfailed", describeRequestFailed(request));
-  });
-  page.on("response", (response) => {
-    if (response.status() >= 400) push("response", describeResponse(response));
-  });
+  const guardContext = (context: BrowserContext): void => {
+    if (guarded.has(context)) return;
+    guarded.add(context);
 
-  return records;
+    const onConsole = (message: ConsoleMessage) => {
+      if (message.type() === "error") {
+        push("console", describeConsole(message), pageUrl(message.page()));
+      }
+    };
+    const onWebError = (webError: WebError) => {
+      push(
+        "pageerror",
+        `pageerror: ${redactUrlsInText(webError.error().message)}`,
+        pageUrl(webError.page()),
+      );
+    };
+    const onRequestFailed = (request: Request) => {
+      push("requestfailed", describeRequestFailed(request), frameOwnerUrl(request));
+    };
+    const onResponse = (response: Response) => {
+      if (response.status() >= 400) {
+        push("response", describeResponse(response), frameOwnerUrl(response.request()));
+      }
+    };
+
+    // `weberror` is the BrowserContext spelling of the page-level `pageerror`,
+    // and it carries the page that produced it.
+    context.on("console", onConsole);
+    context.on("weberror", onWebError);
+    context.on("requestfailed", onRequestFailed);
+    context.on("response", onResponse);
+
+    detach.push(() => {
+      context.off("console", onConsole);
+      context.off("weberror", onWebError);
+      context.off("requestfailed", onRequestFailed);
+      context.off("response", onResponse);
+    });
+  };
+
+  // Contexts that already exist when the guard is installed — which is what a
+  // spec-overridden `page` or `context` fixture produces, because those are
+  // built before this fixture's body runs.
+  for (const context of browser.contexts()) guardContext(context);
+
+  // Contexts and pages created DURING the test.
+  //
+  // The browser is WORKER-SCOPED and shared by every test in this worker, so
+  // `dispose()` must put it back exactly as it was found — including whether
+  // these were own properties at all. Restoring a `bind`-ed copy would leave an
+  // own property shadowing the prototype method for the rest of the worker's
+  // life, and a second guard would then wrap the wrapper. So the previous
+  // descriptor state is recorded and either restored or deleted.
+  type NewContextArgs = Parameters<Browser["newContext"]>;
+  type NewPageArgs = Parameters<Browser["newPage"]>;
+  type Wrappable = {
+    newContext: Browser["newContext"];
+    newPage: Browser["newPage"];
+  };
+  const target = browser as Wrappable;
+
+  const hadOwnNewContext = Object.prototype.hasOwnProperty.call(browser, "newContext");
+  const hadOwnNewPage = Object.prototype.hasOwnProperty.call(browser, "newPage");
+  const previousNewContext = target.newContext;
+  const previousNewPage = target.newPage;
+
+  target.newContext = async (...args: NewContextArgs): Promise<BrowserContext> => {
+    const context = await previousNewContext.apply(browser, args);
+    guardContext(context);
+    return context;
+  };
+  target.newPage = async (...args: NewPageArgs): Promise<Page> => {
+    const page = await previousNewPage.apply(browser, args);
+    guardContext(page.context());
+    return page;
+  };
+
+  return {
+    records,
+    pages: () => [...guarded].flatMap((context) => safePages(context)),
+    contextCount: () => guarded.size,
+    dispose: () => {
+      if (hadOwnNewContext) target.newContext = previousNewContext;
+      else delete (target as Partial<Wrappable>).newContext;
+      if (hadOwnNewPage) target.newPage = previousNewPage;
+      else delete (target as Partial<Wrappable>).newPage;
+      for (const off of detach.splice(0)) off();
+      guarded.clear();
+    },
+  };
+}
+
+/** `context.pages()` on a closed context throws; a closed context has none. */
+function safePages(context: BrowserContext): Page[] {
+  try {
+    return context.pages();
+  } catch {
+    return [];
+  }
+}
+
+/** The page URL that owns a request, without letting Playwright throw at us. */
+function frameOwnerUrl(request: Request): string {
+  try {
+    return pageUrl(request.frame().page());
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -148,6 +314,13 @@ export async function flushBrowserEvents(page: Page): Promise<void> {
     await page.evaluate(() => true);
   } catch {
     // Navigation or teardown raced us; whatever was already recorded stands.
+  }
+}
+
+/** Flush every page the guard is watching, so no page can hide a late event. */
+export async function flushGuardedPages(guard: BrowserGuard): Promise<void> {
+  for (const page of guard.pages()) {
+    await flushBrowserEvents(page);
   }
 }
 

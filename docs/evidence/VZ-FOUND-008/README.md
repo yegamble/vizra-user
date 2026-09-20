@@ -8,26 +8,31 @@ Issue: yegamble/vizra#1 (VZ-ISSUE-001). Execution plans (meta repo):
 **Status: READY_FOR_REVIEW.** Not VERIFIED — no ledger entry reaches VERIFIED on
 a builder's own evidence.
 
-This is the **chair's RE-PLAN round**, written by a different builder from the
-one that produced rounds 1 and 2. Rounds 1 and 2 closed Findings 1–8. The third
-verification, at `0ac9fb6`, returned FAIL on **Finding 9** and recorded
-**Finding 10** and one accepted-by-design residual. Three rounds, three
-different doors into the same hole — a spec that does not go through the guarded
-harness `test` runs green on a page that 404s and throws:
+This is the **chair's RE-PLAN round plus its first fix round**, written by a
+different builder from the one that produced rounds 1 and 2. Rounds 1 and 2
+closed Findings 1–8; the re-plan closed Findings 9 and 10 and moved the
+guarantee to the runtime; this round closes **Finding 11**, which defeated that
+runtime control rather than the lint layer. Four rounds, four different doors
+into the same hole — a spec that does not go through the guarded harness `test`
+runs green on a page that 404s and throws:
 
 | Door | Found at | Patched by |
 |---|---|---|
 | 1 — `import * as pw from "@playwright/test"`, and the single-quoted named form | round 0 | an AST ESLint rule |
 | 2 — `/* eslint-disable vizra/no-unguarded-playwright-import */` | round 1 | `linterOptions: { noInlineConfig: true }` |
-| 3 — a spec at `e2e/other/x.spec.ts`, collected by Playwright, covered by no lint glob | round 2 | (open at `0ac9fb6`) |
+| 3 — a spec at `e2e/other/x.spec.ts`, collected by Playwright, covered by no lint glob | round 2 | `testDir: ./e2e/specs`, the lint glob `e2e/**`, and the runtime stamp |
+| 4 — `test.extend({ page: … })`: keep the stamp, remove the guard | round 3 (`f6f1f59`) | **this round** — one fixture, attached at the browser |
 
-Each was patched where it was found, and each fix was a **lint** fix. Lint
-inspects source; it does not inspect what runs. So this round does not patch
-door 3 and stop: it moves the guarantee to the RUNTIME, where the file's
-spelling, directory and comments are irrelevant, and demonstrates all three
-historical doors plus two forgery attempts against it **with no ESLint anywhere
-in the command**. See D11 below, and the "Layer 1 / Layer 2" section of
-`AGENTS.md`.
+Doors 1–3 were each patched where they were found, and each fix was a **lint**
+fix; lint inspects source, not what runs. The re-plan moved the guarantee to the
+RUNTIME (D11, demonstrated **with no ESLint anywhere in the command**). Door 4
+then showed the runtime control proving a slightly narrower proposition than the
+ledger claims: the stamp certified "this test came from the harness `test`
+object", not "this test ran the guard". This round makes those the same
+sentence — one fixture holds both, and it guards the BROWSER rather than a page,
+so a second page, a fresh context, a popup or an overridden fixture cannot move
+the hole. See D13 below and the "WHY AT THE BROWSER, AND WHY ONE FIXTURE"
+section of `AGENTS.md`.
 
 ## Environment
 See `environment.txt` (machine-written). Darwin arm64, Node v22.14.0,
@@ -69,13 +74,34 @@ npm run e2e:demos    # every transcript in this directory, regenerated
 | 7 — the redact step and the upload step both carried bare `if: failure()`, so a redactor that exits non-zero still published the unredacted tree | REQUIRED | the redact step has `id: redact`; the upload is `if: failure() && steps.redact.outcome == 'success'`; the parser asserts exactly that relationship | **D7**, four new halves, plus 6 fixture cases in `require-checks_test.sh`, plus the forced-failure CI proof in **`ci-redactor-failure-proof.md`** — GitHub evaluated the gate and **skipped** the upload; **0 artifacts** published, against 48 files on the healthy run |
 | 8 — AGENTS.md said no query string leaves the repository and then offered "headers readable" as a feature | SHOULD | the section now states what IS covered (query strings, fragments, `Location`) and tabulates every channel that is NOT, and adds the hard line: no spec may authenticate, fill a credential or touch a real signed URL until the artifact-privacy slice lands — asserted by `e2e/harness/no-credentials-in-specs.test.ts` | **D10** |
 
-### Round 3 (this one) — Findings 9 and 10, and the silent case
+### Round 3 (the re-plan) — Findings 9 and 10, and the silent case
 
 | Finding | Severity | Closed by | Demonstrated |
 |---|---|---|---|
 | 9 — a spec at `e2e/other/x.spec.ts` was collected by Playwright (`testDir: "./e2e"`) and linted by neither guard (both enumerated `e2e/specs` + `e2e/demos`): `npm run ci` 0, the lane 0 with `coverage floor: OK (10/9 10/9)`, the out-of-process floor 0, the credential sweep blind — on a page that 404s and throws | BLOCKER | **the guarantee moved to the runtime.** `e2e/harness/test.ts` stamps every test it runs with an HMAC over that test's identity under a per-run key a spec cannot read; `e2e/harness/stamp-reporter.ts` (in process) and `scripts/ci/check-coverage-floor-ran.mjs` (out of process) both fail a run in which a test SUCCEEDED without a valid stamp, naming the file. Collection narrowed to `e2e/specs` (`e2e/demos` for the demo runner) and the ESLint glob widened to `e2e/**` minus `e2e/harness/**`, so the file is neither collected nor unlinted — but neither of those is the control | **D11**, eleven halves: all three historical doors plus two forgery attempts plus the out-of-process half with the in-process reporter deleted |
 | 10 — the workflow parser located the upload with `steps.find(...)`, so a SECOND, ungated `actions/upload-artifact` step passed; when the redactor fails, it publishes the unredacted tree | REQUIRED | `.filter`: every uploader step must carry `failure() && steps.redact.outcome == 'success'`, and an uploader that is not `actions/upload-artifact` is recognised as one | **D7b**, three halves, plus 4 fixture cases in `require-checks_test.sh` |
 | residual — neutering `e2e/harness/browser-errors.ts` while leaving its identifiers in place is SILENT in CI: `npm run test` 0, `check-e2e-lane.sh` 0 (string presence only), the lane 0, and `npm run e2e:demos` is not a CI lane | (verifier's note) | `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane and requires each of the three fault-injection fixtures to fail **for its own named reason** — per-reason, not a count, because with the `response` listener dead the 404 fixture still fails on the console error it also produces | **D12**, five halves: each listener neutered in turn, plus 6 fixture cases in `require-checks_test.sh` |
+
+### Round 4 — Finding 11, and the canary's overclaim
+
+The re-plan held: at `f6f1f59` the verifier refused 13 forge attempts, ran the
+`eslint-disable` door against a mutant ESLint config so lint was genuinely green
+and the runtime still refused it by name, and closed Findings 9 and 10. It failed
+on one new blocker, in the same family but against the **runtime** control.
+
+| Finding | Severity | Closed by | Demonstrated |
+|---|---|---|---|
+| 11 — the stamp was an `auto` fixture and the guard was a `page` override, so `test.extend({ page: … })` kept the stamp and removed the guard: `npm run ci` 0, the lane 0 with "20 passed, floor OK, harness stamp: OK (20 verified)", the out-of-process check 0, the canary 0, the parser 0 — on a page that 404s and throws, from four lint-clean lines in a normal spec touching no gate file | BLOCKER | **one fixture, attached at the BROWSER.** The guard and the stamp are both in `vizraHarnessGuard`, so removing the guard removes the stamp that two checks require. It listens at BrowserContext level (`console`, `weberror`, `requestfailed`, `response` — all four checked in the installed 1.63.0 types), sweeps existing contexts and wraps `browser.newContext`/`newPage` for the test, restoring both afterwards | **D13**, eleven halves — eight attack shapes, the inverse control, and the two lint halves |
+| canary overclaim — "each for its own named reason" was false for the console fixture: swapping its `console.error` for a 404 left the canary GREEN, because Chromium logs the failed load to the console | (verifier's residual) | one invocation per fixture, asserting the exact SET of record kinds — which kinds must be recorded AND which must not | **D12e**, two halves |
+
+**The dependency list was decided by measurement, not by taste.** Three orderings
+were tried and two were wrong:
+
+| Fixture depends on | Guard installed | Page at assertion time | Result |
+|---|---|---|---|
+| `browser` only | before `page` ✅ | **closed** (`pages=0`) ❌ | flush is a no-op; the failure's own trace went from 21 members to 8 |
+| `browser` + `page` | **after** an overridden `page` fixture ❌ | open ✅ | a spec that navigates inside its own fixture **passed** on a broken page |
+| `browser` + `context` | before `page` ✅ | open (`pages=1`) ✅ | both — D13e2 now fails with all three records |
 
 **What forging the runtime stamp would take** is stated in full in `AGENTS.md`
 and in the header of `e2e/harness/stamp.ts`, and is not claimed to be
@@ -100,14 +126,14 @@ module-resolution stack, and `ci-guard`'s path filter now includes
 ## The lane
 | File | What it shows |
 |---|---|
-| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **12 files / 269 tests**, 0 skipped |
-| `lane-against-built-image-local.txt` | `npm run e2e` against the **built Docker image** (arm64, local): 18 passed, `coverage floor: OK (desktop=9/9 mobile=9/9)`, `e2e harness stamp: OK (18 succeeding result(s) verified)`, the out-of-process floor-and-stamp guard exit 0, and the harness canary exit 0 |
+| `gate-local-npm-run-ci.txt` | `npm run ci` — exit 0; vitest **12 files / 289 tests**, 0 skipped |
+| `lane-against-built-image-local.txt` | `npm run e2e` against the **built Docker image** (arm64, local): 18 passed, `coverage floor: OK (desktop=9/9 mobile=9/9)`, `e2e harness stamp: OK (18 succeeding result(s) verified)`, the out-of-process floor-and-stamp guard exit 0, and the harness canary exit 0 with the exact kind sets |
 | `browser-revision.txt` | the exact browser build the harness resolved |
 | `server-production.log`, `server-development.log` | the two servers the demonstrations drove |
 
 ## The demonstrations
 Red against a controlled mutation, green when restored. Summary of the run that
-produced these files: `demonstrate-summary.txt` — **74 halves passed, 0 blocked,
+produced these files: `demonstrate-summary.txt` — **88 halves passed, 0 blocked,
 0 failed.**
 
 | # | Requirement | Transcripts |
@@ -136,7 +162,19 @@ produced these files: `demonstrate-summary.txt` — **74 halves passed, 0 blocke
 | D11e | a second new door: the spec reads `process.env.VIZRA_E2E_STAMP_KEY`. The transcript shows both halves at once — the assertion that the variable is `undefined` PASSES, and the forged stamp `does not verify against this run's key` | `d11e-forge-via-environment-RED.txt` |
 | D11f | the **out-of-process** half with the in-process reporter deleted from `playwright.config.ts` (the one-line edit the gated PR could make): the run itself is green ("20 passed"), and `check-coverage-floor-ran.mjs` is still RED — *"A lane whose proof is missing did not prove anything."* | `d11f-in-process-reporter-deleted-GREEN.txt`, `d11f-out-of-process-still-RED.txt` |
 | D11 | and the clean tree: the lane prints `e2e harness stamp: OK` and the out-of-process check `carried a valid harness stamp` | `d11-clean-tree-*.txt` |
-| **D12** | **the CI canary self-tests the guard.** Each of the three listeners in `e2e/harness/browser-errors.ts` is neutered in turn and the canary turns the lane red. The `response` case is the sharp one: the fixture still FAILS (the 404 also logs a console error), so a canary that counted failures would pass — this one requires the named diagnostic `http 404` and goes red | `d12-*.txt` (5) |
+| **D12** | **the CI canary self-tests the guard.** Each of the four context listeners in `e2e/harness/browser-errors.ts` is removed in turn. Three turn the lane red; `requestfailed` is honestly GREEN, because none of the three fixtures exercises it, and the transcript says so rather than pretending otherwise. The `response` case is the sharp one: the fixture still FAILS (the 404 also logs a console error), so a canary that counted failures would pass — this one requires `http 404` and goes red | `d12-*.txt` (6) |
+| D12e | **a fixture that fails for the WRONG reason.** `console.error(token)` in the console fixture is swapped for a 404. Under the old canary this was GREEN; it is now red with "failed for the WRONG reason: the guard recorded [response], [pageerror]" | `d12e-fixture-fault-type-swapped-RED.txt`, `d12e-fixture-restored-GREEN.txt` |
+| **D13** | **stamped implies guarded.** Every half uses the same broken-page body and differs only in HOW the page was obtained | `d13*-*.txt` (11) |
+| D13a | the verifier's Finding 11 exploit, verbatim — an overridden `page` fixture | `d13a-overridden-page-fixture-RED.txt` |
+| D13b | a second page in the default context (`context.newPage()`), no fixture touched | `d13b-second-page-in-default-context-RED.txt` |
+| D13c | `browser.newContext()` + `newPage()` inside the test body | `d13c-browser-newContext-in-body-RED.txt` |
+| D13d | `browser.newPage()`, which makes its own context implicitly | `d13d-browser-newPage-in-body-RED.txt` |
+| D13e | an overridden `context` fixture | `d13e-overridden-context-fixture-RED.txt` |
+| D13e2 | an overridden `page` fixture that **navigates inside itself** and never in the body — the ordering case that decided the fixture's dependency list | `d13e2-override-navigates-in-the-fixture-RED.txt` |
+| D13f | a **popup** the page opens with `window.open` | `d13f-popup-window-open-RED.txt` |
+| D13g | an overridden **`browser`** fixture, via Playwright's built-in `playwright` fixture — no import, so lint cannot see this one at all and only the runtime catches it | `d13g-overridden-browser-fixture-RED.txt` |
+| D13h | **the inverse control**: an HONEST `page` override (1024×768, `en-GB`) on a HEALTHY page stays GREEN. A harness nobody can extend is a harness people work around | `d13h-honest-override-stays-GREEN.txt` |
+| D13i | the lint early warning: replacing `vizraHarnessGuard` is refused; overriding `page` stays clean | `d13i-harness-fixture-override-refused-RED.txt`, `d13i-page-override-stays-lint-clean-GREEN.txt` |
 
 Notes where the mutation matters more than the exit code:
 
@@ -210,6 +248,15 @@ rewriting is verified rather than assumed.
   editing `e2e/harness/**`, `playwright.config.ts` or `eslint-rules/**`, which
   `npm run test` and the D12 canary make loud but which no control in this
   repository can forbid.
+- **A spec that launches its OWN browser** by importing a Playwright package and
+  calling `chromium.launch()` is not guarded at runtime — the harness never sees
+  that object. Refused by `vizra/no-unguarded-playwright-import` and by review;
+  **not** by the stamp (such a test is still stamped), the floor, the canary or
+  the parser. The one shape where lint is the only automated control, recorded
+  in AGENTS.md's residuals rather than implied. Note the contrast with D13g: a
+  `browser` fixture overridden through Playwright's built-in `playwright`
+  fixture needs no import, so lint cannot see it — and the runtime does catch
+  that one.
 - **`.github/CODEOWNERS` still enforces nothing** until a ruleset on `main`
   requires Code Owner review, which is an owner action outside any pull request.
   Wherever the evidence or `AGENTS.md` says "owner-reviewed", that precondition

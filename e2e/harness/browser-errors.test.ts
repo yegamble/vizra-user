@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   DENY_ALL,
   formatFailure,
+  guardBrowser,
   unallowedRecords,
   validatePolicy,
   type AllowedBrowserError,
@@ -134,6 +135,196 @@ describe("unallowedRecords", () => {
       { kind: "response", match: /missing\.png/, reason: "not built yet" },
     ];
     expect(unallowedRecords([responseRecord], allow)).toEqual([]);
+  });
+});
+
+/**
+ * THE GUARD IS ATTACHED TO THE BROWSER, NOT TO ONE PAGE.
+ *
+ * WHY THIS BLOCK EXISTS. The guard used to live in an override of the `page`
+ * fixture, beside a separate `auto` fixture that wrote the runtime stamp.
+ * `test.extend` replaces one without the other, and an independent verifier did
+ * exactly that — four lines of ordinary Playwright that keep the stamp and hand
+ * back a page from a context the guard had never seen. The whole gate went green
+ * on a page that 404s a sub-resource and throws on every load.
+ *
+ * The fix is that the guard now attaches at the BROWSER, at BrowserContext
+ * level, so every context and page the test creates is covered. The behavioural
+ * half of that is demonstrated against a real browser (D13, seven attack shapes
+ * plus the honest-override control). These cases cover the parts that need no
+ * browser at all, and in particular the one that would be a silent cross-test
+ * bug rather than a visible failure: the worker's browser is SHARED, so a guard
+ * that does not put back what it wrapped would make one test observe the next
+ * test's pages.
+ */
+describe("guardBrowser", () => {
+  type FakeContext = {
+    handlers: Map<string, Array<(payload: unknown) => void>>;
+    on: (event: string, handler: (payload: unknown) => void) => void;
+    off: (event: string, handler: (payload: unknown) => void) => void;
+    pages: () => unknown[];
+  };
+
+  const fakeContext = (): FakeContext => {
+    const handlers = new Map<string, Array<(payload: unknown) => void>>();
+    return {
+      handlers,
+      on: (event, handler) => {
+        handlers.set(event, [...(handlers.get(event) ?? []), handler]);
+      },
+      off: (event, handler) => {
+        handlers.set(event, (handlers.get(event) ?? []).filter((one) => one !== handler));
+      },
+      pages: () => [],
+    };
+  };
+
+  const fakeBrowser = (contexts: FakeContext[]) => {
+    const created: FakeContext[] = [];
+    const browser = {
+      contexts: () => contexts,
+      newContext: async () => {
+        const context = fakeContext();
+        created.push(context);
+        return context;
+      },
+      newPage: async () => {
+        const context = fakeContext();
+        created.push(context);
+        return { context: () => context };
+      },
+    };
+    return { browser, created };
+  };
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const guardOf = (browser: unknown) => guardBrowser(browser as any);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  it("guards every context that already exists when it is installed", () => {
+    // This is the case a spec-overridden `page` or `context` fixture produces:
+    // the context is built before the harness fixture's body runs.
+    const existing = [fakeContext(), fakeContext()];
+    const { browser } = fakeBrowser(existing);
+    const guard = guardOf(browser);
+
+    expect(guard.contextCount()).toBe(2);
+    for (const context of existing) {
+      for (const event of ["console", "weberror", "requestfailed", "response"]) {
+        expect(context.handlers.get(event), event).toHaveLength(1);
+      }
+    }
+    guard.dispose();
+  });
+
+  it("guards a context created during the test, through browser.newContext", async () => {
+    const { browser } = fakeBrowser([]);
+    const guard = guardOf(browser);
+    const context = (await browser.newContext()) as FakeContext;
+    expect(guard.contextCount()).toBe(1);
+    expect(context.handlers.get("console")).toHaveLength(1);
+    guard.dispose();
+  });
+
+  it("guards the context behind browser.newPage too", async () => {
+    const { browser } = fakeBrowser([]);
+    const guard = guardOf(browser);
+    const page = (await browser.newPage()) as { context: () => FakeContext };
+    expect(guard.contextCount()).toBe(1);
+    expect(page.context().handlers.get("weberror")).toHaveLength(1);
+    guard.dispose();
+  });
+
+  it("guards a context once, however many times it is offered", async () => {
+    const shared = fakeContext();
+    const { browser } = fakeBrowser([shared, shared]);
+    const guard = guardOf(browser);
+    expect(guard.contextCount()).toBe(1);
+    expect(shared.handlers.get("console")).toHaveLength(1);
+    guard.dispose();
+  });
+
+  it("RESTORES the wrapped methods, so the shared worker browser is left as found", async () => {
+    const { browser } = fakeBrowser([]);
+    const originalNewContext = browser.newContext;
+    const originalNewPage = browser.newPage;
+
+    const guard = guardOf(browser);
+    expect(browser.newContext, "newContext must be wrapped while guarding").not.toBe(
+      originalNewContext,
+    );
+    expect(browser.newPage).not.toBe(originalNewPage);
+
+    guard.dispose();
+    expect(browser.newContext, "and put back afterwards").toBe(originalNewContext);
+    expect(browser.newPage).toBe(originalNewPage);
+
+    // And a context created after disposal is NOT guarded: otherwise one test's
+    // fixture would record the next test's pages, in the same worker.
+    const later = (await browser.newContext()) as FakeContext;
+    expect(later.handlers.get("console") ?? []).toHaveLength(0);
+  });
+
+  it("detaches every listener on dispose", () => {
+    const existing = [fakeContext()];
+    const { browser } = fakeBrowser(existing);
+    const guard = guardOf(browser);
+    guard.dispose();
+    for (const event of ["console", "weberror", "requestfailed", "response"]) {
+      expect(existing[0]?.handlers.get(event) ?? [], event).toHaveLength(0);
+    }
+    expect(guard.contextCount()).toBe(0);
+  });
+
+  it("leaves no own property behind when the methods live on a PROTOTYPE", async () => {
+    // Which is the real shape: Playwright's `Browser` methods are prototype
+    // methods. Restoring a copy onto the instance would shadow the prototype for
+    // the rest of the worker's life and make a second guard wrap the wrapper, so
+    // the guard deletes the own property instead.
+    const created: FakeContext[] = [];
+    class FakeBrowser {
+      contexts(): FakeContext[] {
+        return [];
+      }
+      async newContext(): Promise<FakeContext> {
+        const context = fakeContext();
+        created.push(context);
+        return context;
+      }
+      async newPage(): Promise<{ context: () => FakeContext }> {
+        const context = fakeContext();
+        created.push(context);
+        return { context: () => context };
+      }
+    }
+    const browser = new FakeBrowser();
+    const guard = guardOf(browser);
+    expect(Object.prototype.hasOwnProperty.call(browser, "newContext")).toBe(true);
+
+    guard.dispose();
+    expect(
+      Object.prototype.hasOwnProperty.call(browser, "newContext"),
+      "the wrapper must be removed, not replaced by a copy",
+    ).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(browser, "newPage")).toBe(false);
+    expect(browser.newContext).toBe(FakeBrowser.prototype.newContext);
+
+    // And the restored prototype method still works, called on the instance.
+    const after = await browser.newContext();
+    expect(after.handlers.get("console") ?? []).toHaveLength(0);
+  });
+
+  it("nests and unwinds cleanly, so a stacked guard cannot strand a wrapper", async () => {
+    // Not a shape the harness produces today, but the failure mode — a wrapper
+    // left installed forever — is silent, and silence is what this whole slice
+    // exists to refuse.
+    const { browser } = fakeBrowser([]);
+    const original = browser.newContext;
+    const outer = guardOf(browser);
+    const inner = guardOf(browser);
+    inner.dispose();
+    outer.dispose();
+    expect(browser.newContext).toBe(original);
   });
 });
 
@@ -397,6 +588,55 @@ describe("specs use the guarded test", () => {
     expect(message, `the sealed module was reachable: ${line}`).toBeDefined();
     expect(message?.severity).toBe(2);
     expect(message?.message).toContain("per-run key");
+  });
+
+  /**
+   * THE HARNESS-OWNED FIXTURES. The guard and the runtime stamp live in one
+   * automatic fixture so that removing the guard removes the stamp. Replacing
+   * that fixture from a spec is refused at lint time — the early warning for the
+   * exact move that let a verifier keep a valid stamp while the guard never ran.
+   */
+  it.each([
+    ["vizraHarnessGuard", "the combined guard-and-stamp fixture"],
+    ["vizraHarnessStamp", "its previous name, so the old shape fails loudly"],
+    ["browserErrorPolicy", "the allow-list option fixture"],
+  ])("a spec may not replace the harness fixture %s (%s)", async (fixture) => {
+    const eslint = new ESLint({ cwd: repoRoot });
+    const [result] = await eslint.lintText(
+      `import { test as base } from "../harness/test";\n` +
+        `const test = base.extend({ ${fixture}: async ({}, run) => { await run(); } });\n` +
+        `export default test;\n`,
+      { filePath: path.join(repoRoot, "e2e/specs/__fixture_override__.spec.ts") },
+    );
+    const message = result?.messages.find(
+      (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+    );
+    expect(message, `overriding ${fixture} was allowed`).toBeDefined();
+    expect(message?.severity).toBe(2);
+    expect(message?.message).toContain("may not replace the harness's own fixture");
+  });
+
+  it("but overriding `page`, `context` or `browser` stays legal — the guard covers them", async () => {
+    // This is the inverse control, and it matters as much as the ban. The guard
+    // attaches at the BROWSER, so a spec that overrides `page` for a viewport or
+    // a locale is guarded rather than exempt. A harness nobody can extend is a
+    // harness people work around, and banning `.extend` wholesale would have
+    // been the easy, wrong fix.
+    const eslint = new ESLint({ cwd: repoRoot });
+    for (const fixture of ["page", "context", "browser"]) {
+      const [result] = await eslint.lintText(
+        `import { test as base } from "../harness/test";\n` +
+          `const test = base.extend({ ${fixture}: async ({ browser }, run) => { await run(await browser.newPage()); } });\n` +
+          `export default test;\n`,
+        { filePath: path.join(repoRoot, "e2e/specs/__honest_override__.spec.ts") },
+      );
+      expect(
+        result?.messages.filter(
+          (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
+        ),
+        `overriding ${fixture} must stay legal`,
+      ).toEqual([]);
+    }
   });
 
   it("other harness modules stay importable — the seal is narrow, not a blanket ban", async () => {

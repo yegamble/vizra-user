@@ -137,7 +137,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
 | `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
-| `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: the three fault-injection fixtures must each fail for their own named reason (needs a production target, as the lane does) |
+| `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the three fault-injection fixtures must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
 | `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
@@ -161,10 +161,12 @@ the image's `CMD` does — `next dev` is never a valid target, and
 that is not `development`, immutable `/_next/static` caching) so a lane pointed
 at the wrong server goes red rather than quietly testing something else.
 
-**Default-deny on browser errors.** `e2e/harness/test.ts` replaces Playwright's
-`page` fixture so that, for every test, a console error, an uncaught exception,
-a failed request or any HTTP >= 400 response fails the test in teardown —
-whether or not the test body looked. The only way past it is per test:
+**Default-deny on browser errors, over every page the test creates.**
+`e2e/harness/test.ts` has ONE automatic fixture, `vizraHarnessGuard`, which
+attaches the guard **at the browser** for the test's lifetime and writes the
+runtime stamp. For every test, a console error, an uncaught exception, a failed
+request or any HTTP >= 400 response fails the test — whether or not the test
+body looked, and whichever page produced it. The only way past it is per test:
 
 ```ts
 test.use({
@@ -176,6 +178,74 @@ test.use({
 
 `kind`, a RegExp `match` and a non-blank `reason` are all required, and a policy
 of the wrong shape throws rather than being coerced.
+
+#### WHY AT THE BROWSER, AND WHY ONE FIXTURE
+
+The guard used to live in an override of the `page` fixture, beside a separate
+automatic fixture that wrote the stamp. `test.extend` replaces one without the
+other, and an independent verifier did exactly that — four lines of ordinary,
+lint-clean Playwright in a normal spec, touching no gate file:
+
+```ts
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const ctx = await browser.newContext();
+    await provide(await ctx.newPage());
+  },
+});
+```
+
+The spec kept its valid stamp; the guard simply was not there. `npm run ci` exit
+0, the lane exit 0 with "20 passed, coverage floor: OK, harness stamp: OK (20
+verified)", both floor checks exit 0, the canary exit 0, the workflow parser
+exit 0 — on a page that 404s a sub-resource and throws on every load. The stamp
+proved "this test came from the harness `test` object"; the claim being made is
+"this test ran the guard".
+
+Two changes make those the same sentence again.
+
+**One fixture.** The guard and the stamp are in `vizraHarnessGuard`, so removing
+the guard removes the stamp, which both the in-process reporter and the
+out-of-process check already refuse. There is no second fixture for
+`test.extend` to take apart.
+
+**Attached at the browser, not at a page.** Guarding a second page would have
+moved the hole to a popup, a new tab or a fresh context. The fixture takes
+`browser` as a dependency and attaches `console`, `weberror`, `requestfailed`
+and `response` listeners at **BrowserContext** level — all four exist on
+`BrowserContext` in the installed Playwright 1.63.0 types, checked in
+`playwright-core/types/types.d.ts` rather than assumed — and a context event
+fires for every page in that context. It sweeps the contexts that already exist
+and wraps `browser.newContext` / `browser.newPage` for the test's lifetime,
+restoring both afterwards, because the browser is worker-scoped and shared.
+
+Covered, each demonstrated red then green in **D13**: the verifier's exploit
+verbatim; a second page in the default context; `browser.newContext()` in the
+body; `browser.newPage()`; an overridden `context` fixture; an overridden `page`
+fixture that navigates **inside itself** and never in the body; a popup the page
+opens with `window.open`; and an overridden `browser` fixture (which needs no
+import at all — `playwright` is a built-in fixture — so lint cannot see it and
+only the runtime catches it).
+
+**`context` is a declared dependency purely for ordering, and the ordering was
+measured.** Depending on `browser` alone, Playwright sets an automatic fixture
+up first and tears it down last: a probe printed `pages=0` at that moment, the
+flush had nothing to flush and the failure's own trace had already been written
+(a demonstration that inspects that trace went from 21 members to 8). Depending
+on `page` fixed the teardown and broke the setup: the guard was installed after
+an overridden `page` fixture had already navigated, and that spec **passed** on
+a broken page. Depending on `context` gives both — Playwright's `page` fixture
+does not close the page, the context does — so the wrapper is installed before
+`page` exists and the page is still open (`pages=1`) when the guard asserts.
+
+**`test.extend` is not banned, and must not be.** Overriding `page`, `context`
+or `browser` for a viewport, a locale or a second context is legitimate and
+stays green — D13's inverse control is exactly that, an honest override on a
+healthy page. What `vizra/no-unguarded-playwright-import` refuses is replacing a
+fixture the harness owns (`vizraHarnessGuard`, its former name
+`vizraHarnessStamp`, and `browserErrorPolicy`), and it fails closed on a
+fixtures object it cannot read in full. That is the early warning; the control
+is that removing the guard removes the stamp.
 
 #### The control is the RUNTIME STAMP. Lint is the early warning.
 
@@ -198,6 +268,10 @@ naming the file:
 Playwright's own `test` writes no such annotation, so **a spec that reaches the
 raw runner — by any syntax, from any directory, with any lint suppression — is
 RED at runtime.** Nothing about that depends on what a file looks like.
+
+The stamp is written by the same fixture that installs the guard, so **stamped
+implies guarded**: a spec cannot keep one and drop the other. That sentence was
+false for one round, and the section above says how.
 
 The key is not readable from a spec. It reaches workers through the
 environment, and `e2e/harness/stamp.ts` **deletes it from `process.env` while
@@ -373,23 +447,40 @@ because a guard that has stopped looking finds nothing to fail on. Only
 `npm run e2e:demos` would have caught it, and that is not a CI lane.
 
 So `scripts/ci/harness-canary.mjs` runs in the required `e2e` lane, against the
-same container the lane just drove, and requires each of the three
-fault-injection fixtures to fail **for its own named reason**:
+same container the lane just drove. It runs each fault-injection fixture in its
+own invocation and asserts the **exact set of record kinds** the guard recorded
+for it — the kinds that must be present, and the kinds that must not:
 
-| Fixture | Must fail with |
-|---|---|
-| `e2e/demos/console-error.demo.ts` | `console.error`, `browser error(s) that no allow-list entry covers` |
-| `e2e/demos/failed-request.demo.ts` | `http 404` |
-| `e2e/demos/uncaught-exception.demo.ts` | `pageerror` |
+| Fixture | Must record | Must NOT record |
+|---|---|---|
+| `e2e/demos/console-error.demo.ts` | `[console]`, `console.error` | `[response]`, `[pageerror]`, `[requestfailed]` |
+| `e2e/demos/failed-request.demo.ts` | `[response]`, `http 404` | `[pageerror]`, `[requestfailed]` |
+| `e2e/demos/uncaught-exception.demo.ts` | `[pageerror]` | `[response]`, `[console]`, `[requestfailed]` |
 
-Per-reason and not merely a count, because the sharpest case needs it: with the
-`response` listener neutered, the 404 fixture still fails — on the console error
-the 404 also produces — so a canary that only counted failures would pass. One
-browser launch, about three seconds. `check-e2e-lane.mjs` asserts the step
+`[console]` is deliberately allowed for the 404 fixture: Chromium logs the
+failed load itself. That is measured, in
+`docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt`, not assumed.
+
+**This replaces a claim that was overstated.** The first version required each
+fixture's diagnostic to appear somewhere in one combined output and said each
+failed "for its own named reason". An independent verifier showed it did not:
+swapping `console.error(token)` in the console fixture for a 404 left the canary
+**green**, because Chromium reports the failed load on the console and the
+harness formats it as `console.error: Failed to load resource…`. The fixture
+then demonstrated a control nobody had asked it to demonstrate, silently.
+Asserting the kind SET makes the sentence true, and **D12e** swaps that fixture's
+fault type and shows the canary going red with "failed for the WRONG reason".
+
+Per-fixture and not merely a count, because the other sharp case needs it too:
+with the `response` listener neutered the 404 fixture still fails, on the console
+error the 404 also produces, so a canary that counted failures would pass. About
+six seconds, three browser launches. `check-e2e-lane.mjs` asserts the step
 exists, runs exactly that command, is unconditional, does not
 `continue-on-error` and drives the container; `require-checks_test.sh` drives
-all of that against mutated workflows. Demonstration D12 neuters each listener
-in turn and shows the lane going red.
+all of that against mutated workflows. Demonstration D12 removes each of the
+four context listeners in turn and shows the lane going red for three of them —
+and honestly GREEN for `requestfailed`, which none of the three fixtures
+exercises.
 
 The Docker D6 pair, D5 (`next dev`), D7 (the workflow parser) and D9 (artifact
 redaction) are deliberately NOT in the canary: they need a second image build, a
@@ -427,6 +518,23 @@ as if it were.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
+- **A spec that launches its OWN browser is not guarded at runtime.** The guard
+  attaches to the browser the harness fixture is handed, so it covers the
+  default browser and a `browser` fixture a spec overrides through Playwright's
+  built-in `playwright` fixture (D13g). It does NOT cover a browser obtained by
+  importing a Playwright package and calling `chromium.launch()` directly,
+  because the harness never sees that object. **What catches that:**
+  `vizra/no-unguarded-playwright-import`, which refuses any reference to
+  `@playwright/test`, `playwright/test` or `playwright` anywhere under `e2e/`
+  except `e2e/harness/**` — in every spelling, with inline directives disabled —
+  plus review. **What does not:** the runtime stamp (such a test is still
+  stamped, because it still came from the harness `test`), the coverage floor,
+  the canary and the workflow parser. This is the one shape where lint is the
+  only automated control, and it is written here rather than implied.
+- **The harness-owned-fixture ban is lint.** Replacing `vizraHarnessGuard` is
+  refused by the rule and, at runtime, costs the spec its stamp — which both
+  floor checks refuse. Replacing `page`, `context` or `browser` is legitimate,
+  is not refused, and is covered by the guard (D13, eight shapes).
 - **`e2e/harness/no-credentials-in-specs.test.ts` is a tripwire, not a proof.**
   It sweeps every `.ts` under `e2e/` except `e2e/harness/**` and matches a named
   list of patterns; it catches the accident, not the determined author. Measured

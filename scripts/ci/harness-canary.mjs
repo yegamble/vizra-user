@@ -46,82 +46,126 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
- * One Playwright invocation for all three, so the step costs a single browser
- * launch. Each entry's diagnostic must appear in the output AND the run must
- * report exactly three failures — a fixture that silently passed would leave its
- * diagnostic missing and the count short.
+ * ONE INVOCATION PER FIXTURE, and each one asserts the exact SET of record
+ * KINDS the guard recorded.
+ *
+ * WHY, PRECISELY. The first version of this canary ran all three in one
+ * invocation and required each fixture's diagnostic to appear somewhere in the
+ * combined output. An independent verifier showed that claim was overstated:
+ * replacing `console.error(token)` in `console-error.demo.ts` with a 404
+ * sub-resource left the canary GREEN, because Chromium reports a failed load on
+ * the console and the harness formats it as
+ * `console.error: Failed to load resource…`, which satisfied that fixture's
+ * expected string. The fixture then demonstrated the wrong control and nobody
+ * was told.
+ *
+ * So each fixture now declares the kinds the guard MUST record and the kinds it
+ * must NOT, measured against the committed demos:
+ *
+ *   console-error       -> {console}            (a plain console.error)
+ *   failed-request      -> {response, console}  (Chromium logs the 404 too)
+ *   uncaught-exception  -> {pageerror}
+ *
+ * Swapping any fixture's fault for another kind therefore turns the canary red:
+ * a 404 in the console fixture adds `[response]`, a throw in the 404 fixture
+ * adds `[pageerror]` and drops `http 404`, a console.error in the throw fixture
+ * drops `[pageerror]`. The kind markers are the `[kind]` prefixes
+ * `formatFailure` prints, so this reads what the guard actually recorded rather
+ * than what the page happened to say.
+ *
+ * The cost of separate invocations is one browser launch each — a few seconds —
+ * and it buys per-fixture isolation, without which "must NOT contain" could
+ * never be asserted at all.
  */
 const CANARIES = [
   {
     file: "e2e/demos/console-error.demo.ts",
     what: "a console.error on the page",
-    expect: ["console.error", "browser error(s) that no allow-list entry covers"],
+    expect: ["[console]", "console.error", "browser error(s) that no allow-list entry covers"],
+    forbid: ["[response]", "[pageerror]", "[requestfailed]"],
   },
   {
     file: "e2e/demos/failed-request.demo.ts",
     what: "a sub-resource that returns 404",
-    expect: ["http 404"],
+    // `[console]` is NOT forbidden here: Chromium logs the failed load itself,
+    // and the demo's own allow-list does not silence it. That is measured, not
+    // assumed — see docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt.
+    expect: ["[response]", "http 404"],
+    forbid: ["[pageerror]", "[requestfailed]"],
   },
   {
     file: "e2e/demos/uncaught-exception.demo.ts",
     what: "an uncaught exception in the page",
-    expect: ["pageerror"],
+    expect: ["[pageerror]", "pageerror"],
+    forbid: ["[response]", "[console]", "[requestfailed]"],
   },
 ];
 
 const project = process.env.E2E_CANARY_PROJECT ?? "desktop-chromium-1440";
 
-const args = [
-  "playwright",
-  "test",
-  "--config",
-  "playwright.demos.config.ts",
-  `--project=${project}`,
-  ...CANARIES.map((canary) => canary.file),
-  // `RED:` and not `RED`. Playwright compiles `--grep` with the `i` flag, so the
-  // bare word also matches "decla(red)" in the GREEN halves' titles — measured,
-  // not assumed. The colon is what makes the selection exactly the three
-  // `test.describe("RED: …")` blocks, which is what the count below asserts.
-  "--grep",
-  "RED:",
-];
-
-const run = spawnSync("npx", args, {
-  cwd: repoRoot,
-  encoding: "utf8",
-  env: process.env,
-  // The demos are EXPECTED to fail, so a non-zero exit is the success case here.
-  // Output is captured rather than inherited so it can be asserted on.
-  maxBuffer: 32 * 1024 * 1024,
-});
-
-if (run.error) {
-  console.error(
-    `::error::harness canary: could not run Playwright (${run.error.message}). ` +
-      "A canary that could not run is BLOCKED, not a pass (AGENTS.md).",
-  );
-  process.exit(2);
-}
-
-const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
-process.stdout.write(output);
-
 const problems = [];
 
-if (run.status === 0) {
-  problems.push(
-    "every fault-injection fixture PASSED. The browser-error guard in " +
-      "e2e/harness/browser-errors.ts is no longer failing a page that logs, throws or 404s — " +
-      "which is invisible in an ordinary green lane, because a guard that has stopped " +
-      "looking finds nothing to report.",
-  );
-}
-
-if (run.status === null) {
-  problems.push(`Playwright was killed by signal ${run.signal}; the canary proved nothing.`);
-}
-
 for (const canary of CANARIES) {
+  const args = [
+    "playwright",
+    "test",
+    "--config",
+    "playwright.demos.config.ts",
+    `--project=${project}`,
+    canary.file,
+    // `RED:` and not `RED`. Playwright compiles `--grep` with the `i` flag, so
+    // the bare word also matches "decla(red)" in the GREEN halves' titles —
+    // measured, not assumed. The colon selects exactly the
+    // `test.describe("RED: …")` block, which is what the count below asserts.
+    "--grep",
+    "RED:",
+  ];
+
+  const run = spawnSync("npx", args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: process.env,
+    // The demo is EXPECTED to fail, so a non-zero exit is the success case here.
+    // Output is captured rather than inherited so it can be asserted on.
+    maxBuffer: 32 * 1024 * 1024,
+  });
+
+  if (run.error) {
+    console.error(
+      `::error::harness canary: could not run Playwright for ${canary.file} ` +
+        `(${run.error.message}). A canary that could not run is BLOCKED, not a pass (AGENTS.md).`,
+    );
+    process.exit(2);
+  }
+
+  const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+  process.stdout.write(`\n--- ${canary.file} (${canary.what}) ---\n${output}`);
+
+  if (run.status === null) {
+    problems.push(
+      `${canary.file}: Playwright was killed by signal ${run.signal}; the canary proved nothing.`,
+    );
+    continue;
+  }
+
+  if (run.status === 0) {
+    problems.push(
+      `${canary.file} (${canary.what}) PASSED. The browser-error guard in ` +
+        "e2e/harness/browser-errors.ts is no longer failing a page that logs, throws or 404s — " +
+        "which is invisible in an ordinary green lane, because a guard that has stopped " +
+        "looking finds nothing to report.",
+    );
+    continue;
+  }
+
+  // Exactly one test, so "the other two failed instead" cannot stand in for it.
+  if (!/\b1 failed\b/.test(output)) {
+    problems.push(
+      `${canary.file}: Playwright did not report exactly 1 failed test. This invocation selects ` +
+        "one fixture with --grep 'RED:'; anything else means the fixture or the selection moved.",
+    );
+  }
+
   const missing = canary.expect.filter((needle) => !output.includes(needle));
   if (missing.length > 0) {
     problems.push(
@@ -131,17 +175,17 @@ for (const canary of CANARIES) {
         "demonstration no longer demonstrates.",
     );
   }
-}
 
-// A per-fixture count, so "one of the three quietly passed" cannot hide behind
-// the other two failing.
-const expectedFailures = CANARIES.length;
-if (!new RegExp(`\\b${expectedFailures} failed\\b`).test(output)) {
-  problems.push(
-    `Playwright did not report exactly ${expectedFailures} failed tests. Each of the ` +
-      `${expectedFailures} fault-injection fixtures must fail; a run that reports fewer has a ` +
-      "fixture that the guard let through.",
-  );
+  // The half that makes "for its own reason" true rather than aspirational: the
+  // guard must NOT have recorded a kind this fixture is not supposed to produce.
+  const unexpected = canary.forbid.filter((marker) => output.includes(marker));
+  if (unexpected.length > 0) {
+    problems.push(
+      `${canary.file} (${canary.what}) failed for the WRONG reason: the guard recorded ` +
+        `${unexpected.join(", ")}, which this fixture does not demonstrate. Swapping a ` +
+        "fixture's fault for another kind leaves the control it was written for untested.",
+    );
+  }
 }
 
 if (problems.length > 0) {
@@ -156,6 +200,7 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `OK: the harness canary failed all ${expectedFailures} fault-injection fixtures, each for ` +
-    "its own named reason (console.error, http 404, pageerror).",
+  `OK: the harness canary failed all ${CANARIES.length} fault-injection fixtures, each with the ` +
+    "exact set of record kinds it demonstrates and no others " +
+    "([console] / [response]+http 404 / [pageerror]).",
 );

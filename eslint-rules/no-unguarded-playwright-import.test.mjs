@@ -39,6 +39,13 @@ const DEMO = "e2e/demos/example.demo.ts";
  * sign a stamp for a test the browser-error guard never ran.
  */
 const SEALED = ["e2e/harness/stamp", "e2e/harness/stamp-reporter"];
+/**
+ * The fixtures the harness owns, as `eslint.config.mjs` passes them.
+ * `test.extend` may not replace these — the guard and the runtime stamp live in
+ * one of them, and taking them apart is how a verifier kept a valid stamp while
+ * the browser-error guard never ran.
+ */
+const HARNESS_FIXTURES = ["vizraHarnessGuard", "vizraHarnessStamp", "browserErrorPolicy"];
 
 ruleTester.run("no-unguarded-playwright-import", rule, {
   valid: [
@@ -330,6 +337,71 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       filename: SPEC,
       options: [{ harnessEntry: "e2e/harness/test", sealedModules: SEALED }],
       errors: [{ messageId: "sealedModule" }],
+    },
+
+    // ---- the HARNESS-OWNED fixtures ---------------------------------------
+    // The browser-error guard and the runtime stamp live in ONE automatic
+    // fixture. They used to be two — an `auto` fixture that stamped and a `page`
+    // override that guarded — and an independent verifier took them apart with
+    // `test.extend({ page: … })`: the spec kept its valid stamp, the guard never
+    // ran, and the whole gate went green on a page that 404s a sub-resource and
+    // throws. Replacing the harness's own fixture is refused here as the early
+    // warning; the control is that an unstamped pass is refused at runtime.
+    {
+      name: "a spec may not replace the harness's guard fixture",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ vizraHarnessGuard: [async ({}, run) => { await run(); }, { auto: true }] });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride", data: { name: "vizraHarnessGuard" } }],
+    },
+    {
+      name: "the fixture's previous name is refused too, so the old shape fails loudly",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ vizraHarnessStamp: async ({}, run) => { await run(); } });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride" }],
+    },
+    {
+      name: "a quoted key is the same override",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ "vizraHarnessGuard": async ({}, run) => { await run(); } });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride" }],
+    },
+    {
+      name: "the allow-list option fixture may not be replaced either",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ browserErrorPolicy: [{ allow: [] }, { option: true }] });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride" }],
+    },
+    {
+      name: "a computed key cannot be read, so it fails closed",
+      code: `import { test as base } from "../harness/test";\nconst k = "vizraHarnessGuard";\nconst test = base.extend({ [k]: async ({}, run) => { await run(); } });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureUnreadable" }],
+    },
+    {
+      name: "a spread cannot be read, so it fails closed",
+      code: `import { test as base } from "../harness/test";\nconst extra = {};\nconst test = base.extend({ ...extra });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureUnreadable" }],
+    },
+    {
+      name: "a fixtures object hoisted into a variable cannot be read either",
+      code: `import { test as base } from "../harness/test";\nconst fixtures = {};\nconst test = base.extend(fixtures);\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureUnreadable" }],
+    },
+    {
+      name: "a demo may not replace the harness fixture either",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ vizraHarnessGuard: async ({}, run) => { await run(); } });\nexport default test;`,
+      filename: DEMO,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride" }],
     },
   ],
 });

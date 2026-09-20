@@ -19,24 +19,24 @@
 
 
  Test Files  12 passed (12)
-      Tests  269 passed (269)
-   Start at  18:32:32
-   Duration  1.33s (tests 54%, import 29%, transform 16%, worker 1%)
+      Tests  289 passed (289)
+   Start at  19:25:25
+   Duration  1.76s (tests 58%, import 28%, transform 12%, worker 1%)
 
 
 > vizra-user@0.0.0 build
 > next build
 
 ▲ Next.js 16.3.5 (Turbopack)
-✓ Running next.config.ts took 99ms
+✓ Running next.config.ts took 127ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 612ms
+✓ Compiled successfully in 656ms
   Running TypeScript ...
-  Finished TypeScript in 892ms ...
+  Finished TypeScript in 873ms ...
   Collecting page data using 5 workers ...
   Generating static pages using 5 workers (0/3) ...
-✓ Generating static pages using 5 workers (3/3) in 214ms
+✓ Generating static pages using 5 workers (3/3) in 227ms
   Finalizing page optimization ...
 
 Route (app)

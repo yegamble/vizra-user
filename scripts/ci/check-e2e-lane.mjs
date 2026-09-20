@@ -437,6 +437,30 @@ try {
         "`@playwright/test` directly.",
     );
   }
+  if (!guard.includes("guardBrowser")) {
+    add(
+      "e2e/harness/test.ts no longer attaches the browser-error guard at the BROWSER " +
+        "(`guardBrowser`). Tied to one page, the guard is removed by `test.extend({ page: … })` " +
+        "while the stamp survives — a verifier passed the whole gate that way on a page that " +
+        "404s and throws.",
+    );
+  }
+  // The guard and the stamp must be in ONE fixture. Two fixtures is exactly the
+  // shape `test.extend` can take apart, which is how FINDING 11 happened.
+  if (!/vizraHarnessGuard\s*:/.test(guard)) {
+    add(
+      "e2e/harness/test.ts no longer declares the combined `vizraHarnessGuard` fixture. The " +
+        "guard and the runtime stamp must live in the SAME automatic fixture, so that removing " +
+        "the guard removes the stamp that both floor checks require.",
+    );
+  }
+  if (/^\s{2}page\s*:\s*async/m.test(guard)) {
+    add(
+      "e2e/harness/test.ts overrides the `page` fixture again. The guard belongs in the " +
+        "automatic fixture, attached at the browser: a page-scoped guard is removable by " +
+        "`test.extend({ page: … })` in a spec, with the stamp left intact.",
+    );
+  }
 } catch {
   add("e2e/harness/test.ts is missing; there is no browser-error guard.");
 }
