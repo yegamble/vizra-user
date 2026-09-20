@@ -1,0 +1,64 @@
+name: ci-required
+
+# ONE named check that stands for this repository's whole required set
+# (ADR-002, "CI fan-in and merge queue").
+#
+# GitHub's `needs:` cannot reach across workflows, and the required lanes live
+# in separate files on purpose — different triggers, different path filters.
+# Without a fan-in, "required for merge" would have to be spelled out as
+# several branch-protection entries that drift the moment a lane is added or
+# renamed.
+#
+# So this job reads .github/required-checks.txt — the checked-in definition of
+# required — and waits for exactly those check runs on the commit under test.
+# The ruleset requires a single status check: `ci-required`. Because the
+# ruleset names the CONTEXT, a workflow that never triggers leaves the merge
+# blocked rather than invisibly unchecked.
+#
+# It fails when a required lane fails, is cancelled, times out, is skipped, or
+# NEVER RUNS.
+#
+# It runs on `pull_request` AND `merge_group`, so a merge-queue entry is gated
+# by the same check as the pull request (ADR-002). Every required lane must
+# also trigger on `merge_group`, or this job would wait for a check that the
+# queue never produces.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+  checks: read
+  # The zero-job guard lists workflow runs and their jobs (the Actions API).
+  # Without this the read fails on a private repository and the gate fails
+  # closed as "GitHub API unavailable" — which is correct, but useless.
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-required:
+    runs-on: ubuntu-24.04
+    # Long enough to outlast every lane plus queueing; the script's own
+    # DEADLINE_MINUTES fires first and reports WHICH lane it was waiting on.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Every required lane succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          # On a pull_request event github.sha is the merge commit, which
+          # carries no check runs; the lanes report against the PR head. On a
+          # merge_group event github.sha IS the commit the lanes ran on.
+          CHECK_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEADLINE_MINUTES: "45"
+          POLL_SECONDS: "45"
+        run: bash scripts/ci/require-checks.sh

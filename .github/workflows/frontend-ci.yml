@@ -1,0 +1,49 @@
+name: frontend-ci
+
+# The canonical gate. CI runs exactly what a developer runs locally —
+# `npm run ci` (lint, typecheck, vitest, production build) — so the two cannot
+# drift into "green here, red there". ci-guard.yml asserts this file really
+# invokes that script.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    # ADR-009 fixes the acceptance platform: GitHub-hosted ubuntu-24.04,
+    # linux/amd64. Pinned to the image, not `ubuntu-latest`, so a runner image
+    # rollover is a reviewed change rather than a surprise.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # One Node version for this repo: .nvmrc is read here, by developers, and
+      # by the Dockerfile's base image tag. Keep the three in step.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # EXACT MANIFEST: `npm ci` installs strictly what package-lock.json pins
+      # and fails if the lockfile and package.json disagree — never
+      # `npm install`, which would resolve something else in the runner.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Canonical gate (npm run ci)
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run ci

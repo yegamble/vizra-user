@@ -1,0 +1,59 @@
+name: contract-ci
+
+# VZ-FOUND-002, this repository's half: the OpenAPI contract is vizra-core's,
+# the TypeScript client here is generated from it, and a hand-edited generated
+# file is rejected.
+#
+# WHAT THIS PROVES (no network, no credentials):
+#   * contracts/vizra-core/api/openapi.yaml is the file contracts/manifest.json
+#     describes (sha256), so the vendored spec cannot be edited here to make a
+#     stale client look fresh;
+#   * lib/api/generated.ts is byte-for-byte what the pinned openapi-typescript
+#     produces from that spec.
+#
+# WHAT IT DOES NOT PROVE, and why: that the vendored copy is still current with
+# vizra-core's `main`. Vidra's equivalent lane checks the backend repo out in
+# the workflow, which works because that repo is public; `yegamble/vizra-core`
+# is private, so that step needs a read-only token this repository does not
+# have. Adding it is owed work (AGENTS.md, "Owed"), and until then core's own
+# route↔spec contract test plus review of the manifest's `source_commit` are
+# what keep the vendored copy honest. This lane is not a substitute for that.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generated client matches the contract
+        run: npm run check:contract
+
+      # The check above regenerates into a temp directory and never touches the
+      # working tree, so a dirty tree here would mean something else wrote to
+      # it. Cheap insurance that the check is a comparison, not a fixup.
+      - name: The check changed nothing
+        run: git diff --exit-code

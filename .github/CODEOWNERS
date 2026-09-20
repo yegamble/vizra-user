@@ -1,0 +1,32 @@
+# Owner review for the files that decide whether a merge means anything.
+#
+# ADR-002 § "Branch protection and rulesets" item 7 requires CODEOWNERS over
+# workflows, gate scripts and the required-check manifest; ADR-002 § Contracts
+# makes the API contract vizra-core's to change, not this repository's.
+#
+# WHAT THIS FILE DOES ON ITS OWN: nothing. GitHub enforces it only when a
+# ruleset on `main` requires review from Code Owners. Applying that ruleset is
+# an owner action and is NOT part of any pull request — see the PR body and
+# ADR-002 items 9–10 (which also say no ledger entry may reach VERIFIED on CI
+# evidence alone until protection is confirmed applied).
+#
+# Committing it anyway is deliberate: the file is the reviewable half, it is
+# what the ruleset will point at, and `scripts/ci/check-required-floor.sh`
+# already enforces the part that needs no repository settings at all.
+
+# Everything, by default, so a new path is not silently unowned.
+*                       @yegamble
+
+# CI: the workflows, the fan-in, the required-check manifest and the floor that
+# stops the manifest being emptied by the pull request it gates.
+/.github/               @yegamble
+/scripts/ci/            @yegamble
+
+# The ADR-003 identity and caching lint rules. Two reviewers defeated the first
+# version of these; a change here is a change to a privacy control.
+/eslint-rules/          @yegamble
+
+# The vendored copy of vizra-core's OpenAPI contract and its provenance
+# manifest. Editing these here instead of re-vendoring is how a stale or
+# hostile contract would enter the build.
+/contracts/             @yegamble

@@ -1,0 +1,5 @@
+/* Tailwind CSS v4 entry point. Deliberately bare: the design tokens (colour,
+ * type scale, spacing, radii, motion) arrive in the tokens PR, which adds a
+ * `@theme` block here and nothing else. Do not add ad-hoc colours or fonts
+ * before then — see docs/DESIGN_BRIEF.md in the meta repo. */
+@import "tailwindcss";
