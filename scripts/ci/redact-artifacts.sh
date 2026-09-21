@@ -91,6 +91,44 @@ ABSOLUTE_PROGRAM='s{((?:https?|wss?|ftp)://[^\s"'"'"'<>\\)\]]*?)[?\#][^\s"'"'"'<
 # shellcheck disable=SC2016
 RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(/[A-Za-z0-9._~%/+-]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2?<redacted>}g'
 
+# AND THE SCHEME-LESS FORM, WHICH IS HOW PLAYWRIGHT WRITES A STEP SUBTITLE.
+#
+# An independent verifier reduced the gap to three lines against this script
+# (PR #3 re-verification, FINDING 13):
+#
+#   "url":"http://host/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"     -> ?<redacted>  OK
+#   "path":"/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"               -> ?<redacted>  OK
+#   "subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"  -> UNCHANGED    LEAK
+#
+# The absolute program requires `scheme://` and the relative program requires
+# the match to begin at `/`; `host:port/path?query` satisfies neither. Playwright
+# DROPS THE SCHEME when it writes a `test.trace` step subtitle, so any
+# `page.goto(signedUrl)` produces one — measured in a probe as
+# `"title":"Navigate","subtitle":"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=…"`
+# beside a `params.url` the absolute program does catch. The verifier measured a
+# sentinel going 3 members -> 1 after redaction, surviving in `test.trace`.
+#
+# D9 never exercised this: its fixture injects the signed URL as a SUB-RESOURCE
+# (`img.src = url`) and navigates to `/`, and a sub-resource never becomes a step
+# subtitle. The demonstration was sound for what it covered and blind to this.
+#
+#   (^|[\s"'(\[=,>])              a boundary, so prose is not rewritten
+#   ((?:[\w-]+\.)+[\w-]+(?::\d+)?  a DOTTED host (or IPv4), optional port
+#    |[\w-]+:\d{1,5}              or ANY label with an explicit :port
+#    |localhost)                  or bare localhost
+#   (/[^\s"'<>\\)\]?\#]*)          a path, which MUST start at `/`
+#   [?#]…                        the query and/or fragment
+#
+# The bare-label alternative is what makes the verifier's own reduction line
+# redact: `host:3219/m.jpg?…` has an undotted hostname, which a dotted-only
+# pattern misses, and a dotted-only pattern was the first version of this. The
+# price is deliberate OVER-redaction: `1:23/foo?x=y` in prose would be rewritten
+# too. That costs a little diagnostic text and leaks nothing, which is the right
+# way round — `see step 3/4?` has no authority and no path and is untouched.
+# `e2e/harness/redact.ts` carries the same shape for the harness's own output.
+# shellcheck disable=SC2016
+AUTHORITY_PROGRAM='s{(^|[\s"'"'"'(\[=,>])((?:[\w-]+\.)+[\w-]+(?::\d+)?|[\w-]+:\d{1,5}|localhost)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
+
 # AND THE STRUCTURED COPY. A trace's `*.network` member is HAR-shaped, and HAR
 # stores the query a SECOND time, parsed into fields:
 #
@@ -117,6 +155,7 @@ redact_tree() {
   while IFS= read -r -d '' file; do
     perl -0777 -pi -e "$ABSOLUTE_PROGRAM" "$file"
     perl -0777 -pi -e "$RELATIVE_PROGRAM" "$file"
+    perl -0777 -pi -e "$AUTHORITY_PROGRAM" "$file"
     perl -0777 -pi -e "$HAR_QUERY_PROGRAM" "$file"
     count=$((count + 1))
   done < <(find "$root" -type f ! \( "${BINARY_PRUNE[@]}" \) "$@" -print0)
@@ -163,4 +202,4 @@ for dir in "${dirs[@]}"; do
   total_files=$((total_files + n))
 done
 
-echo "OK: redacted URL query strings in ${total_files} file(s) and ${total_zips} archive(s) across: ${dirs[*]}"
+echo "OK: redacted URL query strings (absolute, relative and authority-relative) in ${total_files} file(s) and ${total_zips} archive(s) across: ${dirs[*]}"
