@@ -2,15 +2,20 @@ $ npm run ci
 
 
 > vizra-user@0.0.0 ci
-> npm run lint && npm run typecheck && npm run test && npm run build
+> npm run check:hygiene && npm run lint && npm run typecheck && npm run test && npm run build
 
+
+> vizra-user@0.0.0 check:hygiene
+> node scripts/ci/check-source-hygiene.mjs
+
+OK: 274 text source(s) carry no literal control bytes, and 13 mutation-digest line(s) match this tree.
 
 > vizra-user@0.0.0 lint
 > eslint
 
 
 <repo>/e2e/harness/redact.ts
-  140:5  warning  Unused eslint-disable directive (no problems were reported from 'no-control-regex')
+  156:5  warning  Unused eslint-disable directive (no problems were reported from 'no-control-regex')
 
 <repo>/e2e/specs/__bypass.spec.ts
   2:1  warning  '/* eslint-disable vizra/no-unguarded-playwright-import */' has no effect because you have 'noInlineConfig' setting in your config
