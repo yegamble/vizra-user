@@ -1,0 +1,15 @@
+$ bash -c cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test as base } from "../harness/test";
+const test = base.extend({
+  page: async ({ browser }, provide) => {
+    const context = await browser.newContext({ locale: "en-GB" });
+    await provide(await context.newPage());
+  },
+});
+export default test;
+SPEC
+npx eslint e2e/specs/__guard.spec.ts && echo "OK: a page override is legal — the guard attaches at the browser"
+
+OK: a page override is legal — the guard attaches at the browser
+
+[exit 0]

@@ -4,6 +4,15 @@ out
 build
 coverage
 test-results
+playwright-report
+# The browser harness. It has no business in a build context that produces the
+# shipped image: the fault-injection demonstrations under e2e/demos/ must never
+# be reachable from a running instance. `scripts/ci/check-no-test-fixtures-in-image.sh`
+# asserts the built image really contains none of it, rather than trusting this list.
+e2e
+playwright.config.ts
+playwright.demos.config.ts
+scripts/e2e
 .git
 .github
 .gitignore

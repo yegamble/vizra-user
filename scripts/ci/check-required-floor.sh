@@ -32,6 +32,10 @@ set -euo pipefail
 # The lanes that must be required, non-optional, for a merge to mean anything.
 #   frontend — the canonical `npm run ci` gate (lint, typecheck, test, build)
 #   contract — the generated client matches vizra-core's contract
+#   e2e      — the browser lane against the built production image, desktop and
+#              mobile (VZ-FOUND-008). Every later UI slice proves itself through
+#              it, so a pull request that drops it from the manifest drops the
+#              only check that a page actually works in a browser.
 # Adding to this list is welcome; removing from it is an owner decision, and
 # the diff says so.
 #
@@ -43,7 +47,7 @@ set -euo pipefail
 # to refuse to pass vacuously, the same defect class as the empty-manifest case
 # the suite already covers. A floor with no lanes in it is now an error, not a
 # pass.
-FLOOR=${FLOOR:-"frontend contract"}
+FLOOR=${FLOOR:-"frontend contract e2e"}
 
 # Word-split exactly as the loop below will, and count what survives.
 floor_lanes=0

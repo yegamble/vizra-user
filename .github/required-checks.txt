@@ -39,6 +39,18 @@ contract
 # the files that can break it.
 ?docker-build
 
+# e2e.yml — the browser lane (VZ-FOUND-008). It builds the production image
+# from this Dockerfile, runs it, and drives it with Playwright at 1440 px and
+# 390 px, failing on any console error, uncaught exception, failed request or
+# HTTP >= 400 response that is not allow-listed with a written reason. It is
+# how the meta AGENTS.md's "exercise the running production-mode UI" stops
+# being a sentence and starts being a gate, and every later UI slice proves
+# itself through it.
+#
+# NOT path-filtered, on purpose: a required lane with a path filter passes by
+# never running. Never demote it to `?e2e`.
+e2e
+
 # DELIBERATELY ABSENT: supply-chain.yml's `deps-scan` and `image-scan`.
 #
 # They run on every pull request and in the merge queue, fail loudly on HIGH or

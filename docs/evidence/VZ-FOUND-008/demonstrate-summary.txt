@@ -1,0 +1,145 @@
+
+> vizra-user@0.0.0 e2e:demos
+> bash scripts/e2e/demonstrate.sh
+
+
+=== starting the production server on :3211 ===
+repository: /Users/yosefgamble/github/vizra/vizra-user
+branch:     feat/m0-browser-env
+head sha:   f6f1f59a7c15a15e50c052602c3da88a425e5d35
+tree state: 60 modified/untracked path(s)
+date:       2026-09-20T23:19:19Z
+node:       v22.14.0
+playwright: Version 1.63.0
+build id:   c6yaIr8T7TLyVIamOY6v8
+project:    desktop-chromium-1440
+uname:      Darwin arm64
+
+=== D1 — a console.error fails the lane ===
+ok   d1-console-error-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d1-console-error-RED.txt
+ok   d1-console-error-GREEN (exit 0, matched '1 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d1-console-error-GREEN.txt
+
+=== D2 — a resource returning 404 fails the lane ===
+ok   d2-failed-request-RED (exit 1, matched 'http 404') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt
+ok   d2-failed-request-GREEN (exit 0, matched '1 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d2-failed-request-GREEN.txt
+
+=== D3 — an uncaught exception fails the lane ===
+ok   d3-uncaught-exception-RED (exit 1, matched 'pageerror') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d3-uncaught-exception-RED.txt
+ok   d3-uncaught-exception-GREEN (exit 0, matched '1 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d3-uncaught-exception-GREEN.txt
+
+=== D4a — zero tests collected ===
+ok   d4a-zero-tests-RED (exit 1, matched 'did not satisfy its coverage floor') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4a-zero-tests-RED.txt
+ok   d4a-zero-tests-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4a-zero-tests-GREEN.txt
+
+=== D4b — a required project is missing from the configuration ===
+ok   d4b-missing-project-RED (exit 1, matched 'is not in the resolved Playwright configuration') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4b-missing-project-RED.txt
+ok   d4b-missing-project-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4b-missing-project-GREEN.txt
+
+=== D4c — deleting one test drops a project below its floor ===
+ok   d4c-floor-shortfall-RED (exit 1, matched 'the floor is 9') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-RED.txt
+ok   d4c-floor-shortfall-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-GREEN.txt
+
+=== D4c2 — adding a test without raising the floor stays green ===
+ok   d4c2-floor-is-a-minimum-GREEN (exit 0, matched 'desktop-chromium-1440=10/9') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4c2-floor-is-a-minimum-GREEN.txt
+
+=== D4d — the lane refuses a filtered run ===
+ok   d4d-filtered-run-RED (exit 1, matched 'the run was FILTERED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4d-filtered-run-RED.txt
+ok   d4d-filtered-run-GREEN (exit 0, matched 'e2e coverage floor: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d4d-filtered-run-GREEN.txt
+
+=== D5 — pointed at a development server instead of the production build ===
+ok   d5-dev-server-RED (exit 1, matched 'this is not a production build') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d5-dev-server-RED.txt
+ok   d5-dev-server-GREEN (exit 0, matched '4 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d5-dev-server-GREEN.txt
+
+=== D6 — the built image contains no harness file and no fixture token ===
+ok   d6-image-fixtures-GREEN (exit 0, matched 'contains no browser-harness path and no fixture token') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d6-image-fixtures-GREEN.txt
+ok   d6-image-fixtures-RED (exit 1, matched 'contains browser-harness files') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d6-image-fixtures-RED.txt
+
+=== D7 — a weakened e2e workflow fails the lane guard ===
+ok   d7-lane-guard-GREEN (exit 0, matched 'still drives the built image') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-GREEN.txt
+ok   d7-lane-step-deleted-RED (exit 1, matched 'no step runs the browser lane') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-deleted-RED.txt
+ok   d7-lane-step-echoed-RED (exit 1, matched 'no step runs the browser lane') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-echoed-RED.txt
+ok   d7-lane-step-or-true-RED (exit 1, matched 'launders the exit code') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-or-true-RED.txt
+ok   d7-lane-step-if-false-RED (exit 1, matched 'must run unconditionally') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-step-if-false-RED.txt
+ok   d7-lane-guard-artifacts-RED (exit 1, matched 'no step uploads artifacts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-artifacts-RED.txt
+ok   d7-lane-guard-warn-RED (exit 1, matched 'if-no-files-found: error') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-lane-guard-warn-RED.txt
+ok   d7-floor-step-removed-RED (exit 1, matched 'check-coverage-floor-ran.mjs') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-floor-step-removed-RED.txt
+ok   d7-upload-not-gated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-upload-not-gated-RED.txt
+ok   d7-upload-gated-on-ran-not-succeeded-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-upload-gated-on-ran-not-succeeded-RED.txt
+ok   d7-redact-step-has-no-id-RED (exit 1, matched 'no `id:`') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-step-has-no-id-RED.txt
+ok   d7-redact-continue-on-error-RED (exit 1, matched 'redaction step sets') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7-redact-continue-on-error-RED.txt
+ok   d7b-second-ungated-upload-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-second-ungated-upload-RED.txt
+ok   d7b-other-uploader-ungated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-other-uploader-ungated-RED.txt
+ok   d7b-second-gated-upload-GREEN (exit 0, matched 'still drives the built image') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7b-second-gated-upload-GREEN.txt
+ok   d7c-canary-step-deleted-RED (exit 1, matched 'harness-canary.mjs') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-step-deleted-RED.txt
+ok   d7c-canary-step-if-false-RED (exit 1, matched 'harness-canary step carries an') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-step-if-false-RED.txt
+ok   d7c-canary-continue-on-error-RED (exit 1, matched 'harness-canary step sets') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-canary-continue-on-error-RED.txt
+ok   d7c-stamp-key-pinned-RED (exit 1, matched 'VIZRA_E2E_STAMP_KEY') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d7c-stamp-key-pinned-RED.txt
+
+=== D8 — a spec reaching Playwright's unguarded test fails the gate ===
+ok   d8-guard-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guard-GREEN.txt
+ok   d8-bypass-namespace-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-namespace-RED.txt
+ok   d8-bypass-single-quotes-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-single-quotes-RED.txt
+ok   d8-bypass-dynamic-import-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-dynamic-import-RED.txt
+ok   d8-bypass-require-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-require-RED.txt
+ok   d8-bypass-reexport-shim-RED (exit 1, matched 'harness entry') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-reexport-shim-RED.txt
+ok   d8-bypass-eslint-disable-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-RED.txt
+ok   d8-bypass-eslint-disable-all-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-all-RED.txt
+ok   d8-bypass-disable-next-line-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-disable-next-line-RED.txt
+ok   d8-bypass-inline-severity-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-inline-severity-RED.txt
+ok   d8-bypass-unscoped-package-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-unscoped-package-RED.txt
+ok   d8-bypass-fails-the-gate-RED (exit 1, matched 'no-unguarded-playwright-import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-bypass-fails-the-gate-RED.txt
+ok   d8-eslint-disable-fails-npm-run-ci-RED (exit 1, matched 'no-unguarded-playwright-import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-eslint-disable-fails-npm-run-ci-RED.txt
+ok   d8-guarded-import-catches-the-page-RED (exit 1, matched 'pageerror') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-guarded-import-catches-the-page-RED.txt
+ok   d8-tree-is-clean-GREEN (exit 0, matched 'no unguarded import') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d8-tree-is-clean-GREEN.txt
+
+=== D9 — a signed-URL-shaped query string does not reach an uploaded artifact ===
+ok   d9-artifact-leak-RED (exit 1, matched 'members containing the sentinel:') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-artifact-leak-RED.txt
+ok   d9-redaction-runs-GREEN (exit 0, matched 'redacted URL query strings') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-redaction-runs-GREEN.txt
+ok   d9-artifact-redacted-GREEN (exit 0, matched 'members containing the sentinel: 0') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d9-artifact-redacted-GREEN.txt
+
+=== D10 — a spec that handles a credential fails the cheap lane ===
+ok   d10-no-credentials-GREEN (exit 0, matched 'passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-no-credentials-GREEN.txt
+ok   d10-credential-spec-RED (exit 1, matched 'appears to handle a credential') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d10-credential-spec-RED.txt
+
+=== D11 — a spec that bypasses the harness is RED at runtime, whatever lint thinks ===
+ok   d11a-namespace-import-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11a-namespace-import-RED.txt
+ok   d11b-lint-defeated-GREEN (exit 0, matched 'the disable comment WORKED') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11b-lint-defeated-GREEN.txt
+ok   d11b-eslint-disable-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11b-eslint-disable-RED.txt
+ok   d11c-outside-not-collected-GREEN (exit 0, matched 'Total: 18 tests in 3 files') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11c-outside-not-collected-GREEN.txt
+ok   d11c-outside-refused-by-lint-RED (exit 1, matched 'must not reference') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11c-outside-refused-by-lint-RED.txt
+ok   d11d-forge-via-sealed-module-RED (exit 1, matched 'already been claimed in this worker') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11d-forge-via-sealed-module-RED.txt
+ok   d11e-forge-via-environment-RED (exit 1, matched 'does not verify against this run') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11e-forge-via-environment-RED.txt
+ok   d11f-in-process-reporter-deleted-GREEN (exit 0, matched '20 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11f-in-process-reporter-deleted-GREEN.txt
+ok   d11f-out-of-process-still-RED (exit 1, matched 'did not prove anything') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11f-out-of-process-still-RED.txt
+ok   d11-clean-tree-lane-GREEN (exit 0, matched 'e2e harness stamp: OK') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11-clean-tree-lane-GREEN.txt
+ok   d11-clean-tree-out-of-process-GREEN (exit 0, matched 'carried a valid harness stamp') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d11-clean-tree-out-of-process-GREEN.txt
+
+=== D12 — neutering the guard's listeners turns the required lane red ===
+ok   d12-canary-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-canary-GREEN.txt
+ok   d12-console-listener-neutered-RED (exit 1, matched 'console-error.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-console-listener-neutered-RED.txt
+ok   d12-pageerror-listener-neutered-RED (exit 1, matched 'uncaught-exception.demo.ts') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-pageerror-listener-neutered-RED.txt
+ok   d12-response-listener-neutered-RED (exit 1, matched 'http 404') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-response-listener-neutered-RED.txt
+ok   d12-requestfailed-listener-neutered-GREEN (exit 0, matched 'exact set of record kinds') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-requestfailed-listener-neutered-GREEN.txt
+ok   d12-canary-restored-GREEN (exit 0, matched 'failed all 3 fault-injection fixtures') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12-canary-restored-GREEN.txt
+ok   d12e-fixture-fault-type-swapped-RED (exit 1, matched 'failed for the WRONG reason') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12e-fixture-fault-type-swapped-RED.txt
+ok   d12e-fixture-restored-GREEN (exit 0, matched 'exact set of record kinds') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d12e-fixture-restored-GREEN.txt
+
+=== D13 — the guard is attached at the browser, so every page a test creates is guarded ===
+ok   d13a-overridden-page-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13a-overridden-page-fixture-RED.txt
+ok   d13b-second-page-in-default-context-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13b-second-page-in-default-context-RED.txt
+ok   d13c-browser-newContext-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13c-browser-newContext-in-body-RED.txt
+ok   d13d-browser-newPage-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13d-browser-newPage-in-body-RED.txt
+ok   d13e-overridden-context-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13e-overridden-context-fixture-RED.txt
+ok   d13e2-override-navigates-in-the-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13e2-override-navigates-in-the-fixture-RED.txt
+ok   d13f-popup-window-open-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13f-popup-window-open-RED.txt
+ok   d13g-overridden-browser-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13g-overridden-browser-fixture-RED.txt
+ok   d13h-honest-override-stays-GREEN (exit 0, matched '1 passed') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13h-honest-override-stays-GREEN.txt
+ok   d13i-harness-fixture-override-refused-RED (exit 1, matched 'may not replace the harness') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13i-harness-fixture-override-refused-RED.txt
+ok   d13i-page-override-stays-lint-clean-GREEN (exit 0, matched 'page override is legal') -> /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/d13i-page-override-stays-lint-clean-GREEN.txt
+
+=== verdict ===
+halves passed: 88
+halves blocked: 0
+halves failed: 0
+transcripts:   /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008
+OK: every demonstration that ran went red on the mutation and green on restore.

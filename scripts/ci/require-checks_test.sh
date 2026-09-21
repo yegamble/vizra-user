@@ -493,6 +493,51 @@ title="an empty manifest fails rather than vacuously passing"
 floor_expect 1 'frontend: missing' <<'MANIFEST'
 MANIFEST
 
+# --- the e2e lane in the floor (VZ-FOUND-008) ------------------------------
+# The browser lane is the only check that a page works in a browser at all;
+# every later UI slice's evidence runs through it. These cases drive the
+# DEFAULT floor (no FLOOR override), so they fail if someone quietly drops
+# `e2e` from the default value in check-required-floor.sh as well as from the
+# manifest.
+#
+# floor_default_expect WANT_RC PATTERN <<manifest lines
+floor_default_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 rc=0
+  local file=$tmp/floor-default-$cases.txt
+  cat >"$file"
+  bash "$floor_script" "$file" >"$tmp/floor-default-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/floor-default-$cases.out" | cut -c1-200)"
+  elif ! grep -Eq -- "$pattern" "$tmp/floor-default-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/floor-default-$cases.out" | cut -c1-200)"
+  else
+    record 0
+  fi
+}
+
+title="the DEFAULT floor demands the browser lane"
+floor_default_expect 1 'e2e: missing' <<'MANIFEST'
+frontend
+contract
+?guard
+MANIFEST
+
+title="marking the browser lane optional fails the floor guard by name"
+floor_default_expect 1 'e2e: marked optional' <<'MANIFEST'
+frontend
+contract
+?e2e
+MANIFEST
+
+title="a manifest with all three floor lanes satisfies the default floor"
+floor_default_expect 0 'still requires the floor' <<'MANIFEST'
+frontend
+contract
+e2e
+?guard
+MANIFEST
+
 # --- the FLOOR value itself ------------------------------------------------
 # A verifier found `FLOOR=" "` printing OK with an empty floor list: non-empty,
 # so `${FLOOR:-default}` does not substitute, and the loop then iterates zero
@@ -530,13 +575,238 @@ floor_env_expect "" 1 'frontend: missing'
 title="a FLOOR naming real lanes still enforces them"
 floor_env_expect "frontend" 1 'frontend: missing'
 
-title="the real manifest in this repository satisfies its own floor"
+title="the real manifest in this repository satisfies the DEFAULT floor"
+# No FLOOR override: this is the case that would catch a pull request that
+# removed a lane from BOTH the manifest and the floor's default value.
 cases=$((cases + 1))
-if FLOOR="frontend contract" bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
+if bash "$floor_script" "$here/../../.github/required-checks.txt" >"$tmp/floor-real.out" 2>&1; then
   record 0
 else
   record 1 "the committed .github/required-checks.txt does not satisfy the floor"
 fi
+
+# ---------------------------------------------------------------------------
+# The E2E-LANE guard (scripts/ci/check-e2e-lane.sh -> check-e2e-lane.mjs).
+#
+# THE HOLE THESE CLOSE. The first version of that guard greped the workflow. An
+# independent verifier ran three mutations through it — deleting the
+# `run: npm run e2e` line, replacing it with `echo skipping`, and putting
+# `if: false` on the job — and it printed "OK: ... still drives the built image"
+# for all three. The first two are caught by nothing downstream: the `e2e` job
+# still builds and starts the image, still passes the fixture guard, and still
+# concludes `success`, with no browser opened. `ci-required` then reports that
+# every required check succeeded.
+#
+# The guard now PARSES the workflow, so these cases drive it with mutated
+# workflow fixtures rather than asserting that a grep is clever enough.
+# ---------------------------------------------------------------------------
+lane_script=${E2E_LANE_SCRIPT:-$here/check-e2e-lane.sh}
+real_workflow=$here/../../.github/workflows/e2e.yml
+[ -r "$lane_script" ] || { echo "require-checks_test: $lane_script is missing" >&2; exit 1; }
+[ -r "$real_workflow" ] || { echo "require-checks_test: $real_workflow is missing" >&2; exit 1; }
+
+# lane_expect WANT_RC PATTERN SED_PROGRAM  — mutate the real workflow with sed
+# and drive the guard with the result. Mutating the REAL file keeps these cases
+# honest: a hand-written fixture would drift away from the workflow it stands in
+# for, and would still pass after the workflow was weakened.
+lane_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 program=$3 rc=0
+  local file=$tmp/lane-$cases.yml
+  sed "$program" "$real_workflow" >"$file"
+  bash "$lane_script" "$file" >"$tmp/lane-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/lane-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="the committed e2e workflow passes its own guard"
+lane_expect 0 'still drives the built image' ''
+
+title="deleting the lane step fails by name"
+lane_expect 1 'no step runs the browser lane' '/^        run: npm run e2e$/d'
+
+title="replacing the lane step with an echo fails by name"
+lane_expect 1 'no step runs the browser lane' 's|^        run: npm run e2e$|        run: echo skipping|'
+
+title="appending || true to the lane step fails by name"
+lane_expect 1 'launders the exit code' 's@^        run: npm run e2e$@        run: npm run e2e || true@'
+
+title="wrapping the lane step in a subshell fails by name"
+lane_expect 1 'no step runs the browser lane' 's@^        run: npm run e2e$@        run: (npm run e2e); true@'
+
+title="if: false on the lane step fails by name"
+lane_expect 1 'must run unconditionally' 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        if: false|'
+
+title="continue-on-error on the lane step fails by name"
+lane_expect 1 'continue-on-error' 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        continue-on-error: true|'
+
+title="removing the coverage-floor step fails by name"
+lane_expect 1 'check-coverage-floor-ran' '/run: node scripts\/ci\/check-coverage-floor-ran.mjs/d'
+
+title="removing the artifact redaction fails by name"
+lane_expect 1 'redact-artifacts.sh' '/run: bash scripts\/ci\/redact-artifacts.sh/d'
+
+title="demoting if-no-files-found to warn fails by name"
+lane_expect 1 'if-no-files-found: error' 's|^          if-no-files-found: error$|          if-no-files-found: warn|'
+
+title="pointing the lane at a port nothing publishes fails by name"
+lane_expect 1 'does not match any port' 's|E2E_BASE_URL: http://127.0.0.1:3000|E2E_BASE_URL: http://127.0.0.1:9999|'
+
+title="setting E2E_COVERAGE_FLOOR in the lane fails by name"
+lane_expect 1 'E2E_COVERAGE_FLOOR' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          E2E_COVERAGE_FLOOR: "off"|'
+
+title="a paths filter on a required lane fails by name"
+lane_expect 1 'paths' 's|^  pull_request:$|  pull_request:\n    paths:\n      - "e2e/**"|'
+
+# --- the upload must be gated on the redaction having SUCCEEDED -------------
+# Both steps used to carry a bare `if: failure()`, and nothing linked them.
+# GitHub's `failure()` is true when ANY earlier step failed, so a redactor that
+# exits non-zero — exit 2 on a missing perl/unzip/zip, exit 1 on a repack
+# failure — satisfies its own condition and the UNREDACTED tree is published
+# for 14 days. Fail-open, in the one place it matters.
+
+title="an upload gated on bare failure() fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|^        if: failure() && steps.redact.outcome == 'success'\$|        if: failure()|"
+
+title="an upload gated on the wrong step's outcome fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|steps.redact.outcome == 'success'|steps.something_else.outcome == 'success'|"
+
+title="an upload gated on the redactor merely having RUN fails by name"
+lane_expect 1 'not gated on the redaction having SUCCEEDED' "s|steps.redact.outcome == 'success'|steps.redact.conclusion != 'skipped'|"
+
+title="removing the redaction step's id fails by name"
+lane_expect 1 'no .id:.' '/^        id: redact$/d'
+
+title="marking the redaction step continue-on-error fails by name"
+lane_expect 1 'redaction step sets .continue-on-error' 's|^        id: redact$|        id: redact\n        continue-on-error: true|'
+
+# Moving the redaction AFTER the upload, rather than deleting it: the step is
+# still there, still runs, and still redacts — just too late. A guard that only
+# checked for the step's existence would pass this.
+title="redacting after uploading fails by name"
+cases=$((cases + 1))
+reorder=$tmp/lane-reorder.yml
+{
+  sed '/^      - name: Redact URL query strings in the artifacts$/,/^        run: bash scripts\/ci\/redact-artifacts.sh test-results playwright-report$/d' "$real_workflow"
+  printf '      - name: Redact URL query strings in the artifacts\n'
+  printf '        id: redact\n'
+  printf '        if: failure()\n'
+  printf '        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report\n'
+} >"$reorder"
+reorder_rc=0
+bash "$lane_script" "$reorder" >"$tmp/lane-reorder.out" 2>&1 || reorder_rc=$?
+if [ "$reorder_rc" -ne 1 ]; then
+  record 1 "exit $reorder_rc, want 1: $(tr '\n' ' ' <"$tmp/lane-reorder.out" | cut -c1-220)"
+elif ! grep -Eq -- 'uploaded BEFORE they are redacted' "$tmp/lane-reorder.out"; then
+  record 1 "output does not name the ordering: $(tr '\n' ' ' <"$tmp/lane-reorder.out" | cut -c1-220)"
+else
+  record 0
+fi
+
+# --- EVERY upload step, not the first one ----------------------------------
+# The parser located the upload with `steps.find(...)` and asserted the gate on
+# that one step. An independent verifier appended a SECOND
+# `actions/upload-artifact` step on a bare `if: failure()`, publishing the same
+# two directories, and the parser printed OK. When the redactor FAILS the gated
+# upload is skipped and the ungated one publishes the UNREDACTED tree — the
+# exact fail-open the gate was added to close. `.find` is now `.filter`.
+#
+# These cases APPEND to the real workflow rather than mutating a line, so they
+# are written directly instead of through `lane_expect`.
+
+# lane_append WANT_RC PATTERN <<yaml  — append the here-doc to the real
+# workflow and drive the guard with the result.
+lane_append() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 rc=0
+  local file=$tmp/lane-append-$cases.yml
+  { cat "$real_workflow"; printf '\n'; cat; } >"$file"
+  bash "$lane_script" "$file" >"$tmp/lane-append-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/lane-append-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/lane-append-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/lane-append-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="a SECOND, ungated upload-artifact step fails by name"
+lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
+      - name: Upload Playwright artifacts (second, ungated)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+title="a second upload step with no condition at all fails by name"
+lane_append 1 'not gated on .failure' <<'YAML'
+      - name: Upload Playwright artifacts (second, always)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-always
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+title="an ungated uploader that is NOT actions/upload-artifact fails by name"
+lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
+      - name: Publish with some other uploader
+        if: failure()
+        uses: some-org/artifact-publisher@0000000000000000000000000000000000000000 # v1
+        with:
+          name: playwright-artifacts-elsewhere
+          path: test-results/
+YAML
+
+title="a second upload step that IS correctly gated passes"
+lane_append 0 'still drives the built image' <<'YAML'
+      - name: Upload Playwright artifacts (second, correctly gated)
+        if: failure() && steps.redact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-artifacts-second
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+YAML
+
+# --- the HARNESS CANARY step -----------------------------------------------
+# The canary is the only CI step that would notice the browser-error guard being
+# switched off while its identifiers stayed in place — the case an independent
+# verifier measured as silent in `npm run test`, in this guard's own harness
+# check (which is string presence only) and in the lane itself.
+
+title="removing the harness-canary step fails by name"
+lane_expect 1 'harness-canary.mjs' '/run: node scripts\/ci\/harness-canary.mjs/d'
+
+title="replacing the harness canary with an echo fails by name"
+lane_expect 1 'harness-canary.mjs' 's|^        run: node scripts/ci/harness-canary.mjs$|        run: echo skipping|'
+
+title="appending || true to the harness canary fails by name"
+lane_expect 1 'harness-canary.mjs' 's@^        run: node scripts/ci/harness-canary.mjs$@        run: node scripts/ci/harness-canary.mjs || true@'
+
+title="if: false on the harness canary fails by name"
+lane_expect 1 'harness-canary step carries an' 's|^      - name: The harness still fails a broken page (canary)$|      - name: The harness still fails a broken page (canary)\n        if: false|'
+
+title="continue-on-error on the harness canary fails by name"
+lane_expect 1 'harness-canary step sets .continue-on-error' 's|^        run: node scripts/ci/harness-canary.mjs$|        continue-on-error: true\n        run: node scripts/ci/harness-canary.mjs|'
+
+title="pinning the per-run stamp key in the workflow fails by name"
+lane_expect 1 'VIZRA_E2E_STAMP_KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          VIZRA_E2E_STAMP_KEY: deadbeef|'
 
 # ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).

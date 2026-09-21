@@ -5,6 +5,7 @@
 
 import noIdentityHeadersInCachedFetch from "./no-identity-headers-in-cached-fetch.mjs";
 import noRawFetch from "./no-raw-fetch.mjs";
+import noUnguardedPlaywrightImport from "./no-unguarded-playwright-import.mjs";
 
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
@@ -12,6 +13,7 @@ const plugin = {
   rules: {
     "no-identity-headers-in-cached-fetch": noIdentityHeadersInCachedFetch,
     "no-raw-fetch": noRawFetch,
+    "no-unguarded-playwright-import": noUnguardedPlaywrightImport,
   },
 };
 

@@ -1,0 +1,5 @@
+$ bash scripts/ci/redact-artifacts.sh test-results
+
+OK: redacted URL query strings in 2 file(s) and 1 archive(s) across: test-results
+
+[exit 0]

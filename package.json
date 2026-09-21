@@ -12,6 +12,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium",
+    "e2e:demos": "bash scripts/e2e/demonstrate.sh",
     "codegen": "node scripts/codegen.mjs",
     "check:contract": "node scripts/check-contract.mjs",
     "ci": "npm run lint && npm run typecheck && npm run test && npm run build"
@@ -23,15 +26,18 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@typescript-eslint/parser": "8.70.0",
     "eslint": "10.11.0",
     "eslint-config-next": "16.3.5",
     "openapi-typescript": "7.13.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "vitest": "5.0.1"
+    "vitest": "5.0.1",
+    "yaml": "2.9.1"
   }
 }

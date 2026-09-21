@@ -1,0 +1,11 @@
+$ bash scripts/e2e/sweep-artifacts.sh SENTINEL-SIGNATURE-DO-NOT-SHIP /Users/yosefgamble/github/vizra/vizra-user/test-results __vizra_e2e_fixture__/media/photo.jpg
+
+searched:  21 file(s), 1 archive(s) unpacked, under /Users/yosefgamble/github/vizra/vizra-user/test-results
+members containing the sentinel: 2
+members (names only — the value itself is never printed):
+<artifacts>/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/trace.zip.unzipped/1-trace.network
+<artifacts>/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/trace.zip.unzipped/1-trace.trace
+members still naming the request path: 6
+::error::the sentinel survives into the artifacts that CI would upload.
+
+[exit 1]

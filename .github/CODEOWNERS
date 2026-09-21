@@ -26,6 +26,22 @@
 # version of these; a change here is a change to a privacy control.
 /eslint-rules/          @yegamble
 
+# The browser harness. `e2e/harness/` is the default-deny guard, the coverage
+# floor and the production-build markers that every later UI slice's evidence
+# depends on; weakening one of them would make every subsequent green run mean
+# less, with no visible change to any product file.
+/e2e/harness/          @yegamble
+/playwright.config.ts  @yegamble
+
+# The specs themselves. An independent verifier put one line into e2e/specs/
+# that opted a spec out of the browser-error guard entirely, and the whole gate
+# went green on a page that 404s and throws. `vizra/no-unguarded-playwright-import`
+# now refuses that at lint time — and this line makes a spec that tries anyway,
+# or a spec DELETED to slip under the coverage floor, an owner-reviewed diff.
+# Every later UI slice adds its specs here.
+/e2e/specs/            @yegamble
+/e2e/demos/            @yegamble
+
 # The vendored copy of vizra-core's OpenAPI contract and its provenance
 # manifest. Editing these here instead of re-vendoring is how a stale or
 # hostile contract would enter the build.

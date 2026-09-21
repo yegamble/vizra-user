@@ -1,0 +1,31 @@
+$ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test
+
+
+Running 16 tests using 4 workers
+
+  ✓   4 [desktop-chromium-1440] › e2e/specs/health.spec.ts:43:7 › health page › is rendered per request rather than served from a build-time cache (315ms)
+  ✓   1 [desktop-chromium-1440] › e2e/specs/health.spec.ts:17:7 › health page › does not claim readiness and leaks no build metadata (351ms)
+  ✓   2 [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (377ms)
+  ✓   6 [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (240ms)
+  ✓   5 [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (308ms)
+  ✓   3 [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (789ms)
+  ✓   7 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (722ms)
+  ✓   8 [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (642ms)
+  ✓   9 [mobile-chromium-390] › e2e/specs/health.spec.ts:17:7 › health page › does not claim readiness and leaks no build metadata (276ms)
+  ✓  10 [mobile-chromium-390] › e2e/specs/health.spec.ts:43:7 › health page › is rendered per request rather than served from a build-time cache (298ms)
+  ✓  11 [mobile-chromium-390] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (310ms)
+  ✓  13 [mobile-chromium-390] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (275ms)
+  ✓  12 [mobile-chromium-390] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (318ms)
+  ✓  14 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (701ms)
+  ✓  16 [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (716ms)
+  ✓  15 [mobile-chromium-390] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (781ms)
+
+  16 passed (3.2s)
+
+::error::the browser lane did not satisfy its coverage floor (e2e/harness/required-projects.json):
+  project "desktop-chromium-1440" ran 8 passing test(s), and the floor is 9 (e2e/harness/required-projects.json). A lane that collects nothing — or that quietly lost tests — is not a pass (AGENTS.md).
+  project "mobile-chromium-390" ran 8 passing test(s), and the floor is 9 (e2e/harness/required-projects.json). A lane that collects nothing — or that quietly lost tests — is not a pass (AGENTS.md).
+  Playwright reported "passed" — that answers "did anything fail", not "did anything run".
+e2e harness stamp: OK (16 succeeding result(s) verified).
+
+[exit 1]
