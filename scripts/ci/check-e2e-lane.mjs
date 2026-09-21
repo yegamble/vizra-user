@@ -59,10 +59,24 @@
  * what AGENTS.md documents.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+
+import {
+  defaultExportDeclaresKey,
+  defaultExportProperty,
+  hasGenuineCall,
+  hasNonImportReference,
+  fixtureOptions,
+  hasObjectProperty,
+  importsModule,
+  moduleSpecifierStartsWith,
+  overridesFixtureWithFunction,
+  parseTypeScript,
+  UNREADABLE,
+} from "./ts-source-facts.mjs";
 
 // Imported dynamically so a missing dependency is a NAMED failure rather than
 // a module-resolution stack trace. `ci-guard` runs this job; it installs from
@@ -376,7 +390,15 @@ if (!job) {
     const index = steps.indexOf(uploadStep);
     const which = `the artifact upload at step ${index + 1}`;
     const uploadPath = String(uploadStep.with?.path ?? "");
-    for (const wanted of ["playwright-report", "test-results"]) {
+    // `test-results/` only. `playwright-report/` used to be required here too,
+    // and is now REFUSED by the allowlist below: its `index.html` carries a
+    // base64-embedded ZIP of the whole report dataset that no redactor in this
+    // repository can reach (FINDING 3, measured). Everything diagnostic —
+    // trace.zip, the screenshot, the video, error-context.md — is under
+    // `test-results/`, and `playwright-report/data/` was a byte-identical second
+    // copy of the same traces. An upload that carries nothing is still a defect:
+    // a red lane must publish the trace of what failed.
+    for (const wanted of ["test-results"]) {
       if (!uploadPath.includes(wanted)) add(`${which} no longer includes \`${wanted}\`.`);
     }
     if (String(uploadStep.with?.["if-no-files-found"] ?? "") !== "error") {
@@ -424,45 +446,44 @@ if (!job) {
 // both the in-process and the out-of-process stamp checks red on their own.
 // What follows is the cheap early warning for an outright deletion.
 //
-// EVERY CHECK BELOW REQUIRES A CALL, NOT A NAME. They used to be
-// `includes("guardBrowser")` and friends, and an independent verifier measured
-// what that bought: with the CALL replaced by an inert guard object and the
-// IMPORT left in place, `tsc` exit 0, this script exit 0, and the lane exit 0
+// EVERY CHECK BELOW REQUIRES A REAL CALL, READ FROM A PARSED TREE. They used to
+// be `includes("guardBrowser")` and friends, and an independent verifier
+// measured what that bought: with the CALL replaced by an inert guard object and
+// the IMPORT left in place, `tsc` exit 0, this script exit 0, and the lane exit 0
 // with `18 passed` — with the guard entirely inert. Only the canary caught it.
-// A name on an import line is not evidence that anything runs, so each pattern
-// now demands `name(`. A mutation that calls and discards the result still
-// passes, which is the honest limit of a string check.
+// Demanding `name(` closed that, and a SECOND verifier then measured three ways
+// through the string version: a trailing line comment, a string literal, and
+// `void name(a, b)`. Those are gone by construction — a comment is not a node and
+// a string is not a call — and the `void` spelling is refused explicitly. See
+// `scripts/ci/ts-source-facts.mjs` for what is still NOT decided (a call whose
+// result is dropped, or one in unreachable code: review-only, and AGENTS.md
+// § Residuals says so).
 const HARNESS_FILES = {
   entry: path.join(repoRoot, "e2e", "harness", "test.ts"),
   worker: path.join(repoRoot, "e2e", "harness", "worker-guard.ts"),
 };
-/** Each entry: [file key, /pattern/, message]. */
+/** Each entry: [file key, exported symbol that must be CALLED, message]. */
 const HARNESS_CALLS = [
   [
     "entry",
-    /validatePolicy\s*\(/,
+    "validatePolicy",
     "e2e/harness/test.ts no longer CALLS `validatePolicy`, so the allow-list shape is not checked.",
   ],
   [
     "entry",
-    /unallowedRecords\s*\(/,
+    "unallowedRecords",
     "e2e/harness/test.ts no longer CALLS `unallowedRecords`, so nothing fails a test on an " +
       "unallowed browser error.",
   ],
   [
     "entry",
-    /claimSigner\s*\(/,
+    "claimSigner",
     "e2e/harness/test.ts no longer CALLS `claimSigner`, so nothing at RUNTIME distinguishes a " +
       "test that went through the guard from one that reached `@playwright/test` directly.",
   ],
   [
     "entry",
-    /STAMP_ANNOTATION/,
-    "e2e/harness/test.ts no longer writes the stamp annotation (`STAMP_ANNOTATION`).",
-  ],
-  [
-    "entry",
-    /createWorkerHarness\s*\(/,
+    "createWorkerHarness",
     "e2e/harness/test.ts no longer CALLS `createWorkerHarness`, so the browser-error listeners " +
       "are not installed for the worker. A page opened and navigated in `beforeAll` would then " +
       "be observed by nothing and its test would pass on a page that 404s and throws — measured " +
@@ -470,103 +491,121 @@ const HARNESS_CALLS = [
   ],
   [
     "entry",
-    /isGenuineWorkerHarness\s*\(/,
+    "isGenuineWorkerHarness",
     "e2e/harness/test.ts no longer CALLS `isGenuineWorkerHarness`, so a spec could replace the " +
       "worker-scoped guard with a no-op, keep the per-test stamp and lose the listeners.",
   ],
   [
     "entry",
-    /unguardedContexts\s*\(/,
+    "unguardedContexts",
     "e2e/harness/test.ts no longer CALLS `unguardedContexts`, so nothing asserts that every " +
       "live context on the browser is one the guard registered — the catch-all underneath the " +
       "creation guard, for a context-creation path nobody has thought of yet.",
   ],
   [
     "entry",
-    /formatOrphans\s*\(/,
+    "formatOrphans",
     "e2e/harness/test.ts no longer CALLS `formatOrphans`, so signals produced after the last " +
       "test in a worker — an `afterAll` hook on a broken page — belong to no test and fail " +
       "nothing. A worker-teardown throw is what makes that a red run.",
   ],
   [
     "worker",
-    /guardBrowser\s*\(/,
+    "guardBrowser",
     "e2e/harness/worker-guard.ts no longer CALLS `guardBrowser`, so the BrowserContext-level " +
       "listeners are never attached and the guard sees nothing at all.",
   ],
   [
     "worker",
-    /armCreationGuard\s*\(/,
+    "armCreationGuard",
     "e2e/harness/worker-guard.ts no longer CALLS `armCreationGuard`, so a spec can reach a " +
       "context through `Browser.prototype.newContext` or launch a browser of its own, and " +
       "nothing watches that page.",
   ],
   [
     "worker",
-    /patchBrowserPrototype\s*\(/,
+    "patchBrowserPrototype",
     "e2e/harness/worker-guard.ts no longer CALLS `patchBrowserPrototype`.",
   ],
 ];
 
 /**
- * Comments removed before matching, because a comment is not code.
+ * THE HARNESS FILES, PARSED — not greped.
  *
- * MEASURED: the first version of these patterns reported `claimSigner(` as
- * present in `e2e/harness/test.ts` when the CALL had been replaced — the
- * fixture's own header comment says "a spec that calls `claimSigner()` gets a
- * throw", and that sentence satisfied the regex. A check that a prose
- * paragraph can satisfy is not a check.
+ * This block used to strip comments with two regular expressions and then run a
+ * pattern over what was left. Its header claimed the stripping "can only make
+ * the patterns match LESS, i.e. fail closed"; that sentence was FALSE and is
+ * retracted. Three defeats were measured with the CALL deleted in each case —
+ * a TRAILING line comment, a STRING LITERAL, and `void name(a, b)` — and the
+ * trailing-comment case was driven end to end on the one control the canary
+ * cannot reach (the `formatOrphans` worker-teardown assertion): `tsc` 0, this
+ * script 0, the canary 0, and an `afterAll` that breaks a page passing.
  *
- * WHAT IT ACTUALLY STRIPS, AND WHAT STILL SATISFIES A CHECK. Block comments go
- * entirely, JSDoc included. A LINE comment goes only when `//` is the first
- * non-whitespace on its line — which keeps a `"http://…"` inside a string safe,
- * and is also the limit. Measured against this function, with the call removed
- * in each case:
+ * Parsing removes the first two by construction: a comment is not a node and a
+ * string literal is not a call. The `void` spelling is refused explicitly, and a
+ * SHADOWED callee is refused too — matching "a call to something named X"
+ * without asking which X would have traded a string defeat for a scope defeat.
  *
- *     nothing left behind                          -> RED   (working)
- *     `// name(…)` at the start of a line          -> RED   (stripped)
- *     a block comment naming it, JSDoc included    -> RED   (stripped)
- *     `void 0; // name(…)`   TRAILING comment      -> GREEN  DEFEATED
- *     `const s = "name(";`   string literal        -> GREEN  DEFEATED
- *     `void name(…);`        call-and-discard      -> GREEN  DEFEATED
+ * What is still NOT decided, stated plainly because the alternative is the
+ * over-claim this block exists to retract: whether a call's RESULT is used in a
+ * way that matters. `const _ = f();` and a call in unreachable code both satisfy
+ * these checks. That needs a type checker and a reachability analysis; the
+ * general case is REVIEW-ONLY and `AGENTS.md § Residuals` says so.
  *
- * An earlier version of this comment said "this can only make the patterns
- * match LESS, i.e. fail closed". THAT WAS FALSE: a trailing comment or a string
- * fails it OPEN, and an independent verifier drove the trailing-comment case
- * end to end — orphan assertion deleted, `// formatOrphans(…)` left trailing,
- * `tsc` 0, this script 0, the canary 0, and an `afterAll` that breaks a page
- * passing.
- *
- * Read AGENTS.md § Residuals before relying on one of these checks, especially
- * the `formatOrphans` one: for the late edge it is the only compensating
- * control, because the canary cannot exercise a worker-teardown assertion and
- * the out-of-process check does not see it. Matching a tokenised or parsed
- * source instead is queued as its own slice.
+ * A file that does not parse is a NAMED failure, not a skip.
  */
-function withoutComments(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^[ \t]*\/\/.*$/gm, "");
-}
-
-const harnessSource = {};
+const harnessTree = {};
 for (const [key, file] of Object.entries(HARNESS_FILES)) {
+  const relative = path.relative(repoRoot, file);
+  let source;
   try {
-    harnessSource[key] = withoutComments(readFileSync(file, "utf8"));
+    source = readFileSync(file, "utf8");
   } catch {
-    add(`${path.relative(repoRoot, file)} is missing; the browser-error guard is incomplete.`);
+    add(`${relative} is missing; the browser-error guard is incomplete.`);
+    continue;
+  }
+  try {
+    harnessTree[key] = parseTypeScript(file, source);
+  } catch (error) {
+    add(
+      `${relative} could not be PARSED (${error instanceof Error ? error.message : String(error)}), ` +
+        "so the harness checks below cannot be made. A guard that cannot read its subject must " +
+        "not say yes.",
+    );
   }
 }
-for (const [key, pattern, message] of HARNESS_CALLS) {
-  const source = harnessSource[key];
-  if (source !== undefined && !pattern.test(source)) add(message);
+
+const WHY_NOT = {
+  absent: "does not CALL",
+  "void-discarded": "calls but DISCARDS with `void`, which is not a use of",
+  shadowed: "calls a LOCAL binding that shadows, not the imported",
+};
+
+for (const [key, symbol, message] of HARNESS_CALLS) {
+  const tree = harnessTree[key];
+  if (tree === undefined) continue;
+  const verdict = hasGenuineCall(tree, symbol);
+  if (!verdict.ok) add(`${message} (it ${WHY_NOT[verdict.reason]} \`${symbol}\`.)`);
 }
 
-const entrySource = harnessSource.entry;
-if (entrySource !== undefined) {
+const entryTree = harnessTree.entry;
+if (entryTree !== undefined) {
+  // The stamp must actually be WRITTEN, not merely imported. Measured at
+  // `f0ee8f1` by a second verifier: deleting the whole
+  // `testInfo.annotations.push({ type: STAMP_ANNOTATION, … })` statement left
+  // the old presence check GREEN, because the identifier survives on its own
+  // import line — the same import-satisfies-a-name defect the ten call checks
+  // were fixed for. Two runtime controls sit behind this symbol so it was never
+  // material; parsing makes fixing it free.
+  if (!hasNonImportReference(entryTree, "STAMP_ANNOTATION")) {
+    add(
+      "e2e/harness/test.ts no longer writes the stamp annotation (`STAMP_ANNOTATION` appears " +
+        "only on an import line, or not at all).",
+    );
+  }
   // The guard and the stamp must be in ONE fixture. Two fixtures is exactly the
   // shape `test.extend` can take apart, which is how FINDING 11 happened.
-  if (!/vizraHarnessGuard\s*:/.test(entrySource)) {
+  if (!hasObjectProperty(entryTree, "vizraHarnessGuard")) {
     add(
       "e2e/harness/test.ts no longer declares the combined `vizraHarnessGuard` fixture. The " +
         "accounting and the runtime stamp must live in the SAME automatic fixture, so that " +
@@ -575,20 +614,38 @@ if (entrySource !== undefined) {
   }
   // The listening must be WORKER-scoped and automatic. A test-scoped listener
   // is set up after `beforeAll` has already run — FINDING 1.
-  if (!/vizraWorkerGuard\s*:/.test(entrySource)) {
+  if (!hasObjectProperty(entryTree, "vizraWorkerGuard")) {
     add(
       "e2e/harness/test.ts no longer declares the `vizraWorkerGuard` fixture, which is where " +
         "the listeners are installed for the whole worker.",
     );
   }
-  if (!/scope:\s*["']worker["'][^}]*auto:\s*true|auto:\s*true[^}]*scope:\s*["']worker["']/.test(entrySource)) {
+
+  // WORKER-scoped and AUTOMATIC, read from the fixture's own options tuple.
+  // A test-scoped listener is set up AFTER `beforeAll` has run, so a page opened
+  // and navigated in a hook is observed by nothing — FINDING 1 of the PR #7
+  // review. The previous check was a regex for `scope:\s*"worker"` anywhere in
+  // the file, which the fixture's own explanatory comment would have satisfied.
+  const workerOptions = fixtureOptions(entryTree, "vizraWorkerGuard");
+  const WORKER_SCOPED = "e2e/harness/test.ts no longer declares an automatic WORKER-scoped fixture";
+  if (workerOptions === undefined || workerOptions === UNREADABLE) {
     add(
-      "e2e/harness/test.ts no longer declares an automatic WORKER-scoped fixture " +
-        "(`{ scope: \"worker\", auto: true }`). A test-scoped listener is set up AFTER " +
+      `${WORKER_SCOPED} — \`vizraWorkerGuard\` is not declared as ` +
+        '`[fn, { scope: "worker", auto: true }]`, or its options are not a literal this guard ' +
+        "can read. A test-scoped listener is set up AFTER `beforeAll` has run, so a page opened " +
+        "and navigated in a hook is never observed.",
+    );
+  } else if (workerOptions.scope !== "worker" || workerOptions.auto !== true) {
+    add(
+      `${WORKER_SCOPED} — \`vizraWorkerGuard\` reads ` +
+        `scope=${JSON.stringify(workerOptions.scope)} auto=${JSON.stringify(workerOptions.auto)}, ` +
+        'and must be { scope: "worker", auto: true }. A test-scoped listener is set up AFTER ' +
         "`beforeAll` has run, so a page opened and navigated in a hook is never observed.",
     );
   }
-  if (/^\s{2}page\s*:\s*async/m.test(entrySource)) {
+
+  // The guard must NOT move back into a `page` override.
+  if (overridesFixtureWithFunction(entryTree, "page")) {
     add(
       "e2e/harness/test.ts overrides the `page` fixture again. The guard belongs in the " +
         "automatic fixtures, attached at the browser: a page-scoped guard is removable by " +
@@ -597,34 +654,416 @@ if (entrySource !== undefined) {
   }
 }
 
+// THE PLAYWRIGHT CONFIGURATION, PARSED.
+//
+// Three properties are asserted here, and one whole KEY is refused.
+//
 // The wiring that makes the stamp work: the configuration must load the harness
 // entry (so the per-run key leaves the worker's environment before any test file
 // is evaluated) and must register the reporter that refuses an unstamped pass.
-const configPath = path.join(repoRoot, "playwright.config.ts");
+//
+// AND `globalSetup` / `globalTeardown` ARE REFUSED OUTRIGHT. An independent
+// verifier measured the hole (PR #7 review, FINDING 6): the listening starts at
+// WORKER setup, while `globalSetup` runs in the Playwright main process before
+// any worker exists — so no listener is attached and the creation guard is
+// unarmed. A `globalSetup` that launches its own Chromium and opens a page which
+// 404s a sub-resource and throws gave `npx playwright test` exit **0**,
+// `3 passed`, with no guard message, and the module provably ran (it wrote a
+// marker file). This script exited 0 too. Nothing in this repository needs one,
+// a setup PROJECT (`dependencies: [...]`) is fully covered and is the supported
+// way to do setup, and refusing the key is cheaper than guarding it. If a later
+// slice genuinely needs one, the refusal is the place that forces the
+// conversation rather than a silent gap.
+const CONFIG_FILES = ["playwright.config.ts", "playwright.demos.config.ts"];
+const FORBIDDEN_CONFIG_KEYS = ["globalSetup", "globalTeardown"];
+
+for (const relative of CONFIG_FILES) {
+  const configPath = path.join(repoRoot, relative);
+  let source;
+  try {
+    source = readFileSync(configPath, "utf8");
+  } catch {
+    add(`${relative} is missing.`);
+    continue;
+  }
+
+  let tree;
+  try {
+    tree = parseTypeScript(configPath, source);
+  } catch (error) {
+    add(
+      `${relative} could not be PARSED (${error instanceof Error ? error.message : String(error)}); ` +
+        "a configuration this guard cannot read must not pass it.",
+    );
+    continue;
+  }
+
+  for (const key of FORBIDDEN_CONFIG_KEYS) {
+    const verdict = defaultExportDeclaresKey(tree, key);
+    if (verdict.declared) {
+      add(
+        `${relative} declares \`${key}\` (via ${verdict.via}), which is REFUSED. It runs in the Playwright main ` +
+          "process before any worker exists, so the worker-scoped listeners are not attached and " +
+          "the creation guard is unarmed: a verifier's `globalSetup` opened a page that 404s and " +
+          "throws and the run exited 0 with `3 passed` and no guard message. Use a setup PROJECT " +
+          "(`dependencies: [...]`), whose tests are ordinary guarded tests. (A spread or a " +
+          "computed key in the configuration object is refused here too — this guard cannot rule " +
+          "the key out through one, so it fails closed.)",
+      );
+    }
+  }
+}
+
+// The stamp wiring, asserted on the main configuration only: the demos
+// configuration deliberately runs fixtures that are MEANT to fail.
+const mainConfigPath = path.join(repoRoot, "playwright.config.ts");
 try {
-  const config = readFileSync(configPath, "utf8");
-  if (!config.includes("./e2e/harness/stamp-reporter")) {
+  const source = readFileSync(mainConfigPath, "utf8");
+  const tree = parseTypeScript(mainConfigPath, source);
+
+  // A reporter entry is a string inside an array, so this one stays a source
+  // check by nature — but it is a check for a MODULE SPECIFIER, and a specifier
+  // is a string literal wherever it appears. Read from the tree so that naming
+  // it in a comment does not satisfy it.
+  if (!moduleSpecifierStartsWith(tree, "./e2e/harness/stamp-reporter")) {
     add(
       "playwright.config.ts no longer registers ./e2e/harness/stamp-reporter, so nothing " +
         "inside the run refuses a test that passed without the harness.",
     );
   }
-  if (!/import\s+["']\.\/e2e\/harness\/test["']/.test(config)) {
+  if (!importsModule(tree, "./e2e/harness/test")) {
     add(
       "playwright.config.ts no longer imports ./e2e/harness/test. That import is what takes " +
         "the per-run stamp key out of each worker's environment before any spec is loaded; " +
         "without it a spec can read the key and sign itself.",
     );
   }
-  if (!/testDir:\s*["']\.\/e2e\/specs["']/.test(config)) {
+  const testDir = defaultExportProperty(tree, "testDir");
+  if (testDir !== "./e2e/specs") {
     add(
-      "playwright.config.ts no longer restricts `testDir` to ./e2e/specs. With a wider root " +
-        "Playwright collects `**/*.spec.ts` from directories the guards do not cover — a " +
-        "verifier ran a spec from e2e/other/ that way, on a page that 404s and throws.",
+      "playwright.config.ts no longer restricts `testDir` to ./e2e/specs " +
+        `(read: ${testDir === UNREADABLE ? "not a literal this guard can read" : JSON.stringify(testDir)}). ` +
+        "With a wider root Playwright collects `**/*.spec.ts` from directories the guards do not " +
+        "cover — a verifier ran a spec from e2e/other/ that way, on a page that 404s and throws.",
     );
   }
 } catch {
-  add("playwright.config.ts is missing.");
+  add("playwright.config.ts is missing or could not be parsed.");
+}
+
+// ===========================================================================
+// UPLOAD SCOPE IS DEFAULT-DENY, ACROSS THE WHOLE WORKFLOW FILE.
+//
+// The `vizra-security` seat's FINDING 8: deriving the scope of what leaves the
+// runner from "the paths the uploader steps happen to name" is not default-deny,
+// because an author can widen it in ways the derivation cannot read.
+//
+//   - `actions/cache` matches neither `upload` nor `artifact`, and a cache IS a
+//     publisher: its blob is readable by other workflow runs in the repository;
+//   - `path:` accepts multi-line GLOBS and `!` exclusions, so `.`, `**` or
+//     `test-*` cannot be disproved to contain a secret directory by a prefix
+//     check — and a prefix check is what the plan originally proposed;
+//   - `${{ }}` in a `path:` is not resolvable at parse time at all;
+//   - `$GITHUB_STEP_SUMMARY` and `::notice::` publish to the run page and the
+//     Checks API and appear in no `path:` list;
+//   - a reusable workflow (`jobs.<id>.uses`) moves every step somewhere this
+//     parser never looks.
+//
+// So the scope is INVERTED: a fixed allowlist of literal paths and pinned
+// actions, and anything else is a named failure. `run:` exfiltration is still
+// outside what any parser can close — AGENTS.md says so rather than implying
+// otherwise — but a `uses:` allowlist IS closable by a parser, and leaving it to
+// review would be choosing to be weaker than necessary.
+//
+// WHY `playwright-report/` IS NOT ON THE LIST — this is FINDING 3, and it is
+// measured, not theoretical. `playwright/lib/runner/index.js:3704-3712`
+// (`_writeReportData`) appends to `playwright-report/index.html`:
+//
+//     <template id="playwrightReportBase64">data:application/zip;base64,…</template>
+//
+// which decodes (magic `504b0304`) to a ZIP of the whole report dataset. On a
+// failing run its members carry the error messages, the step titles and
+// subtitles — F13's channel — and the attachment bodies. `redact-artifacts.sh`
+// runs perl over index.html as TEXT, so it rewrites the plaintext and cannot
+// touch the base64 payload, and it unpacks `*.zip` FILES only.
+// `sweep-artifacts.sh` greps raw bytes and cannot decode base64 either.
+// Measured on a failing probe run: three planted markers — a scheme-less signed
+// URL, a typed password and an assertion's received value — live inside that
+// template, invisible to a raw grep, and STILL LIVE after the shipped redactor
+// reported `OK: redacted … 23 file(s) and 2 archive(s)`. So every "0 live
+// queries" measurement this repository has recorded was made with a search blind
+// to this file.
+//
+// Re-encoding it would be a fifth URL-shape prediction after four rounds. It is
+// dropped from the upload instead. Nothing diagnostic is lost: `test-results/`
+// still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
+// `npx playwright show-trace test-results/<test>/trace.zip` opens the trace
+// without the HTML report at all. `playwright-report/data/` was a second,
+// byte-identical copy of the same traces, so dropping it removes a duplicate
+// rather than a capability.
+const ALLOWED_UPLOAD_PATHS = new Set([
+  "test-results/",
+  "playwright-report/results.json",
+  "playwright-browsers.txt",
+  "e2e-failure-summary/",
+]);
+
+/** Actions this workflow may use, at the exact SHA each is pinned to. */
+const ALLOWED_USES = new Set([
+  "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+  "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+  "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+]);
+
+const GLOB_METACHARACTERS = /[*?[\]!]/;
+
+/** Artifacts are retained for at most this many days — FINDING 19. */
+const MAX_RETENTION_DAYS = 3;
+
+const allJobs = Object.entries(workflow?.jobs ?? {});
+if (allJobs.length === 0) add("the workflow declares no jobs at all.");
+
+for (const [jobId, jobNode] of allJobs) {
+  // (c) a reusable workflow moves every step out of this parser's sight.
+  if (jobNode && typeof jobNode === "object" && "uses" in jobNode) {
+    add(
+      `job \`${jobId}\` is a REUSABLE WORKFLOW (\`uses:\`). Every step it runs is outside this ` +
+        "guard, including anything that uploads. Inline the steps or the upload scope is not " +
+        "knowable here.",
+    );
+    continue;
+  }
+
+  const jobSteps = Array.isArray(jobNode?.steps) ? jobNode.steps : [];
+  jobSteps.forEach((step, index) => {
+    const where = `job \`${jobId}\` step ${index + 1}${step?.name ? ` (${step.name})` : ""}`;
+
+    // (b) the `uses:` allowlist. This catches `actions/cache`, composite actions,
+    //     and any third-party action, pinned or not.
+    const uses = typeof step?.uses === "string" ? step.uses.trim() : "";
+    if (uses !== "" && !ALLOWED_USES.has(uses)) {
+      add(
+        `${where} uses \`${uses}\`, which is not on this workflow's pinned action allowlist. ` +
+          "Every action that runs here can read the workspace and publish from it — " +
+          "`actions/cache` writes a blob other runs in this repository can read, and matches " +
+          "neither `upload` nor `artifact`. Adding an action is a reviewed change to " +
+          "ALLOWED_USES in scripts/ci/check-e2e-lane.mjs.",
+      );
+    }
+
+    // (d) $GITHUB_STEP_SUMMARY publishes to the run page and the Checks API and
+    //     is in no `path:` list.
+    const runScript = typeof step?.run === "string" ? step.run : "";
+    if (runScript.includes("GITHUB_STEP_SUMMARY")) {
+      add(
+        `${where} writes to \`$GITHUB_STEP_SUMMARY\`, which publishes to the run page and the ` +
+          "Checks API without appearing in any `path:` list. Nothing here needs one.",
+      );
+    }
+
+    if (uses === "" || !UPLOADER.test(uses)) return;
+
+    const withNode = step?.with ?? {};
+
+    // (e) hidden files. VERIFIED at the pinned SHA rather than assumed: reading
+    //     `action.yml` out of the GitHub contents API at
+    //     ea165f8d65b6e75b540449e92b4886f43607fa02 gives
+    //     `include-hidden-files: … default: 'false'`. That default is the only
+    //     reason `test-results/.last-run.json` is not published today.
+    const hidden = withNode["include-hidden-files"];
+    if (hidden !== undefined && String(hidden).trim() !== "false") {
+      add(
+        `${where} sets \`include-hidden-files: ${String(hidden)}\`. The pinned action defaults it ` +
+          "to false (confirmed in its own action.yml at the pinned SHA), which is what keeps " +
+          "dot-directories such as `.vizra-e2e` out of an artifact even when a path would reach " +
+          "them. It must stay absent or false.",
+      );
+    }
+
+    // (j) retention ceiling — FINDING 19.
+    const retention = withNode["retention-days"];
+    if (retention === undefined) {
+      add(`${where} sets no \`retention-days\`, so it inherits the repository default (up to 90 days).`);
+    } else if (!Number.isInteger(Number(retention)) || Number(retention) > MAX_RETENTION_DAYS) {
+      add(
+        `${where} sets \`retention-days: ${String(retention)}\`, above the ceiling of ` +
+          `${MAX_RETENTION_DAYS}. An artifact nobody downloaded in three days is an artifact ` +
+          "nobody needed, and it stays readable by every collaborator on this private " +
+          "repository until it expires.",
+      );
+    }
+
+    // (a) every path entry is a LITERAL from the allowlist.
+    const rawPath = withNode.path;
+    if (rawPath === undefined) {
+      add(`${where} is an uploader with no \`path:\`.`);
+      return;
+    }
+    const entries = String(rawPath)
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry !== "");
+    if (entries.length === 0) {
+      add(`${where} has an empty \`path:\`.`);
+    }
+    for (const entry of entries) {
+      if (entry.includes("${{")) {
+        add(
+          `${where} has the path \`${entry}\`, which contains a \`\${{ }}\` expression. What it ` +
+            "resolves to is not knowable here, so it cannot be shown to stay inside the " +
+            "allowlist.",
+        );
+      } else if (GLOB_METACHARACTERS.test(entry)) {
+        add(
+          `${where} has the path \`${entry}\`, which contains a glob or exclusion metacharacter. ` +
+            "A glob cannot be disproved to reach a secret directory, so only literal paths are " +
+            "allowed here.",
+        );
+      } else if (entry === "." || entry === ".." || entry.startsWith("../")) {
+        add(`${where} has the path \`${entry}\`, which is the workspace or above it.`);
+      } else if (!ALLOWED_UPLOAD_PATHS.has(entry)) {
+        add(
+          `${where} uploads \`${entry}\`, which is not on the allowlist ` +
+            `(${[...ALLOWED_UPLOAD_PATHS].join(", ")}). Adding a path is a reviewed change to ` +
+            "ALLOWED_UPLOAD_PATHS in scripts/ci/check-e2e-lane.mjs — in particular " +
+            "`playwright-report/index.html` carries a base64-embedded ZIP of the whole report " +
+            "dataset that no redactor here can reach.",
+        );
+      }
+    }
+  });
+}
+
+// (f) `.vizra-e2e` — which holds the per-run stamp key — must appear in no
+//     `path:` of ANY workflow, not just this one. A deny-list sweep across files,
+//     cheap, and the one place where checking a single file would be the wrong
+//     shape.
+const SECRET_DIR = ".vizra-e2e";
+try {
+  const workflowDir = path.join(repoRoot, ".github", "workflows");
+  const files = readdirSync(workflowDir).filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"));
+  if (files.length === 0) add(".github/workflows contains no workflow files; this check cannot be made.");
+  for (const name of files) {
+    let other;
+    try {
+      other = parse(readFileSync(path.join(workflowDir, name), "utf8"));
+    } catch (error) {
+      add(`.github/workflows/${name} could not be parsed (${error instanceof Error ? error.message : String(error)}).`);
+      continue;
+    }
+    for (const [jobId, jobNode] of Object.entries(other?.jobs ?? {})) {
+      for (const step of Array.isArray(jobNode?.steps) ? jobNode.steps : []) {
+        const candidate = step?.with?.path;
+        if (candidate !== undefined && String(candidate).includes(SECRET_DIR)) {
+          add(
+            `.github/workflows/${name}, job \`${jobId}\`, names \`${SECRET_DIR}\` in a \`path:\`. ` +
+              "That directory holds the per-run stamp key and every file the harness writes for " +
+              "its own use; it must never be published by any workflow.",
+          );
+        }
+      }
+    }
+  }
+} catch (error) {
+  add(
+    `.github/workflows could not be read (${error instanceof Error ? error.message : String(error)}), ` +
+      `so the ${SECRET_DIR} deny-list sweep could not be made.`,
+  );
+}
+
+// ===========================================================================
+// WHAT `npm run e2e` ACTUALLY EXPANDS TO — the seat's FINDING 9.
+//
+// This guard's strongest assertion is that one step's `run` is EXACTLY
+// `npm run e2e`. What that expands to lives in package.json, which the guard
+// never opened. `playwright test --trace on --output test-results` is a one-word
+// edit to a file no gate reads, and it re-enables every recorder and redirects
+// where they are written. So the scripts are pinned byte-for-byte.
+const REQUIRED_SCRIPTS = {
+  e2e: "playwright test",
+  "e2e:install": "playwright install chromium",
+  "e2e:demos": "bash scripts/e2e/demonstrate.sh",
+};
+try {
+  const manifest = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  for (const [name, expected] of Object.entries(REQUIRED_SCRIPTS)) {
+    const actual = manifest?.scripts?.[name];
+    if (actual !== expected) {
+      add(
+        `package.json's \`scripts.${name}\` is ${JSON.stringify(actual)}, and must be exactly ` +
+          `${JSON.stringify(expected)}. A flag added here is invisible to every other check: ` +
+          "`--trace on` re-enables the recorders, `--output` moves where they are written, " +
+          "`--config` runs a different configuration entirely, and `--reporter` can add one " +
+          "that embeds what the others do not.",
+      );
+    }
+  }
+} catch (error) {
+  add(`package.json could not be read (${error instanceof Error ? error.message : String(error)}).`);
+}
+
+// ===========================================================================
+// THE JOB'S ENVIRONMENT — FINDINGS 9 and 10.
+//
+// REFUSED: `DEBUG`, `PWDEBUG` and any other `PLAYWRIGHT_*` key outside the
+// allowlist. A single `DEBUG=pw:api` turns the lane's stdout into a full
+// protocol dump — headers, `fill` values and all — straight into the GitHub log,
+// which no post-hoc redactor can reach because the log is streamed as it is
+// written.
+//
+// REQUIRED: `PLAYWRIGHT_NO_COPY_PROMPT: "1"` at JOB level. Measured at
+// `playwright/lib/index.js:657-658`:
+//
+//     async _takePageSnapshot(context) {
+//       if (process.env.PLAYWRIGHT_NO_COPY_PROMPT)
+//         return;
+//
+// `error-context.md` is written whenever a test has errors and NO Playwright
+// configuration option gates the file — but this variable does gate its
+// `# Page snapshot` section, which is an `ariaSnapshot({mode:"ai"})` of the live
+// page: every DOM text node and every input's CURRENT VALUE. In a probe it was
+// the channel that captured a typed password with `trace`, `screenshot` and
+// `video` all set to `"off"`. It is the single richest private-data channel in
+// what this lane uploads, and one variable removes it while leaving the error
+// details that make the file worth having.
+//
+// It is set in CI only, never locally, so a developer debugging a failure still
+// gets the snapshot on their own machine.
+const REQUIRED_JOB_ENV = { PLAYWRIGHT_NO_COPY_PROMPT: "1" };
+const ALLOWED_PLAYWRIGHT_ENV = new Set(["PLAYWRIGHT_NO_COPY_PROMPT"]);
+const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG"]);
+
+const laneJob = workflow?.jobs?.e2e;
+const jobEnv = laneJob?.env ?? {};
+for (const [key, expected] of Object.entries(REQUIRED_JOB_ENV)) {
+  const actual = jobEnv[key];
+  if (String(actual) !== expected) {
+    add(
+      `the \`e2e\` job does not set \`${key}: "${expected}"\` at job level (read: ` +
+        `${JSON.stringify(actual)}). Without it Playwright writes a \`# Page snapshot\` into ` +
+        "`test-results/**/error-context.md` — an aria snapshot of the live page carrying every " +
+        "DOM text node and every input's current value — and that file is written even with " +
+        "trace, screenshot and video all off.",
+    );
+  }
+}
+
+const envScopes = [["the job", jobEnv]];
+for (const [index, step] of (Array.isArray(laneJob?.steps) ? laneJob.steps : []).entries()) {
+  if (step?.env && typeof step.env === "object") {
+    envScopes.push([`step ${index + 1}${step?.name ? ` (${step.name})` : ""}`, step.env]);
+  }
+}
+for (const [scope, env] of envScopes) {
+  for (const key of Object.keys(env)) {
+    if (REFUSED_ENV.has(key) || (key.startsWith("PLAYWRIGHT_") && !ALLOWED_PLAYWRIGHT_ENV.has(key))) {
+      add(
+        `${scope} sets \`${key}\`, which is refused in this lane. Playwright's debug channels ` +
+          "write request headers, `fill` values and protocol frames to stdout, and stdout is the " +
+          "GitHub log — streamed as it is written, so nothing can redact it afterwards.",
+      );
+    }
+  }
 }
 
 if (problems.length > 0) {

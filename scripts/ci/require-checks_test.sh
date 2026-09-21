@@ -708,6 +708,168 @@ else
   record 0
 fi
 
+# --- THE HARNESS CHECKS: parsed source, not a grep -------------------------
+# The guard's harness assertions used to run a regex over the source with
+# comments crudely removed, and its header claimed that could "only make the
+# patterns match LESS, i.e. fail closed". THAT WAS FALSE. Two independent
+# verifiers measured three ways through it with the CALL deleted in each case:
+#
+#     `void 0; // formatOrphans(a, b)`   a TRAILING line comment   -> GREEN
+#     `const s = "formatOrphans(";`      a STRING literal          -> GREEN
+#     `void formatOrphans(a, b);`        call-and-discard          -> GREEN
+#
+# and the first was driven end to end on the ONE control the canary cannot
+# reach — the `formatOrphans` worker-teardown assertion — giving `tsc` 0, the
+# lane guard 0, the canary 0, and an `afterAll` that breaks a page PASSING.
+#
+# The guard now parses. These cases keep it parsed: each drives the REAL guard
+# against a throwaway tree in which exactly one harness file is mutated, so a
+# future "simplification" back to a regex is red here rather than in a verifier's
+# report six weeks later. The shadowed-callee case is the defeat an AST matcher
+# would otherwise have INTRODUCED — matching "a call to something named X"
+# without asking which X trades a string defeat for a scope defeat.
+
+# harness_tree: a throwaway repo root holding only what the lane guard reads.
+# The guard resolves its repo root from its own location, so copying the script
+# beside a copy of the harness is all it takes — no environment override, and
+# therefore no testing backdoor in a gate script.
+harness_tree() {
+  local root=$1
+  mkdir -p "$root/scripts/ci" "$root/e2e/harness"
+  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" "$root/scripts/ci/"
+  cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" "$root/e2e/harness/"
+  cp "$here/../../playwright.config.ts" "$here/../../playwright.demos.config.ts" \
+    "$here/../../package.json" "$root/"
+  ln -s "$here/../../node_modules" "$root/node_modules"
+  # The `.vizra-e2e` deny-list sweep reads every workflow in the repository, so
+  # the throwaway tree needs them too. Symlinked, not copied: the sweep is about
+  # the real workflows, and a stale copy would assert nothing.
+  mkdir -p "$root/.github"
+  ln -s "$here/../../.github/workflows" "$root/.github/workflows"
+}
+
+# harness_expect WANT_RC PATTERN FILE PERL_PROGRAM
+harness_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 file=$3 program=$4 rc=0
+  local root=$tmp/harness-$cases
+  harness_tree "$root"
+  if [ -n "$program" ]; then
+    perl -0pi -e "$program" "$root/$file" || { record 1 "mutation failed to apply"; return; }
+    if cmp -s "$root/$file" "$here/../../$file"; then
+      record 1 "THE MUTATION DID NOT CHANGE $file — a demonstration that does not mutate proves nothing"
+      return
+    fi
+  fi
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$real_workflow" >"$tmp/harness-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/harness-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+orphan_call='throw new Error\(formatOrphans\(orphanRecords, orphanViolations\)\);'
+guard_call='guardBrowser\(browser\)'
+
+title="the unmutated harness tree passes (the inverse control)"
+harness_expect 0 'still drives the built image' e2e/harness/test.ts ''
+
+title="formatOrphans: the call removed fails by name"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s/$orphan_call/throw new Error(\"orphans\");/"
+
+title="formatOrphans: a TRAILING comment does not satisfy the check"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s|$orphan_call|throw new Error(\"orphans\"); // formatOrphans(orphanRecords, orphanViolations)|"
+
+title="formatOrphans: a STRING literal does not satisfy the check"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s|$orphan_call|const decoy = \"formatOrphans(\"; throw new Error(decoy);|"
+
+title="formatOrphans: call-and-discard via void does not satisfy the check"
+harness_expect 1 'DISCARDS with .void' e2e/harness/test.ts \
+  "s|$orphan_call|void formatOrphans(orphanRecords, orphanViolations);|"
+
+title="formatOrphans: a SHADOWED callee does not satisfy the check"
+harness_expect 1 'shadows' e2e/harness/test.ts \
+  "s|$orphan_call|const formatOrphans = () => \"x\"; throw new Error(formatOrphans());|"
+
+title="guardBrowser: the call removed fails by name"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s/$guard_call/({} as never)/"
+
+title="guardBrowser: a TRAILING comment does not satisfy the check"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s|$guard_call|({} as never) /* guardBrowser(browser) */|"
+
+title="guardBrowser: a STRING literal does not satisfy the check"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s|$guard_call|JSON.parse(\"guardBrowser(\") as never|"
+
+title="guardBrowser: call-and-discard via void does not satisfy the check"
+harness_expect 1 'DISCARDS with .void' e2e/harness/worker-guard.ts \
+  "s|$guard_call|(void guardBrowser(browser)) as never|"
+
+title="guardBrowser: a SHADOWED callee does not satisfy the check"
+harness_expect 1 'shadows' e2e/harness/worker-guard.ts \
+  "s|const guard = $guard_call|const guardBrowser = (_b: unknown) => ({}) as never; const guard = guardBrowser(browser)|"
+
+# The eleventh check demanded only the PRESENCE of `STAMP_ANNOTATION`. A verifier
+# measured at `f0ee8f1` that deleting the whole annotation push leaves that green,
+# because the identifier survives on its own import line. Parsing makes the fix
+# free, so the case is pinned here.
+title="STAMP_ANNOTATION surviving only on an import line fails by name"
+harness_expect 1 'stamp annotation' e2e/harness/test.ts \
+  's/type: STAMP_ANNOTATION,/type: "vizra-harness-stamp",/'
+
+# --- globalSetup / globalTeardown are REFUSED ------------------------------
+# An independent verifier measured the hole (PR #7 review, FINDING 6): the
+# listening starts at WORKER setup, while `globalSetup` runs in the Playwright
+# main process before any worker exists. A `globalSetup` that launched its own
+# Chromium and opened a page which 404s a sub-resource and throws gave
+# `npx playwright test` exit 0, `3 passed`, with no guard message; the module
+# provably ran (it wrote a marker file); and `check-e2e-lane.sh` exited 0 too.
+# Nothing here needs one, so the key is refused rather than guarded.
+title="globalSetup in playwright.config.ts fails by name"
+harness_expect 1 'declares .globalSetup' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  globalSetup: "./e2e/harness/vz-globalsetup.ts",\n  testDir: "./e2e/specs",|'
+
+title="globalTeardown in playwright.config.ts fails by name"
+harness_expect 1 'declares .globalTeardown' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  globalTeardown: "./e2e/harness/vz-globalteardown.ts",\n  testDir: "./e2e/specs",|'
+
+title="globalSetup in the DEMOS config fails by name too"
+harness_expect 1 'playwright.demos.config.ts declares .globalSetup' playwright.demos.config.ts \
+  's|  testDir: "./e2e/demos",|  globalSetup: "./e2e/harness/vz-globalsetup.ts",\n  testDir: "./e2e/demos",|'
+
+title="globalSetup named only in a COMMENT does not trip the refusal"
+harness_expect 0 'still drives the built image' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  // globalSetup is refused here; see AGENTS.md\n  testDir: "./e2e/specs",|'
+
+title="globalSetup named only in a STRING does not trip the refusal"
+harness_expect 0 'still drives the built image' playwright.config.ts \
+  's|  outputDir: "test-results",|  outputDir: "test-results",\n  metadata: { note: "globalSetup: none" },|'
+
+title="a config whose default export cannot be read fails CLOSED"
+harness_expect 1 'unreadable-default-export' playwright.config.ts \
+  's|export default defineConfig\(\{|const built = buildIt(1);\nexport default built;\nconst unusedConfig = defineConfig({|'
+
+# The stamp wiring, now read from the tree rather than from a substring.
+title="a reporter specifier named only in a comment does not satisfy the check"
+harness_expect 1 'stamp-reporter' playwright.config.ts \
+  's|\["\./e2e/harness/stamp-reporter\.ts"\],|// ["./e2e/harness/stamp-reporter.ts"],|'
+
+title="the harness import named only in a comment does not satisfy the check"
+harness_expect 1 'no longer imports' playwright.config.ts \
+  's|import "\./e2e/harness/test";|/* import "./e2e/harness/test"; */ const decoy = 1;|'
+
+title="testDir widened to ./e2e fails by name"
+harness_expect 1 'restricts .testDir' playwright.config.ts \
+  's|  testDir: "\./e2e/specs",|  testDir: "./e2e",|'
+
 # --- EVERY upload step, not the first one ----------------------------------
 # The parser located the upload with `steps.find(...)` and asserted the gate on
 # that one step. An independent verifier appended a SECOND
@@ -744,8 +906,8 @@ lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
         with:
           name: playwright-artifacts-second
           path: |
-            playwright-report/
             test-results/
+          retention-days: 3
           if-no-files-found: error
 YAML
 
@@ -779,8 +941,8 @@ lane_append 0 'still drives the built image' <<'YAML'
         with:
           name: playwright-artifacts-second
           path: |
-            playwright-report/
             test-results/
+          retention-days: 3
           if-no-files-found: error
 YAML
 
@@ -905,6 +1067,101 @@ if bash "$pin_script" "$here/../../Dockerfile" "$here/../../.nvmrc" >"$tmp/pin-r
 else
   record 1 "the committed Dockerfile is not immutably pinned: $(tr '\n' ' ' <"$tmp/pin-real.out" | cut -c1-300)"
 fi
+
+# --- UPLOAD SCOPE IS DEFAULT-DENY (the security seat's FINDING 8) ----------
+# Deriving "what leaves the runner" from the paths the uploaders happen to name
+# is not default-deny: `actions/cache` matches neither `upload` nor `artifact`
+# and publishes a blob other runs can read; `path:` takes globs and `${{ }}`;
+# `$GITHUB_STEP_SUMMARY` publishes with no `path:` at all; and a second job is
+# somewhere a single-job parser never looks. The scope is an allowlist, and
+# these are the six mutations that prove it.
+
+title="a GLOB in an upload path fails by name"
+lane_expect 1 'glob or exclusion metacharacter' 's|^            test-results/$|            test-*/|'
+
+title="a \${{ }} expression in an upload path fails by name"
+lane_expect 1 'expression' 's|^            test-results/$|            ${{ runner.temp }}/|'
+
+title="include-hidden-files: true fails by name"
+lane_expect 1 'include-hidden-files' 's|^          retention-days: 3$|          retention-days: 3\n          include-hidden-files: true|'
+
+title="an upload path outside the allowlist fails by name"
+lane_expect 1 'not on the allowlist' 's|^            test-results/$|            test-results/\n            playwright-report/index.html|'
+
+title="a \$GITHUB_STEP_SUMMARY write in the e2e job fails by name"
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      - name: Container logs$|      - name: Summary\n        run: echo hi >> $GITHUB_STEP_SUMMARY\n      - name: Container logs|'
+
+title="an actions/cache step caching .vizra-e2e fails by name"
+lane_append 1 'pinned action allowlist' <<'YAML'
+      - name: Cache the harness directory
+        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        with:
+          path: .vizra-e2e
+          key: vizra-e2e-${{ github.sha }}
+YAML
+
+title="a SECOND JOB in e2e.yml with an uploader is seen by the guard"
+lane_append 1 'job .publish. step 1 has the path' <<'YAML'
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: everything
+          path: .
+          retention-days: 3
+YAML
+
+title="a reusable workflow job fails by name"
+lane_append 1 'REUSABLE WORKFLOW' <<'YAML'
+  delegated:
+    uses: ./.github/workflows/frontend-ci.yml
+YAML
+
+# --- FINDING 19: the retention ceiling -------------------------------------
+title="retention-days above the ceiling fails by name"
+lane_expect 1 'above the ceiling' 's|^          retention-days: 3$|          retention-days: 14|'
+
+title="an uploader with no retention-days fails by name"
+lane_expect 1 'inherits the repository default' '/^          retention-days: 3$/d'
+
+# --- FINDING 10: the page snapshot is off in CI ----------------------------
+# `error-context.md` is written whenever a test has errors and no Playwright
+# CONFIG option gates the file. `PLAYWRIGHT_NO_COPY_PROMPT` gates its worst
+# section — an aria snapshot of the live page carrying every DOM text node and
+# every input's current value (playwright/lib/index.js:657-658).
+title="removing PLAYWRIGHT_NO_COPY_PROMPT from the job fails by name"
+lane_expect 1 'PLAYWRIGHT_NO_COPY_PROMPT' '/^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$/d'
+
+title="setting PLAYWRIGHT_NO_COPY_PROMPT to 0 fails by name"
+lane_expect 1 'PLAYWRIGHT_NO_COPY_PROMPT' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "0"|'
+
+title="a DEBUG env key in a lane step fails by name"
+lane_expect 1 'refused in this lane' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          DEBUG: pw:api|'
+
+title="an unlisted PLAYWRIGHT_* env key fails by name"
+lane_expect 1 'refused in this lane' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      PLAYWRIGHT_HTML_REPORT: uploads|'
+
+# --- FINDING 9: what `npm run e2e` actually expands to ---------------------
+# The guard's strongest assertion is that a step's `run` is exactly
+# `npm run e2e`. What that expands to lives in package.json, which the guard
+# never opened — so `--trace on --output test-results` was a one-word edit to a
+# file no gate read.
+title="appending --trace on to scripts.e2e fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --trace on"|'
+
+title="appending --output to scripts.e2e fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --output test-results"|'
+
+title="pointing scripts.e2e at another config fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --config=other.config.ts"|'
+
+title="changing scripts.e2e:demos fails by name"
+harness_expect 1 'e2e:demos' package.json \
+  's|"e2e:demos": "bash scripts/e2e/demonstrate.sh"|"e2e:demos": "true"|'
 
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]
