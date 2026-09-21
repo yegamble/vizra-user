@@ -1,16 +1,16 @@
 {
-  "$schema_version": 1,
-  "$comment": "Provenance of the vendored vizra-core OpenAPI contract. See scripts/vendor-contract.mjs and AGENTS.md.",
+  "$schema_version": 2,
+  "$comment": "Provenance of the vendored vizra-core OpenAPI contract. See scripts/vendor-contract.mjs, scripts/check-manifest.mjs and AGENTS.md.",
   "spec": {
     "source_repo": "yegamble/vizra-core",
     "source_path": "api/openapi.yaml",
-    "source_commit": "b0dbeb6dc27294fe793492ea60bc18b6aed4b042",
-    "source_head": "b0dbeb6dc27294fe793492ea60bc18b6aed4b042",
-    "source_branch": "feat/m0-foundation",
-    "source_working_tree_dirty_for_api": false,
+    "source_ref": "main",
+    "source_commit": "415a6d19cfc0acedd8ad84c1857c95db0ed63627",
+    "source_blob": "58030e7f0d90d9bf00f44782d705aad72a18407c",
     "vendored_path": "contracts/vizra-core/api/openapi.yaml",
     "sha256": "128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d",
-    "vendored_at": "2026-09-20"
+    "bytes": 10695,
+    "vendored_at": "2026-09-21"
   },
   "generated_client": {
     "path": "lib/api/generated.ts",
