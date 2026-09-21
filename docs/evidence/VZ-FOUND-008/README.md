@@ -568,3 +568,27 @@ Closed two ways, both in the `fix/m0-artifact-privacy-a` pull request:
    old raw grep found the marker in 1 member; the new sweep finds it in 5,
    including `.decoded-0.bin.unzipped/<sha>.json`, the member a raw grep cannot
    see.
+
+## NOTE on the digest ledger's commit ordering (PR #8 review, FINDING 7)
+
+Recorded rather than fixed by rewriting history, because the history is the
+honest record and the ledger is correct at the head.
+
+`mutation-digests.txt` was committed at `5553142` — the commit that corrects
+`e2e/harness/worker-guard.ts`, where the chair's rule required the ledger to land
+with the byte-pinned file it describes. The ledger in that commit records a
+`browser-errors.ts` digest of `f336c5ca…`, which is the value that file acquires
+two commits later at `5dcb123` (the sanitiser change). So at `5553142` the ledger
+describes a tree that did not yet exist; **at the head it matches**, and an
+independent verifier confirmed that.
+
+Why: the demonstration suite is run ONCE, on the final tree, and its ledger is
+then placed in the commit that owns the pinned file. Regenerating it per commit
+would mean six full `npm run e2e:demos` runs of an already-long suite, each
+producing transcripts for a tree no one will ever check out.
+
+What changed as a result: `scripts/ci/check-source-hygiene.mjs` now verifies
+every `BEFORE`/`RESTORED` digest against the file at the current revision, in the
+required `frontend` lane. So the head is checked mechanically from now on, and
+the intermediate-commit skew is a stated property of how the suite is run rather
+than something a reader has to discover.

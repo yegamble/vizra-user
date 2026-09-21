@@ -492,10 +492,27 @@ command**.
 
 ### Artifact privacy: what is redacted, and what is NOT
 
-**Covered — query strings and fragments on URLs that carry a scheme or start at
-`/`, and `Location`.** Two layers, because they reach different bytes. Read the
-scheme-less exception below before relying on this: it is not "every query
-string in every artifact", and this section used to say that it was.
+**Covered — query strings and fragments, in the URL shapes the FOUR programs
+below match, and `Location`.** Read the list before relying on it: it is not
+"every query string in every artifact", and this section has claimed that twice.
+Both redactors carry the same four programs, and each is pinned by a test:
+
+| Program | Matches | Example |
+|---|---|---|
+| absolute | `scheme://…`, **case-insensitively**, with optional backslash-escaped slashes | `HTTPS://h/p?q`, `{"u":"https:\/\/h/p?q"}` |
+| authority-relative | `host[:port]/path?query` — dotted host, IPv4, **bracketed IPv6**, any label with an explicit `:port`, or bare `localhost` | `host:3219/m.jpg?q`, `[::1]:3000/p?q` |
+| protocol-relative | `//host[:port]/path?query` | `//host.example:8443/p?q` |
+| path-relative | `/path?query` | `/m.jpg?q` |
+
+Four, not three, and case-insensitive, because an independent verifier measured
+five shapes this section named as covered and were not: `//host:8443/p?q`
+(starts at `/`), `HTTPS://h/p?q` (carries a scheme), `[::1]:3000/p?q`,
+`[2001:db8::1]/p?q`, and JSON-escaped `https:\/\/h/p?q`. **Do not widen this
+claim again without a measurement**; the price of the current width is
+deliberate over-redaction of a `1:23/foo?x=y`-shaped string, which costs
+diagnostic text and leaks nothing.
+
+Two layers, because they reach different bytes.
 
 | | Covered by | What it reaches |
 |---|---|---|
@@ -597,6 +614,21 @@ gets the snapshot on their own machine — and `check-e2e-lane.mjs` asserts it i
 set. The FILE is still written, and its error details are still uploaded; that is
 deliberate, and it is why the Lane-B design in the queued authenticated-lane
 slice makes the PATH the control rather than an option.
+
+**WHAT A RED LANE A ACTUALLY PUBLISHES, file by file.** The upload is an
+allowlist of three paths; this is what is in them and what is done to each.
+
+| Uploaded | What it carries | Redacted? |
+|---|---|---|
+| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**, screencast frames | URLs only — every other channel is **untouched** |
+| `test-results/**/test-failed-1.png`, `video.webm` | pixels of the rendered page | **not at all** — a byte substitution would corrupt them, and a rendered page is not a greppable string |
+| `test-results/**/error-context.md` | the error message, a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) | URLs only. Its `# Page snapshot` — the aria snapshot of the live page — is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT` |
+| `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs only. **This file is uploaded and this table did not used to name it** |
+| `playwright-browsers.txt` | `playwright install --dry-run chromium` output | nothing sensitive |
+
+`playwright-report/` itself is **not** uploaded — see the base64 paragraph above.
+Nothing under `.vizra-e2e/` is uploaded, by any workflow, and the lane guard
+sweeps every workflow file for that name.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -1012,6 +1044,36 @@ it is trusted.
 - **The redactor covers URL query strings, fragments and `Location` only.** The
   full "NOT covered" table is above; read it before deciding a red lane is safe
   to share.
+- **The upload-scope allowlist is scoped to `e2e.yml`, and one clause is not.**
+  Clauses (a)–(e) — literal `path:` entries, the pinned `uses:` allowlist, no
+  reusable workflows, no `$GITHUB_STEP_SUMMARY`, `include-hidden-files` — are
+  asserted over **every job of `.github/workflows/e2e.yml`**. Only the
+  `.vizra-e2e` deny sweep crosses files. So a NEW workflow whose job uploads
+  `path: .` is not refused by this guard: measured green by an independent
+  verifier. Three things bound it rather than close it — the pinned action
+  defaults `include-hidden-files` to false so `path: .` would not itself sweep up
+  `.vizra-e2e`; `ci-guard` requires every action in every workflow to be
+  SHA-pinned; and adding a workflow is a `.github/` diff. Extending clauses
+  (a)–(e) repo-wide would mean allowlisting the paths and actions of
+  `frontend-ci.yml`, `contract-ci.yml` and `supply-chain.yml` too, which is a
+  change to lanes this slice does not own. **Named here rather than implied
+  closed.**
+- **A `run:` step that writes through a HELPER SCRIPT is not seen.** The
+  `$GITHUB_STEP_SUMMARY` refusal and the four `PLAYWRIGHT_NO_COPY_PROMPT`-unset
+  spellings are greps over the step's `run:` text. Measured: writing the summary
+  from an inline command — even indirectly, via a shell variable — is refused;
+  `run: bash scripts/ci/some-helper.sh`, where the helper does it, is **not**.
+  Neither is a script that computes the variable name, sources another file, or
+  writes it from a here-doc. This is the same class as the `run:`-exfiltration
+  bullet above and has the same answer: no workflow parser can close it, the
+  control is review, and the greps are named as early warnings rather than as
+  the guarantee.
+- **A stray extra Playwright config file is green, and inert.** A second
+  `playwright.*.config.ts` in the tree is not refused. It can only be SELECTED by
+  `--config` in a script or `PLAYWRIGHT_CONFIG` in the environment, and both of
+  those are red (the scripts are byte-pinned, and every `PLAYWRIGHT_*` key but
+  one is refused at all three env scopes). Recorded because "green" and "safe"
+  are different words.
 - **Platform.** ADR-009's acceptance platform is GitHub `ubuntu-24.04`,
   linux/amd64. Local runs on macOS arm64 carry no platform claim.
 
