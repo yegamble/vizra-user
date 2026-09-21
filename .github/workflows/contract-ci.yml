@@ -5,6 +5,12 @@ name: contract-ci
 # file is rejected.
 #
 # WHAT THIS PROVES (no network, no credentials):
+#   * contracts/manifest.json is well formed and describes the vendored file
+#     truthfully: `source_ref: main`, a full 40-character `source_commit` and
+#     `source_blob`, and a sha256, byte count and blob id that match the bytes
+#     on disk. PR #1's manifest named a commit on a core feature branch that
+#     was later squash-merged and deleted; nothing read that field, so nothing
+#     went red. Now something reads it.
 #   * contracts/vizra-core/api/openapi.yaml is the file contracts/manifest.json
 #     describes (sha256), so the vendored spec cannot be edited here to make a
 #     stale client look fresh;
@@ -12,12 +18,14 @@ name: contract-ci
 #     produces from that spec.
 #
 # WHAT IT DOES NOT PROVE, and why: that the vendored copy is still current with
-# vizra-core's `main`. Vidra's equivalent lane checks the backend repo out in
-# the workflow, which works because that repo is public; `yegamble/vizra-core`
-# is private, so that step needs a read-only token this repository does not
-# have. Adding it is owed work (AGENTS.md, "Owed"), and until then core's own
-# route↔spec contract test plus review of the manifest's `source_commit` are
-# what keep the vendored copy honest. This lane is not a substitute for that.
+# vizra-core's `main` — nor even that the recorded commit exists. Vidra's
+# equivalent lane checks the backend repo out in the workflow, which works
+# because that repo is public; `yegamble/vizra-core` is private, so that step
+# needs a read-only token this repository does not have. Providing it is an
+# OWNER action outside any pull request; adding the step is owed work
+# (AGENTS.md, "Owed"). Until then core's own route↔spec contract test plus
+# review of the manifest's `source_commit` are what keep the vendored copy
+# honest. This lane is not a substitute for that.
 on:
   push:
     branches: [main]
@@ -59,6 +67,13 @@ jobs:
       # its own here so the lane shows which input it refused.
       - name: The vendored contract references nothing outside itself
         run: node scripts/check-spec-refs.mjs
+
+      # `npm run check:contract` calls this too, so the drift lane cannot run
+      # without it. It is a step of its own for the same reason the $ref guard
+      # is: when the manifest is the thing that is wrong, the lane should say
+      # so by name rather than inside a longer check.
+      - name: The manifest describes the vendored contract
+        run: node scripts/check-manifest.mjs
 
       - name: Generated client matches the contract
         run: npm run check:contract

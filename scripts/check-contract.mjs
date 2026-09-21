@@ -4,15 +4,24 @@
  *
  * Fails when any of these is not true:
  *
- *   1. the vendored contract exists and its sha256 is the one
- *      `contracts/manifest.json` records — so the spec cannot be edited here
- *      to make a stale client look fresh;
+ *   1. `contracts/manifest.json` is well formed and describes the vendored
+ *      contract truthfully — `scripts/check-manifest.mjs`: schema version, the
+ *      source repo and path ADR-002 names, `source_ref: main`, a full 40-hex
+ *      `source_commit` and `source_blob`, and a sha256, byte count and blob id
+ *      that match the file on disk. So the spec cannot be edited here to make
+ *      a stale client look fresh, and the provenance fields are read rather
+ *      than being prose (verifier Finding 3 on PR #1);
  *   2. `lib/api/generated.ts` exists, is non-trivial, and is byte-for-byte
  *      what the pinned generator produces from that contract — so a
  *      hand-edited generated file is rejected (ADR-002; the ledger's negative
  *      case for VZ-FOUND-002);
  *   3. the generator version the manifest names is the one installed, since
  *      byte-for-byte equality is only meaningful against a fixed generator.
+ *
+ * It still cannot tell whether the vendored copy is STALE relative to core's
+ * `main` — that needs a read token for the private vizra-core and is an open
+ * owner item (AGENTS.md, "Owed"). A green run here means the manifest is
+ * internally honest, not that it is current.
  *
  * It writes the regenerated client to a temporary file, never over the
  * committed one: the check must be readable on a dirty tree and must not
@@ -26,8 +35,8 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { checkManifestFiles } from "./check-manifest.mjs";
 import { GENERATED_CLIENT, MANIFEST, ROOT, VENDORED_SPEC, generate } from "./codegen.mjs";
-import { sha256 } from "./vendor-contract.mjs";
 
 const rel = (p) => relative(ROOT, p);
 
@@ -44,36 +53,26 @@ function main() {
     fail(...args);
   };
 
-  if (!existsSync(MANIFEST)) {
-    die(`${rel(MANIFEST)} is missing.`, "Run: node scripts/vendor-contract.mjs");
-    return;
-  }
-  const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  // --- 1. the manifest is well formed and describes the file on disk
+  for (const problem of checkManifestFiles(ROOT)) die(problem.message, ...problem.detail);
 
-  // --- 1. the vendored contract is the one the manifest describes
-  if (!existsSync(VENDORED_SPEC)) {
-    die(
-      `${rel(VENDORED_SPEC)} is missing, but ${rel(MANIFEST)} describes it.`,
-      "Run: node scripts/vendor-contract.mjs --from ../vizra-core",
-    );
-    return;
+  // Nothing further is checkable without both files and a parseable manifest;
+  // the loop above has already said why.
+  if (!existsSync(MANIFEST) || !existsSync(VENDORED_SPEC)) {
+    process.exit(1);
   }
-  const actualSpecHash = sha256(VENDORED_SPEC);
-  if (actualSpecHash !== manifest.spec.sha256) {
-    die(
-      `${rel(VENDORED_SPEC)} does not match its manifest.`,
-      `manifest: ${manifest.spec.sha256}`,
-      `on disk:  ${actualSpecHash}`,
-      "The contract is vizra-core's to change. Re-vendor it with scripts/vendor-contract.mjs;",
-      "do not edit the vendored copy here.",
-    );
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  } catch {
+    process.exit(1);
   }
 
   // --- 3. the generator is the one the manifest names
   const installed = JSON.parse(
     readFileSync(resolve(ROOT, "node_modules", "openapi-typescript", "package.json"), "utf8"),
   ).version;
-  const pinned = manifest.generated_client.generator_version;
+  const pinned = manifest.generated_client?.generator_version;
   if (installed !== pinned) {
     die(
       `generator version mismatch: manifest says ${pinned}, node_modules has ${installed}.`,
@@ -129,13 +128,17 @@ function main() {
     process.exit(1);
   }
   console.log(
-    `✅ contract: ${rel(VENDORED_SPEC)} matches its manifest (sha256 ${actualSpecHash.slice(0, 12)}…),`,
+    `✅ contract: ${rel(VENDORED_SPEC)} matches its manifest (sha256 ${manifest.spec.sha256.slice(0, 12)}…, ${manifest.spec.bytes} bytes,`,
   );
+  console.log(`   blob ${manifest.spec.source_blob.slice(0, 12)}…),`);
   console.log(
     `   and ${rel(GENERATED_CLIENT)} is exactly what openapi-typescript ${installed} generates from it.`,
   );
   console.log(
-    `   source: ${manifest.spec.source_repo}@${manifest.spec.source_commit ?? "(uncommitted)"} :${manifest.spec.source_path}`,
+    `   source: ${manifest.spec.source_repo}@${manifest.spec.source_ref} (${manifest.spec.source_commit}) :${manifest.spec.source_path}`,
+  );
+  console.log(
+    "   NOT proven here: that core's main is still at that commit. See AGENTS.md, \"Owed\".",
   );
 }
 

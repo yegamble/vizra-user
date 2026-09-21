@@ -1,0 +1,24 @@
+# lib/api/generated.ts hand-edited: one line added to the generated interface
+# $ npm run check:contract
+# source: 549e589e2cc99a66cc8d0c01166d44bbd209db89 (+ the mutation this demonstration describes)
+# node v22.14.0, Darwin arm64
+
+
+> vizra-user@0.0.0 check:contract
+> node scripts/check-contract.mjs
+
+✨ openapi-typescript 7.13.0
+🚀 /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml → /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/vizra-contract-cFVEKj/generated.ts [23.7ms]
+
+❌ lib/api/generated.ts is not what the contract generates.
+   first difference at line 7:
+     committed: "    \"/pwned\": never;"
+     generated: "    \"/healthz\": {"
+   (357 committed lines vs 356 generated)
+   
+   lib/api/generated.ts is generated, never hand-edited (AGENTS.md).
+   Run `npm run codegen` and commit the result — or, if the API changed,
+   re-vendor the contract from vizra-core first.
+
+
+# exit=1 (expected 1)

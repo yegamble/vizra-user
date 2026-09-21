@@ -1,0 +1,53 @@
+# Provenance of the re-vendored contract
+# generated 2026-09-21T00:14:50Z on Darwin arm64, node v22.14.0, git version 2.50.1 (Apple Git-155)
+# vizra-user head: 549e589e2cc99a66cc8d0c01166d44bbd209db89
+# core checkout:   /Users/yosefgamble/github/vizra/vizra-core (on branch fix/m0-stabilise — read via git show, never from its working tree)
+
+$ git -C ../vizra-core log -1 --format="%H %d %ci %s" 415a6d19cfc0acedd8ad84c1857c95db0ed63627
+415a6d19cfc0acedd8ad84c1857c95db0ed63627  (origin/main, origin/HEAD, main) 2026-09-20 16:44:51 -0400 feat: M0 foundation — config + doctor, migrations 0001-0004, authz evaluator, jobs, OpenAPI + sqlc drift, core↔search HMAC contract, ci-required (#1)
+
+## 1. The vendored bytes ARE core's blob at main@415a6d1
+$ git -C ../vizra-core rev-parse 415a6d1:api/openapi.yaml
+58030e7f0d90d9bf00f44782d705aad72a18407c
+$ git hash-object contracts/vizra-core/api/openapi.yaml   # in vizra-user
+58030e7f0d90d9bf00f44782d705aad72a18407c
+$ git -C ../vizra-core show 415a6d1:api/openapi.yaml | shasum -a 256
+128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d  -
+$ shasum -a 256 contracts/vizra-core/api/openapi.yaml
+128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d  contracts/vizra-core/api/openapi.yaml
+$ git -C ../vizra-core show 415a6d1:api/openapi.yaml | wc -c   /   wc -c < contracts/vizra-core/api/openapi.yaml
+   10695
+   10695
+$ grep -n "source_" contracts/manifest.json
+5:    "source_repo": "yegamble/vizra-core",
+6:    "source_path": "api/openapi.yaml",
+7:    "source_ref": "main",
+8:    "source_commit": "415a6d19cfc0acedd8ad84c1857c95db0ed63627",
+9:    "source_blob": "58030e7f0d90d9bf00f44782d705aad72a18407c",
+11:    "sha256": "128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d",
+12:    "bytes": 10695,
+
+## 2. The old source commit (PR #1) is unreachable from core's main
+$ git -C ../vizra-core merge-base --is-ancestor b0dbeb6dc27294fe793492ea60bc18b6aed4b042 main; echo $?
+exit=1  (non-zero => NOT an ancestor of main)
+$ git -C ../vizra-core branch -a --contains b0dbeb6dc27294fe793492ea60bc18b6aed4b042
+  feat/m0-foundation
+# feat/m0-foundation survives only as a STALE LOCAL branch in that checkout;
+# no remote branch is listed, i.e. it was deleted upstream after the squash-merge.
+$ git -C ../vizra-core ls-remote --heads origin feat/m0-foundation
+# (no output above = the branch does not exist on origin)
+
+## 3. The spec did NOT change between b0dbeb6 and 415a6d1
+$ git -C ../vizra-core diff --stat b0dbeb6 415a6d1 -- api/openapi.yaml
+# (empty = identical: 0 paths, 0 operations, 0 schemas, 0 status codes, 0 security
+#  schemes differ; not one byte of prose or whitespace moved either)
+$ git -C ../vizra-core rev-parse b0dbeb6:api/openapi.yaml 415a6d1:api/openapi.yaml
+58030e7f0d90d9bf00f44782d705aad72a18407c
+58030e7f0d90d9bf00f44782d705aad72a18407c
+
+## 4. Consequently the generated client did not change either
+$ git show --stat --oneline d843272 -- contracts/vizra-core/api/openapi.yaml lib/api/generated.ts
+# (neither path appears in the re-vendor commit: both are byte-identical to what PR #1 vendored)
+$ git diff --stat main...HEAD -- contracts/ lib/
+ contracts/manifest.json | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)

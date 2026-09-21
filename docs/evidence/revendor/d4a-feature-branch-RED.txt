@@ -1,0 +1,19 @@
+# manifest re-pointed at core's deleted feat/m0-foundation (PR #1's actual state)
+# $ npm run check:contract
+# source: 549e589e2cc99a66cc8d0c01166d44bbd209db89 (+ the mutation this demonstration describes)
+# node v22.14.0, Darwin arm64
+
+
+> vizra-user@0.0.0 check:contract
+> node scripts/check-contract.mjs
+
+
+❌ manifest source_ref is "feat/m0-foundation", expected "main".
+   A contract vendored from a feature branch pins a commit that can be squashed and deleted:
+   PR #1 vendored b0dbeb6… from feat/m0-foundation and the commit became unreachable.
+   Re-vendor from core's default branch: node scripts/vendor-contract.mjs --from ../vizra-core --ref main
+✨ openapi-typescript 7.13.0
+🚀 /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml → /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/vizra-contract-Jh63vG/generated.ts [33.7ms]
+
+
+# exit=1 (expected 1)

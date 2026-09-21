@@ -83,14 +83,29 @@ If you need a third helper, that is an ADR amendment, not a file.
 repository:
 
 - `contracts/vizra-core/api/openapi.yaml` is a **vendored copy**;
-  `contracts/manifest.json` records the source repo, the core commit, the
-  sha256 and the date.
+  `contracts/manifest.json` records the source repo, the source **ref** and the
+  40-character commit it was taken from, the git blob id of those exact bytes,
+  their sha256 and length, and the date.
+- The vendor script reads the spec **out of core's object database**
+  (`git show <ref>:api/openapi.yaml`), never from a checkout's working tree, so
+  the bytes and the recorded commit cannot disagree and a dirty tree cannot be
+  vendored. The default ref is `main`, and `check:contract` refuses a manifest
+  whose `source_ref` is anything else — vendoring from a feature branch is how
+  PR #1 came to name `b0dbeb6…` on `feat/m0-foundation`, which core then
+  squash-merged and deleted, leaving the recorded commit unreachable from any
+  ref in the canonical repository with nothing going red.
 - `lib/api/generated.ts` is generated from that copy by the pinned
   `openapi-typescript`. It is never hand-edited, never linted, and never
   partially updated.
 - `npm run check:contract` proves the vendored spec matches its manifest and
   the committed client is byte-for-byte what the generator produces. The
   `contract` lane runs it on every PR.
+- The manifest's provenance is **read, not merely written**
+  (`scripts/check-manifest.mjs`, called by `check:contract`): the schema
+  version, the repo and path ADR-002 names, `source_ref: main`, a full 40-hex
+  `source_commit` and `source_blob`, and a sha256, byte count and blob id that
+  all match the file on disk. Before this, those fields were prose — nothing
+  read them, and PR #1's dead commit passed every lane.
 - The spec is validated **as input** before the generator reads it:
   `scripts/check-spec-refs.mjs` refuses any `$ref` that is not an in-document
   pointer. openapi-typescript resolves external `$ref` targets through
@@ -98,19 +113,43 @@ repository:
   the generator issue an outbound request during the `contract` lane. A file
   `$ref` is refused too, because the vendored contract is one file recorded by
   one sha256 and a second file would be input the drift check does not cover.
-- To take a newer contract: `node scripts/vendor-contract.mjs --from ../vizra-core`,
-  then commit the spec, the manifest and the regenerated client together.
+- To take a newer contract:
+  `node scripts/vendor-contract.mjs --from ../vizra-core --ref main` (the ref
+  defaults to `main`), then commit the spec, the manifest and the regenerated
+  client together. Fetch the core checkout first: the script vendors the local
+  ref and warns — but does not fail — when it differs from `origin/<ref>`.
 
 Never hand-write a request or response type for an endpoint the contract
 already describes, and never "temporarily" edit the vendored spec to unblock
 work here. A contract change is vizra-core's to make.
 
-**Owed (not done, do not treat as covered):** the `contract` lane cannot yet
-tell whether the vendored copy is *stale* relative to core's `main`, because
-`yegamble/vizra-core` is private and this repository holds no token to read it.
-When a read-only token exists, add a step comparing the vendored copy against
-core's default branch. Until then a stale vendor is caught only by review of
-`contracts/manifest.json` and by core's own route↔spec test.
+### Owed — STALENESS IS NOT DETECTED HERE (open owner item)
+
+Do not treat this as covered, and do not read a green `contract` lane as
+saying the vendored contract is current.
+
+`check:contract` now proves the manifest is **internally honest**: well formed,
+pointing at `main`, naming a full commit id, and describing the bytes actually
+committed. Every one of those is an offline, credential-free check of this
+repository against itself.
+
+What it still cannot do is compare the vendored copy with what
+`yegamble/vizra-core` **serves today**. It cannot prove the recorded commit
+exists, that the blob is the one that commit holds, or that core's `main` has
+not moved on since — so a vendored contract that is months stale passes every
+lane here, exactly as a contract vendored from a deleted branch used to.
+
+The blocker is access, not design: `yegamble/vizra-core` is **private** and this
+repository holds **no read token for it**, so the `contract` lane cannot fetch
+core's default branch. **Providing that read-only token is an owner action,
+outside any pull request.** When it exists, add a step to `contract-ci.yml` that
+resolves `yegamble/vizra-core`'s default branch, compares its
+`api/openapi.yaml` blob id with `contracts/manifest.json`'s `source_blob`, and
+fails when they differ.
+
+Until then, a stale vendor is caught only by review of
+`contracts/manifest.json`'s `source_commit` against core's history, and by
+core's own route↔spec test. Both are review, not CI.
 
 ## No mock data on a product path
 No component invents data, and no page ships a fixture as content. If the API
@@ -128,9 +167,11 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run e2e:install` | download the pinned Chromium the browser lane needs (once) |
 | `npm run e2e` | **the browser lane**: Playwright against the production build, desktop 1440 px and mobile 390 px |
 | `npm run e2e:demos` | run the red/green demonstrations that prove the harness fails |
-| `npm run check:contract` | vendored spec ↔ manifest ↔ generated client |
+| `npm run check:contract` | vendored spec ↔ manifest ↔ generated client (runs the manifest check first) |
 | `npm run codegen` | regenerate the client from the vendored spec |
-| `node scripts/vendor-contract.mjs --from ../vizra-core` | take a newer contract |
+| `node scripts/check-manifest.mjs` | `contracts/manifest.json` is well formed and describes the vendored file: `source_ref: main`, 40-hex commit and blob, matching sha256 and byte count. It does NOT detect staleness — see "Owed" above |
+| `node scripts/vendor-contract.mjs --from ../vizra-core --ref main` | take a newer contract, read from core's object database at that ref |
+| `bash scripts/demonstrate-contract.sh` | the contract guards' red/green demonstrations — a hand-edited client, an edited spec, a remote `$ref`, and four manifest mutations; transcripts to `docs/evidence/revendor/` |
 | `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite, plus the manifest-floor and image-pin cases |
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
