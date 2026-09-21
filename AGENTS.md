@@ -176,10 +176,12 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals; `PLAYWRIGHT_NO_COPY_PROMPT` set and `DEBUG`/`PWDEBUG`/other `PLAYWRIGHT_*` refused |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
-| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
+| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload — THREE programs: absolute, authority-relative (`host:port/path?q`, how Playwright writes a step subtitle) and path-relative |
+| `node scripts/ci/ts-source-facts.mjs` | (library) facts read from a PARSED TypeScript tree, so a comment, a string literal, `void f()` or a shadowed callee cannot satisfy a guard's check. Unit-tested in `ts-source-facts.test.mjs` |
+| `bash scripts/e2e/sweep-artifacts.sh SENTINEL DIR` | search every byte of an artifact tree for a value, with `.zip` members unpacked AND `;base64,` payloads decoded and recursed into |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
 | `node scripts/check-spec-refs.mjs` | the vendored contract references nothing outside itself |
@@ -510,11 +512,10 @@ and path intact. The upload is gated on
 `steps.redact.outcome == 'success'`, so a redactor that fails publishes nothing
 at all — two bare `if: failure()` conditions are not a sequence.
 
-**NOT covered: a SCHEME-LESS `host:port/path?query`, which is exactly how
-Playwright records a step subtitle.** This section previously claimed "**No URL
-query string leaves this repository, in any artifact**". That sentence is false,
-and an independent verifier reduced it to three lines against the redactor
-itself:
+**COVERED NOW: the SCHEME-LESS `host:port/path?query`, which is how Playwright
+records a step subtitle.** This section once claimed "no URL query string leaves
+this repository, in any artifact". That sentence was false, and an independent
+verifier reduced it to three lines against the redactor itself:
 
 ```
 "url":"http://host/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"        ->  ?<redacted>   OK
@@ -522,28 +523,80 @@ itself:
 "subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"     ->  UNCHANGED     LEAK
 ```
 
-`scripts/ci/redact-artifacts.sh`'s absolute program requires `scheme://` and its
-relative program requires the match to begin at `/`; `host:port/path?query`
-satisfies neither. Playwright drops the scheme when it writes a `test.trace` step
-subtitle, so **any `page.goto(signedUrl)` or `page.request.get(signedUrl)`
-produces one**, and the verifier measured a sentinel going 3 members → **1**
-after redaction, surviving in `test.trace`.
+The absolute program required `scheme://` and the relative program required the
+match to begin at `/`; `host:port/path?query` satisfied neither, and Playwright
+drops the scheme when it writes a `test.trace` step subtitle — measured in a
+probe as `"title":"Navigate","subtitle":"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=…"`
+beside a `params.url` the absolute program did catch.
 
-**D9 does not exercise this path, and does not claim to.** Its fixture injects
-the signed URL as a *sub-resource* (`img.src = url`) and navigates to `/`; a
-sub-resource never becomes a step subtitle. The demonstration is sound for what
-it covers and blind to this.
+Both `scripts/ci/redact-artifacts.sh` and `e2e/harness/redact.ts` now carry the
+same THREE programs — absolute, authority-relative and path-relative — and the
+verifier's own reduction line redacts, including its **undotted** hostname. The
+authority is a dotted host or IPv4 literal (port optional), any label with an
+explicit `:port`, or bare `localhost`, and a path must follow immediately. The
+price is deliberate OVER-redaction of a `1:23/foo?x=y`-shaped string: that costs
+a little diagnostic text and leaks nothing, which is the right way round.
+`see step 3/4?` has no authority and no path and is untouched.
 
-**Nothing can leak today**, for the same one reason as everything else in this
-section: no spec touches a signed URL, nothing authenticates, and there is no
-vizra-core. The existing hard rule below — no spec may authenticate, fill a
-credential or touch a real signed URL until the artifact-privacy slice lands —
-is what holds the line, and it is asserted by
-`e2e/harness/no-credentials-in-specs.test.ts`. **The fix is queued with that
-slice**: a third program for authority-relative URLs (an optional `host[:port]`
-before the path), plus a second D9 fixture that reaches the sentinel through
-`page.goto()` so the subtitle path is covered by the demonstration that claims
-to cover it. Not done here.
+**AND THE ONE NOBODY HAD LOOKED AT: `playwright-report/index.html` carries a
+BASE64-EMBEDDED ZIP of the entire report, which no redactor here can reach.**
+`playwright/lib/runner/index.js:3704-3712` appends
+
+```
+<template id="playwrightReportBase64">data:application/zip;base64,…</template>
+```
+
+whose payload decodes (magic `504b0304`) to a ZIP whose members carry the error
+messages, the step titles and subtitles, and the attachment bodies.
+`redact-artifacts.sh` runs perl over `index.html` as TEXT, so it rewrites the
+plaintext and cannot touch the payload; it unpacks `*.zip` **files** only. And
+`sweep-artifacts.sh` — the script this file names as the proof — greps raw bytes
+and could not decode base64 either.
+
+Measured on a failing probe run: three planted markers — a scheme-less signed
+URL, a typed password and an assertion's received value — lived **only** inside
+that payload, a raw grep of `index.html` found **nothing**, and all three were
+**still live** after the shipped redactor reported
+`OK: redacted … 23 file(s) and 2 archive(s)`.
+
+**So every "verified end to end" redaction measurement this repository has
+recorded was made with a search blind to this file**, including the
+"239 `?<redacted>`, zero live queries" figure above and D9's "3 members → 0".
+Those numbers are true of the channels that were searched and unproven for this
+one. Two changes, and only one of them is a redactor:
+
+1. **`playwright-report/` is no longer uploaded.** The `e2e` workflow's upload
+   paths are an ALLOWLIST — `test-results/`, `playwright-report/results.json`,
+   `playwright-browsers.txt` — enforced by `check-e2e-lane.mjs` across every job
+   of the file, with globs, `${{ }}` expressions, `.` and `..` all refused.
+   Re-encoding the payload would have been a fifth URL-shape prediction after
+   four rounds; not uploading it is not a prediction. Nothing diagnostic is lost:
+   `test-results/` still holds `trace.zip`, the screenshot, the video and
+   `error-context.md`, `npx playwright show-trace test-results/<test>/trace.zip`
+   opens the trace without the report, and `playwright-report/data/` was a
+   byte-identical second copy of the same traces.
+2. **`sweep-artifacts.sh` decodes then recurses.** Every `;base64,` payload long
+   enough to be an archive is decoded and, if its magic says ZIP or gzip,
+   unpacked and searched with everything else. Verified against the probe tree:
+   the old raw grep found the marker in 1 member, the new sweep finds it in 5,
+   including `.decoded-0.bin.unzipped/…json` — the member a raw grep cannot see.
+
+**AND `error-context.md`, which no Playwright CONFIG option gates.** It is
+written by `playwright/lib/index.js:709` whenever a test has errors — measured
+still written with `trace`, `screenshot` and `video` all `"off"` — and the HTML
+reporter copies it into `playwright-report/data/`. It carries the error message,
+a `# Test source` code frame (±100 lines of `errorLocation.file`, which for an
+error raised in a helper is the **helper's** source), and a `# Page snapshot`.
+
+That last section is an `ariaSnapshot({ mode: "ai" })` of the LIVE PAGE: every
+DOM text node and **every input's current value**. In the probe it is what
+captured a typed password while every recorder was off. One environment variable
+gates it (`playwright/lib/index.js:657-658`), so the `e2e` job sets
+`PLAYWRIGHT_NO_COPY_PROMPT: "1"` at job level — in CI only, so a developer still
+gets the snapshot on their own machine — and `check-e2e-lane.mjs` asserts it is
+set. The FILE is still written, and its error details are still uploaded; that is
+deliberate, and it is why the Lane-B design in the queued authenticated-lane
+slice makes the PATH the control rather than an option.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -566,21 +619,43 @@ Earlier wording here offered "keeping origin, path, **headers** and timings
 readable" as a feature. Headers are the uncovered channel; that sentence is
 gone.
 
-**The rule that follows, and it is a hard line.** Until the artifact-privacy
-slice lands (header, body, DOM and call-parameter redaction — its own slice, not
-this one): **no spec may authenticate, fill a credential, or touch a real signed
-URL.** The traces are safe today for exactly one reason — nothing in this
-repository authenticates: there is no vizra-core, no session cookie and no
-signed URL. That is an accident of scope, not a control, so
+**The rule that follows, and it is still a hard line.** Until the authenticated
+lane lands (its own slice: a Playwright invocation whose projects record no
+trace, screenshot or video, whose output directory is in no upload path, and
+whose only artifact is a structured summary): **no spec may authenticate, fill a
+credential, or touch a real signed URL.** The traces are safe today for exactly
+one reason — nothing in this repository authenticates: there is no vizra-core, no
+session cookie and no signed URL. That is an accident of scope, not a control, so
 `e2e/harness/no-credentials-in-specs.test.ts` asserts it in the `frontend` lane:
 `addCookies`, `storageState`, `setExtraHTTPHeaders`, `httpCredentials`,
-`Authorization`, `Bearer`, `Set-Cookie`, `.fill(`, credential-shaped
-identifiers and signed-URL shapes are all refused in `e2e/specs/**` and
-`e2e/demos/**`, with one allow-list entry — D9's sentinel — carrying a written
-reason. A slice that needs to log in lands the privacy slice first, or waits.
+`Authorization`, `Bearer`, `Set-Cookie`, `.fill(`, credential-shaped identifiers
+and signed-URL shapes are all refused in `e2e/specs/**` and `e2e/demos/**`, with
+one allow-list entry — D9's sentinel — carrying a written reason. A slice that
+needs to log in lands the authenticated lane first, or waits.
 
-When that slice lands, the first authenticating spec proves its coverage with
-`scripts/e2e/sweep-artifacts.sh`, which already performs exactly this search.
+**This slice narrowed what a red lane publishes; it did NOT lift that rule, and
+must not be read as having done so.** Uncovered channels remain uncovered: header
+values, request and response bodies, DOM snapshots inside the trace, Playwright
+call parameters, and artifact file names all still survive into `test-results/`
+and are still uploaded. What changed is that the base64 report copy is no longer
+published, the page snapshot is suppressed in CI, the scheme-less URL form is
+redacted, page-controlled text is made inert, retention is 3 days, and the upload
+scope is an allowlist rather than a derivation. Read the table above before
+deciding a red lane is safe to share.
+
+**Who can read an uploaded artifact, exactly.** `yegamble/vizra-user` is a
+**PRIVATE** repository (checked with `gh repo view --json visibility`, as are
+`vizra`, `vizra-core` and `vizra-search`), so artifacts and job logs are readable
+by its **collaborators** — everyone with access now, and anyone an owner adds
+later — and not by the public. "Not public" is not "not published": an artifact
+is a durable copy of whatever the lane saw, held by GitHub, outside this
+repository's own access controls. Retention is **3 days**
+(`check-e2e-lane.mjs` enforces the ceiling); a trace nobody downloaded in three
+days is a trace nobody needed.
+
+When the authenticated lane lands, the first authenticating spec proves its
+coverage with `scripts/e2e/sweep-artifacts.sh`, which now performs this search
+with base64 payloads decoded and recursed into.
 
 The first push of this harness committed a Next HMR URL with an opaque `?id=`
 into the evidence and the secret scanner flagged it; that is what started all
@@ -719,71 +794,84 @@ it is trusted.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
-- **`check-e2e-lane.mjs`'s harness checks are a GREP, and a grep is all they
-  are. Read what defeats them before relying on one.** There are eleven: ten
-  that demand a CALL (`name(`) and one that demands the presence of
-  `STAMP_ANNOTATION`. They used to be `includes("guardBrowser")` and friends,
-  and an independent verifier measured what that bought: with the CALL replaced
-  by an inert guard object and the IMPORT left in place, `tsc` exit 0, the lane
-  guard exit 0, and the lane exit 0 with `18 passed` — the guard entirely
-  inert. Only the canary caught it. Demanding `name(` closes that case, and each
-  of the eleven is demonstrated going red against its own controlled mutation
-  (**D13q**).
+- **`check-e2e-lane.mjs`'s harness checks read a PARSED TREE, and what they
+  still cannot decide is written down.** There are eleven: ten that require a
+  genuine CALL and one that requires a non-import REFERENCE to
+  `STAMP_ANNOTATION`. They began as `includes("guardBrowser")`, and an
+  independent verifier measured what that bought: with the CALL replaced by an
+  inert guard object and the IMPORT left in place, `tsc` exit 0, the lane guard
+  exit 0, and the lane exit 0 with `18 passed` — the guard entirely inert. Only
+  the canary caught it.
 
-  **It does NOT "strip comments", and this file said that it did.** Measured
-  against `withoutComments` directly, with the call removed in each case:
+  **The string version was then defeated three more ways, and this file used to
+  say it "does not strip comments" and leave it there.** Measured with the call
+  removed in each case:
 
-  | Decoy left behind | Check |
-  |---|---|
-  | nothing | **RED** — the control working |
-  | a line comment where `//` starts the line | **RED** — stripped |
-  | a block comment `/* … */`, JSDoc included | **RED** — stripped |
-  | a **trailing** line comment: `void 0; // formatOrphans(a, b)` | **GREEN — defeated** |
-  | a **string literal**: `const s = "formatOrphans(";` | **GREEN — defeated** |
-  | **call-and-discard**: `void formatOrphans(a, b);` | **GREEN — defeated** |
+  | Decoy left behind | Old string check | Now |
+  |---|---|---|
+  | nothing | **RED** | **RED** |
+  | a line comment where `//` starts the line | **RED** | **RED** |
+  | a block comment `/* … */`, JSDoc included | **RED** | **RED** |
+  | a **trailing** line comment: `void 0; // formatOrphans(a, b)` | **GREEN — defeated** | **RED** |
+  | a **string literal**: `const s = "formatOrphans(";` | **GREEN — defeated** | **RED** |
+  | **call-and-discard**: `void formatOrphans(a, b);` | **GREEN — defeated** | **RED** |
+  | a **shadowed callee**: `const formatOrphans = () => "x";` above the call | (not reachable then) | **RED** |
 
   An independent verifier drove the trailing-comment case end to end on the one
   control the canary cannot reach: delete the orphan assertion from
   `e2e/harness/test.ts`, leave `// formatOrphans(…)` trailing — `tsc` exit 0,
   `check-e2e-lane.sh` exit 0, the canary exit 0, and an `afterAll` that breaks a
-  page **passes**. Blast radius is bounded: if a later test runs in the same
-  worker the records leak forward and are charged to it (measured), so only a
-  dirty `afterAll` that is the last thing a worker does goes fully silent.
+  page **passing**.
 
-  **This matters more for the late edge than anywhere else**, because for
-  `afterAll` → worker-teardown this grep is the ONLY compensating control — the
-  canary cannot exercise it and the out-of-process check does not see it. For
-  every other symbol the control is D13/D15's runtime shapes and the canary, and
-  the grep is only an early warning. Defeating it needs an edit to
-  `e2e/harness/**` (a CODEOWNERS path) by someone who also leaves a decoy, so it
-  is deliberate evasion rather than an honest mistake — but it is not what
-  "greps for the assertion by call, so deleting it is not silent" claimed.
-  **That sentence is still in the header of `e2e/harness/worker-guard.ts` and it
-  overstates the control**; it is left unedited only because
-  `docs/evidence/VZ-FOUND-008/mutation-digests.txt` pins that file's bytes, and
-  correcting it lands with the control. **Queued for the next vizra-user harness
-  slice**: match on a tokenised or parsed source so comments and string literals
-  cannot satisfy a check, with `require-checks_test.sh` cases for the
-  trailing-comment and string flavours. Not done here.
-- **`globalSetup` and `globalTeardown` are outside the guard entirely, and
-  nothing refuses one.** The listening starts at WORKER setup; `globalSetup`
-  runs in the Playwright main process before any worker exists, so no listener
-  is attached and the creation guard is unarmed. An independent verifier
-  measured it: a `globalSetup` that launches its own Chromium and opens a page
-  which 404s a sub-resource and throws gives `npx playwright test` exit **0**,
-  `3 passed`, with no guard message — and the module provably ran (it wrote a
-  marker file). `check-e2e-lane.sh` exits 0 too; neither this file nor any
-  script mentioned it before this paragraph.
+  `scripts/ci/ts-source-facts.mjs` now parses the file with the `typescript`
+  devDependency and looks for a `CallExpression` whose callee is the required
+  identifier. A comment is not a node and a string literal is not a call, so the
+  first two defeats are gone **by construction** rather than by a better regex —
+  which matters, because the three previous fixes were all better regexes. The
+  `void` spelling is refused explicitly, and a **shadowed callee** is refused
+  too: matching "a call to something named X" without asking which X would have
+  traded a string defeat for a scope defeat. The shadow check walks every
+  enclosing scope, and a binding that is not the module's own import fails the
+  check with its own named reason. The `STAMP_ANNOTATION` check went the same
+  way: it used to be satisfied by the identifier surviving on its own import
+  line, which a verifier measured at `f0ee8f1`.
 
-  It sits with the other config-level residuals rather than with the holes: it
-  needs a `playwright.config.ts` edit, which is a `.github/CODEOWNERS` path and
-  not reachable from a spec, and the repository has no `globalSetup` key today.
-  A setup **project** (`dependencies: [...]`) is by contrast fully covered — its
-  tests are ordinary tests and the verifier's broken one failed with
-  `[response] http 404`. **Queued for the next vizra-user harness slice**: have
-  `check-e2e-lane.mjs` refuse a `globalSetup`/`globalTeardown` key outright,
-  since nothing here needs one, or guard it if a later slice does. Not done
-  here.
+  Each of the five shapes is red in `scripts/ci/require-checks_test.sh`, for
+  `formatOrphans` **and** `guardBrowser`, against a throwaway tree — and the
+  helper **refuses a mutation that did not change the file**, so a demonstration
+  that stops demonstrating is a failure rather than a pass.
+
+  **STILL NOT DECIDED, and this is review-only:** whether a call's RESULT is used
+  in a way that matters. `const _ = formatOrphans(…)` and a call inside a branch
+  that never runs both satisfy the check. That needs a type checker and a
+  reachability analysis; `scripts/ci/ts-source-facts.test.mjs` pins both as
+  known-permitted rather than leaving them unstated. Defeating the check now
+  needs an edit to `e2e/harness/**` (a CODEOWNERS path) that a reviewer reading
+  the diff would see as a call being removed.
+
+- **`globalSetup` and `globalTeardown` are outside the guard, and are now
+  REFUSED.** The listening starts at WORKER setup; `globalSetup` runs in the
+  Playwright main process before any worker exists, so no listener is attached
+  and the creation guard is unarmed. An independent verifier measured it: a
+  `globalSetup` that launches its own Chromium and opens a page which 404s a
+  sub-resource and throws gives `npx playwright test` exit **0**, `3 passed`,
+  with no guard message — and the module provably ran (it wrote a marker file).
+  `check-e2e-lane.sh` exited 0 too.
+
+  `check-e2e-lane.mjs` now refuses either key outright, in
+  **`playwright.config.ts` and `playwright.demos.config.ts`**, read from the
+  parsed configuration so a key named in a comment or a string does not trip it
+  and a **spread or a computed key fails closed** — the guard cannot rule the key
+  out through one, so it does not try. The one spread it does follow is a spread
+  of a configuration IMPORTED from another file in the same checked set, which is
+  the demos configuration's honest shape; that file is checked in its own right.
+  Nothing here needs a `globalSetup`, and a setup **project**
+  (`dependencies: [...]`) is fully covered — its tests are ordinary guarded tests
+  and the verifier's broken one failed with `[response] http 404`. If a later
+  slice genuinely needs one, the refusal is where that conversation happens
+  rather than a silent gap. Four cases in `require-checks_test.sh`, plus the two
+  inverse controls (a comment and a string) that must stay green.
+
 - **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED — three import-free
   routes reached one, and all three are now closed at RUNTIME.** This bullet
   used to say "nothing catches these today"; that sentence is no longer true,
