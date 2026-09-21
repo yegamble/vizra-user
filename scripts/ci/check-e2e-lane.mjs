@@ -418,51 +418,183 @@ if (!job) {
 //
 // THESE ARE STRING-PRESENCE CHECKS AND THEY ARE NOT THE CONTROL. An independent
 // verifier established the limit exactly: neutering the guard while leaving
-// these identifiers in place passes here. That is why the `e2e` lane now runs
-// `scripts/ci/harness-canary.mjs`, which exercises the guard against three real
+// these identifiers in place passes here. That is why the `e2e` lane runs
+// `scripts/ci/harness-canary.mjs`, which exercises the guard against four real
 // broken pages, and why deleting the stamp fixture or the stamp reporter turns
 // both the in-process and the out-of-process stamp checks red on their own.
 // What follows is the cheap early warning for an outright deletion.
-const guardPath = path.join(repoRoot, "e2e", "harness", "test.ts");
-try {
-  const guard = readFileSync(guardPath, "utf8");
-  if (!guard.includes("validatePolicy")) add("e2e/harness/test.ts no longer validates the allow-list policy.");
-  if (!guard.includes("unallowedRecords")) {
-    add("e2e/harness/test.ts no longer fails a test on unallowed browser errors.");
+//
+// EVERY CHECK BELOW REQUIRES A CALL, NOT A NAME. They used to be
+// `includes("guardBrowser")` and friends, and an independent verifier measured
+// what that bought: with the CALL replaced by an inert guard object and the
+// IMPORT left in place, `tsc` exit 0, this script exit 0, and the lane exit 0
+// with `18 passed` — with the guard entirely inert. Only the canary caught it.
+// A name on an import line is not evidence that anything runs, so each pattern
+// now demands `name(`. A mutation that calls and discards the result still
+// passes, which is the honest limit of a string check.
+const HARNESS_FILES = {
+  entry: path.join(repoRoot, "e2e", "harness", "test.ts"),
+  worker: path.join(repoRoot, "e2e", "harness", "worker-guard.ts"),
+};
+/** Each entry: [file key, /pattern/, message]. */
+const HARNESS_CALLS = [
+  [
+    "entry",
+    /validatePolicy\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `validatePolicy`, so the allow-list shape is not checked.",
+  ],
+  [
+    "entry",
+    /unallowedRecords\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `unallowedRecords`, so nothing fails a test on an " +
+      "unallowed browser error.",
+  ],
+  [
+    "entry",
+    /claimSigner\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `claimSigner`, so nothing at RUNTIME distinguishes a " +
+      "test that went through the guard from one that reached `@playwright/test` directly.",
+  ],
+  [
+    "entry",
+    /STAMP_ANNOTATION/,
+    "e2e/harness/test.ts no longer writes the stamp annotation (`STAMP_ANNOTATION`).",
+  ],
+  [
+    "entry",
+    /createWorkerHarness\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `createWorkerHarness`, so the browser-error listeners " +
+      "are not installed for the worker. A page opened and navigated in `beforeAll` would then " +
+      "be observed by nothing and its test would pass on a page that 404s and throws — measured " +
+      "by an independent verifier as FINDING 1.",
+  ],
+  [
+    "entry",
+    /isGenuineWorkerHarness\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `isGenuineWorkerHarness`, so a spec could replace the " +
+      "worker-scoped guard with a no-op, keep the per-test stamp and lose the listeners.",
+  ],
+  [
+    "entry",
+    /unguardedContexts\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `unguardedContexts`, so nothing asserts that every " +
+      "live context on the browser is one the guard registered — the catch-all underneath the " +
+      "creation guard, for a context-creation path nobody has thought of yet.",
+  ],
+  [
+    "entry",
+    /formatOrphans\s*\(/,
+    "e2e/harness/test.ts no longer CALLS `formatOrphans`, so signals produced after the last " +
+      "test in a worker — an `afterAll` hook on a broken page — belong to no test and fail " +
+      "nothing. A worker-teardown throw is what makes that a red run.",
+  ],
+  [
+    "worker",
+    /guardBrowser\s*\(/,
+    "e2e/harness/worker-guard.ts no longer CALLS `guardBrowser`, so the BrowserContext-level " +
+      "listeners are never attached and the guard sees nothing at all.",
+  ],
+  [
+    "worker",
+    /armCreationGuard\s*\(/,
+    "e2e/harness/worker-guard.ts no longer CALLS `armCreationGuard`, so a spec can reach a " +
+      "context through `Browser.prototype.newContext` or launch a browser of its own, and " +
+      "nothing watches that page.",
+  ],
+  [
+    "worker",
+    /patchBrowserPrototype\s*\(/,
+    "e2e/harness/worker-guard.ts no longer CALLS `patchBrowserPrototype`.",
+  ],
+];
+
+/**
+ * Comments removed before matching, because a comment is not code.
+ *
+ * MEASURED: the first version of these patterns reported `claimSigner(` as
+ * present in `e2e/harness/test.ts` when the CALL had been replaced — the
+ * fixture's own header comment says "a spec that calls `claimSigner()` gets a
+ * throw", and that sentence satisfied the regex. A check that a prose
+ * paragraph can satisfy is not a check.
+ *
+ * WHAT IT ACTUALLY STRIPS, AND WHAT STILL SATISFIES A CHECK. Block comments go
+ * entirely, JSDoc included. A LINE comment goes only when `//` is the first
+ * non-whitespace on its line — which keeps a `"http://…"` inside a string safe,
+ * and is also the limit. Measured against this function, with the call removed
+ * in each case:
+ *
+ *     nothing left behind                          -> RED   (working)
+ *     `// name(…)` at the start of a line          -> RED   (stripped)
+ *     a block comment naming it, JSDoc included    -> RED   (stripped)
+ *     `void 0; // name(…)`   TRAILING comment      -> GREEN  DEFEATED
+ *     `const s = "name(";`   string literal        -> GREEN  DEFEATED
+ *     `void name(…);`        call-and-discard      -> GREEN  DEFEATED
+ *
+ * An earlier version of this comment said "this can only make the patterns
+ * match LESS, i.e. fail closed". THAT WAS FALSE: a trailing comment or a string
+ * fails it OPEN, and an independent verifier drove the trailing-comment case
+ * end to end — orphan assertion deleted, `// formatOrphans(…)` left trailing,
+ * `tsc` 0, this script 0, the canary 0, and an `afterAll` that breaks a page
+ * passing.
+ *
+ * Read AGENTS.md § Residuals before relying on one of these checks, especially
+ * the `formatOrphans` one: for the late edge it is the only compensating
+ * control, because the canary cannot exercise a worker-teardown assertion and
+ * the out-of-process check does not see it. Matching a tokenised or parsed
+ * source instead is queued as its own slice.
+ */
+function withoutComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
+const harnessSource = {};
+for (const [key, file] of Object.entries(HARNESS_FILES)) {
+  try {
+    harnessSource[key] = withoutComments(readFileSync(file, "utf8"));
+  } catch {
+    add(`${path.relative(repoRoot, file)} is missing; the browser-error guard is incomplete.`);
   }
-  if (!guard.includes("claimSigner") || !guard.includes("STAMP_ANNOTATION")) {
-    add(
-      "e2e/harness/test.ts no longer stamps the tests it runs, so nothing at RUNTIME " +
-        "distinguishes a test that went through the guard from one that imported " +
-        "`@playwright/test` directly.",
-    );
-  }
-  if (!guard.includes("guardBrowser")) {
-    add(
-      "e2e/harness/test.ts no longer attaches the browser-error guard at the BROWSER " +
-        "(`guardBrowser`). Tied to one page, the guard is removed by `test.extend({ page: … })` " +
-        "while the stamp survives — a verifier passed the whole gate that way on a page that " +
-        "404s and throws.",
-    );
-  }
+}
+for (const [key, pattern, message] of HARNESS_CALLS) {
+  const source = harnessSource[key];
+  if (source !== undefined && !pattern.test(source)) add(message);
+}
+
+const entrySource = harnessSource.entry;
+if (entrySource !== undefined) {
   // The guard and the stamp must be in ONE fixture. Two fixtures is exactly the
   // shape `test.extend` can take apart, which is how FINDING 11 happened.
-  if (!/vizraHarnessGuard\s*:/.test(guard)) {
+  if (!/vizraHarnessGuard\s*:/.test(entrySource)) {
     add(
       "e2e/harness/test.ts no longer declares the combined `vizraHarnessGuard` fixture. The " +
-        "guard and the runtime stamp must live in the SAME automatic fixture, so that removing " +
-        "the guard removes the stamp that both floor checks require.",
+        "accounting and the runtime stamp must live in the SAME automatic fixture, so that " +
+        "removing one removes the stamp that both floor checks require.",
     );
   }
-  if (/^\s{2}page\s*:\s*async/m.test(guard)) {
+  // The listening must be WORKER-scoped and automatic. A test-scoped listener
+  // is set up after `beforeAll` has already run — FINDING 1.
+  if (!/vizraWorkerGuard\s*:/.test(entrySource)) {
+    add(
+      "e2e/harness/test.ts no longer declares the `vizraWorkerGuard` fixture, which is where " +
+        "the listeners are installed for the whole worker.",
+    );
+  }
+  if (!/scope:\s*["']worker["'][^}]*auto:\s*true|auto:\s*true[^}]*scope:\s*["']worker["']/.test(entrySource)) {
+    add(
+      "e2e/harness/test.ts no longer declares an automatic WORKER-scoped fixture " +
+        "(`{ scope: \"worker\", auto: true }`). A test-scoped listener is set up AFTER " +
+        "`beforeAll` has run, so a page opened and navigated in a hook is never observed.",
+    );
+  }
+  if (/^\s{2}page\s*:\s*async/m.test(entrySource)) {
     add(
       "e2e/harness/test.ts overrides the `page` fixture again. The guard belongs in the " +
-        "automatic fixture, attached at the browser: a page-scoped guard is removable by " +
+        "automatic fixtures, attached at the browser: a page-scoped guard is removable by " +
         "`test.extend({ page: … })` in a spec, with the stamp left intact.",
     );
   }
-} catch {
-  add("e2e/harness/test.ts is missing; there is no browser-error guard.");
 }
 
 // The wiring that makes the stamp work: the configuration must load the harness

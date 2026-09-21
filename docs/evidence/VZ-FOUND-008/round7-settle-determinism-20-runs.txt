@@ -1,0 +1,24 @@
+20 CONSECUTIVE LANE RUNS with the worker-scoped listening and the 250 ms settle.
+$ for i in $(seq 1 20); do E2E_BASE_URL=... npx playwright test --workers=2; done
+--workers=2 is the CI shape. Every run must be exit 0, 18 passed, floor OK (9/9 9/9), 18 stamps.
+
+run 1: exit=0 |   18 passed (9.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 2: exit=0 |   18 passed (8.6s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 3: exit=0 |   18 passed (8.6s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 4: exit=0 |   18 passed (8.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 5: exit=0 |   18 passed (8.2s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 6: exit=0 |   18 passed (7.5s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 7: exit=0 |   18 passed (7.1s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 8: exit=0 |   18 passed (7.6s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 9: exit=0 |   18 passed (7.3s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 10: exit=0 |   18 passed (7.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 11: exit=0 |   18 passed (7.5s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 12: exit=0 |   18 passed (8.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 13: exit=0 |   18 passed (7.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 14: exit=0 |   18 passed (7.4s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 15: exit=0 |   18 passed (7.4s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 16: exit=0 |   18 passed (7.1s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 17: exit=0 |   18 passed (7.7s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 18: exit=0 |   18 passed (7.3s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 19: exit=0 |   18 passed (7.1s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 
+run 20: exit=0 |   18 passed (7.2s) e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9). e2e harness stamp: OK (18 succeeding result(s) verified). 

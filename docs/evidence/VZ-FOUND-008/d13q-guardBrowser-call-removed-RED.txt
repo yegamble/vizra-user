@@ -1,0 +1,7 @@
+$ bash scripts/ci/check-e2e-lane.sh
+
+::error::the e2e lane no longer tests what it claims to test:
+  e2e/harness/worker-guard.ts no longer CALLS `guardBrowser`, so the BrowserContext-level listeners are never attached and the guard sees nothing at all.
+  These properties are invisible in a green run, which is why they are asserted here.
+
+[exit 1]

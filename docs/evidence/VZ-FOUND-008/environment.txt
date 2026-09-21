@@ -1,10 +1,6 @@
-repository: /Users/yosefgamble/github/vizra/vizra-user
-branch:     feat/m0-browser-env
-head sha:   f6f1f59a7c15a15e50c052602c3da88a425e5d35
-tree state: 60 modified/untracked path(s)
-date:       2026-09-20T23:19:19Z
+branch:     fix/m0-harness-hardening
+head sha:   77305009a7ae5b20411134ce5497f88d824e68ce
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   c6yaIr8T7TLyVIamOY6v8
 project:    desktop-chromium-1440
 uname:      Darwin arm64

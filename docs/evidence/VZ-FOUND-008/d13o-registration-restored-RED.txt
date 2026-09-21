@@ -1,0 +1,74 @@
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › with registration restored the same context is guarded, not merely detected (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › with registration restored the same context is guarded, not merely detected 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('h1')
+    Expected: visible
+    Timeout: <time>
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('h1') with timeout <time>
+      - waiting for locator('h1')
+
+
+      18 |   await target.goto("/");
+      19 |   await target.waitForLoadState("networkidle");
+    > 20 |   await expect(page.locator("h1")).toBeVisible();
+         |                                    ^
+      21 | });
+      22 |
+        at <repo>/e2e/specs/__guard.spec.ts:20:36
+
+    Error: The page produced 3 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+    3 DURING THE TEST:
+      [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
+          at: http://127.0.0.1:3211/
+      [pageerror] pageerror: VERIFIER_F6_UNCAUGHT
+          at: http://127.0.0.1:3211/
+      [response] http 404: GET http://127.0.0.1:3211/VERIFIER_F6_MISSING.png
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+        at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/test-failed-<n>.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/test-failed-<n>.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/video<n>.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/__guard-with-registration--ad0b6-guarded-not-merely-detected-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › with registration restored the same context is guarded, not merely detected 
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]

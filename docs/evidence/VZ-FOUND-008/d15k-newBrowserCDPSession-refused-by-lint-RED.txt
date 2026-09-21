@@ -1,0 +1,14 @@
+$ bash -c cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test } from "../harness/test";
+test("x", async ({ browser }) => { await browser.newBrowserCDPSession(); });
+SPEC
+npx eslint e2e/specs/__guard.spec.ts
+
+
+<repo>/e2e/specs/__guard.spec.ts
+  2:42  error  `newBrowserCDPSession` produces a browser, or a context on one, that the harness was never handed — nothing watches its console errors, uncaught exceptions, failed requests or HTTP >= 400 responses. It needs no import, so the package bans above cannot see it: the objects arrive through the built-in `browser` and `playwright` fixtures. If a slice genuinely needs its own browser, put an overridden `browser` fixture under e2e/harness/** (a reviewed path), where the harness guards whatever it produces. This rule is the early warning; e2e/harness/creation-guard.ts refuses the call at runtime  vizra/no-unguarded-playwright-import
+
+✖ 1 problem (1 error, 0 warnings)
+
+
+[exit 1]

@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-e2e-lane.sh /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
+$ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
   the artifact upload at step 14 does not set `if-no-files-found: error`. This step only runs on failure, so a wrong path would be a warning nobody ever reads.

@@ -2,77 +2,77 @@
 
 #1 [internal] load build definition from Dockerfile
 #1 transferring dockerfile: 6.23kB done
-#1 DONE 0.0s
+#1 DONE <time>
 
 #2 resolve image config for docker-image://docker.io/docker/dockerfile:1
-#2 DONE 0.6s
+#2 DONE <time>
 
 #3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 #3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 done
 #3 CACHED
 
 #4 [internal] load metadata for docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#4 DONE 0.0s
+#4 DONE <time>
 
 #5 [internal] load .dockerignore
 #5 transferring context: 598B done
-#5 DONE 0.0s
+#5 DONE <time>
 
 #6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
 #6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 done
-#6 DONE 0.0s
+#6 DONE <time>
 
 #7 [internal] load build context
-#7 transferring context: 909.42kB 0.0s done
-#7 DONE 0.0s
+#7 transferring context: 1.24MB 0.0s done
+#7 DONE <time>
 
-#8 [deps 2/4] WORKDIR /app
+#8 [deps 3/4] COPY package.json package-lock.json ./
 #8 CACHED
 
-#9 [deps 3/4] COPY package.json package-lock.json ./
+#9 [deps 4/4] RUN npm ci
 #9 CACHED
 
-#10 [deps 4/4] RUN npm ci
+#10 [deps 2/4] WORKDIR /app
 #10 CACHED
 
 #11 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
 #11 CACHED
 
 #12 [builder 4/5] COPY . .
-#12 DONE 0.0s
+#12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 0.650 
-#13 0.650 > vizra-user@0.0.0 build
-#13 0.650 > next build
-#13 0.650 
-#13 1.261 ▲ Next.js 16.3.5 (Turbopack)
-#13 1.338 ✓ Running next.config.ts took 77ms
-#13 1.353 
-#13 1.394   Creating an optimized production build ...
-#13 6.245 ✓ Compiled successfully in 4.5s
-#13 6.266   Running TypeScript ...
-#13 8.915   Finished TypeScript in 2.6s ...
-#13 8.917   Collecting page data using 5 workers ...
-#13 9.386   Generating static pages using 5 workers (0/3) ...
-#13 9.806 ✓ Generating static pages using 5 workers (3/3) in 420ms
-#13 9.810   Finalizing page optimization ...
-#13 10.14 
-#13 10.15 Route (app)
-#13 10.15 ┌ ○ /
-#13 10.15 ├ ○ /_not-found
-#13 10.15 └ ƒ /health
-#13 10.15 
-#13 10.15 
-#13 10.15 ○  (Static)   prerendered as static content
-#13 10.15 ƒ  (Dynamic)  server-rendered on demand
-#13 10.15 
-#13 10.17 npm notice
-#13 10.17 npm notice New major version of npm available! 10.9.2 -> 12.0.2
-#13 10.17 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
-#13 10.17 npm notice To update run: npm install -g npm@12.0.2
-#13 10.17 npm notice
-#13 DONE 10.3s
+#13 0.413 
+#13 0.413 > vizra-user@0.0.0 build
+#13 0.413 > next build
+#13 0.413 
+#13 0.775 ▲ Next.js 16.3.5 (Turbopack)
+#13 0.837 ✓ Running next.config.ts took <time>
+#13 0.844 
+#13 0.864   Creating an optimized production build ...
+#13 4.478 ✓ Compiled successfully in <time>
+#13 4.496   Running TypeScript ...
+#13 6.292   Finished TypeScript in 1795ms ...
+#13 6.294   Collecting page data using 5 workers ...
+#13 6.849   Generating static pages using 5 workers (0/3) ...
+#13 7.165 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 7.168   Finalizing page optimization ...
+#13 7.368 
+#13 7.369 Route (app)
+#13 7.369 ┌ ○ /
+#13 7.369 ├ ○ /_not-found
+#13 7.369 └ ƒ /health
+#13 7.369 
+#13 7.369 
+#13 7.369 ○  (Static)   prerendered as static content
+#13 7.369 ƒ  (Dynamic)  server-rendered on demand
+#13 7.369 
+#13 7.384 npm notice
+#13 7.384 npm notice New major version of npm available! 10.9.2 -> 12.0.2
+#13 7.384 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+#13 7.384 npm notice To update run: npm install -g npm@12.0.2
+#13 7.384 npm notice
+#13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
 #14 CACHED
@@ -81,21 +81,21 @@
 #15 CACHED
 
 #16 [runner 5/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-#16 DONE 0.3s
+#16 DONE <time>
 
 #17 [runner 6/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-#17 DONE 0.0s
+#17 DONE <time>
 
 #18 exporting to image
 #18 exporting layers
-#18 exporting layers 1.6s done
-#18 exporting manifest sha256:bb589f980f3eb2bbda8a038bc18c9721576f6f39b4b03ff3bf730d5287220772 done
-#18 exporting config sha256:f0b60a0a64a18fb1a41423865478c4d57a0c8226a5399482a5d55f1c31023a2b done
-#18 exporting attestation manifest sha256:84954f3c07e7163fe92343d6a4e1e9205ada53ccbf5f486450cbd2bc6cf4962a done
-#18 exporting manifest list sha256:ffe181e6f5ba760c5b5afda995ed8ca8977f5d2ad8a7b0780c3250d815b80929 done
+#18 exporting layers 1.5s done
+#18 exporting manifest sha256:bc8708597f8454ad808e85c3fdf35875f0d60eed84e149edc16f596f8b98659f done
+#18 exporting config sha256:768b9e9a57b89f7fa590e3cbd248eaa72822599179a9b5c9b0ccf3eac73b860c done
+#18 exporting attestation manifest sha256:9625cc9e4ae19fa2355938ff5bd2de5415c906b0b704be99760f72cfea982f97 done
+#18 exporting manifest list sha256:4d21cc056e8e4dfb1b691e37196ee3fc42defa1df3f8d0e40b342c1c2dbef998 done
 #18 naming to docker.io/library/vizra-user:demonstrate done
 #18 unpacking to docker.io/library/vizra-user:demonstrate
 #18 unpacking to docker.io/library/vizra-user:demonstrate 0.3s done
-#18 DONE 1.9s
+#18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/9wj137zg0rnhg8lkaeqjc2t2s
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/jmhcygy3zniqnk7pdo7yf2azt

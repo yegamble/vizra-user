@@ -1,0 +1,13 @@
+TRANSCRIPT REPRODUCIBILITY — measured, twice back to back on the final tree.
+
+$ npm run e2e:demos   (run E)  -> exit 0, 123/123 halves
+$ git add -A docs/evidence/VZ-FOUND-008
+$ npm run e2e:demos   (run F)  -> exit 0, 123/123 halves
+$ git diff --name-only -- docs/evidence/VZ-FOUND-008
+
+  d5-dev-server-RED.txt      <- next dev's HMR WebSocket, see the README
+  d6-image-build.log         <- Docker build output
+  d6-mutant-build.log        <- Docker build output
+  server-development.log     <- the next dev server's own log
+
+  4 files differ out of 123 transcripts. Before the normaliser: 95.

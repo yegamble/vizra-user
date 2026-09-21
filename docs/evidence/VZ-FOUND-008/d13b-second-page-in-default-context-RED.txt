@@ -1,9 +1,9 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a second page in the same context (11.2s)
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a second page in the same context (<time>)
 
 
   1) [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a second page in the same context ───
@@ -12,11 +12,11 @@ Running 1 test using 1 worker
 
     Locator: locator('h1')
     Expected: visible
-    Timeout: 10000ms
+    Timeout: <time>
     Error: element(s) not found
 
     Call log:
-      - Expect "toBeVisible" locator('h1') with timeout 10000ms
+      - Expect "toBeVisible" locator('h1') with timeout <time>
       - waiting for locator('h1')
 
 
@@ -26,37 +26,38 @@ Running 1 test using 1 worker
          |                                    ^
       19 | });
       20 |
-        at /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts:18:36
+        at <repo>/e2e/specs/__guard.spec.ts:18:36
 
     Error: The page produced 3 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [response] http 404: GET http://127.0.0.1:3211/VERIFIER_F6_MISSING.png
-          at: http://127.0.0.1:3211/
+    3 DURING THE TEST:
       [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
           at: http://127.0.0.1:3211/
       [pageerror] pageerror: VERIFIER_F6_UNCAUGHT
+          at: http://127.0.0.1:3211/
+      [response] http 404: GET http://127.0.0.1:3211/VERIFIER_F6_MISSING.png
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/test-failed-1.png
+    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/test-failed-2.png
+    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/video.webm
+    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #5: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/video-1.webm
+    test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results/__guard-a-second-page-in-the-same-context-desktop-chromium-1440/error-context.md

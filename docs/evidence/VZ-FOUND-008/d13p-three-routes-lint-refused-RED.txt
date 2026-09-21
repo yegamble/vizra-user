@@ -1,0 +1,12 @@
+$ npx eslint e2e/specs/__guard.spec.ts
+
+
+<repo>/e2e/specs/__guard.spec.ts
+  6:9  error  `launch` produces a browser, or a context on one, that the harness was never handed — nothing watches its console errors, uncaught exceptions, failed requests or HTTP >= 400 responses. It needs no import, so the package bans above cannot see it: the objects arrive through the built-in `browser` and `playwright` fixtures. If a slice genuinely needs its own browser, put an overridden `browser` fixture under e2e/harness/** (a reviewed path), where the harness guards whatever it produces. This rule is the early warning; e2e/harness/creation-guard.ts refuses the call at runtime                   vizra/no-unguarded-playwright-import
+  6:9  error  `browserType` produces a browser, or a context on one, that the harness was never handed — nothing watches its console errors, uncaught exceptions, failed requests or HTTP >= 400 responses. It needs no import, so the package bans above cannot see it: the objects arrive through the built-in `browser` and `playwright` fixtures. If a slice genuinely needs its own browser, put an overridden `browser` fixture under e2e/harness/** (a reviewed path), where the harness guards whatever it produces. This rule is the early warning; e2e/harness/creation-guard.ts refuses the call at runtime              vizra/no-unguarded-playwright-import
+  7:9  error  `launchPersistentContext` produces a browser, or a context on one, that the harness was never handed — nothing watches its console errors, uncaught exceptions, failed requests or HTTP >= 400 responses. It needs no import, so the package bans above cannot see it: the objects arrive through the built-in `browser` and `playwright` fixtures. If a slice genuinely needs its own browser, put an overridden `browser` fixture under e2e/harness/** (a reviewed path), where the harness guards whatever it produces. This rule is the early warning; e2e/harness/creation-guard.ts refuses the call at runtime  vizra/no-unguarded-playwright-import
+
+✖ 3 problems (3 errors, 0 warnings)
+
+
+[exit 1]

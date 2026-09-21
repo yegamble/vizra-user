@@ -1,0 +1,21 @@
+THE FLUSH WINDOW — measured, not assumed.
+
+Method: a spec whose body ends by scheduling `setTimeout(() => { throw }, N)`, so the
+fault fires N ms AFTER the body returns. RED (a failing test) = the guard caught it.
+Run through playwright.demos.config.ts, --workers=1, against the local production server.
+The settle was varied with a temporary env knob during measurement; the shipped value is the
+constant SETTLE_MS = 250 in e2e/harness/browser-errors.ts.
+
+  settle    0 ms  ->  caught: 0                  missed: 50 150 250 400 600
+  settle  100 ms  ->  caught: 0 50               missed: 150 250 400 600
+  settle  250 ms  ->  caught: 0 50 150 250       missed: 400 600   <- SHIPPED
+  settle  400 ms  ->  caught: 0 50 150 250 400   missed: 600
+
+The 0 ms row reproduces the independent verifier's measurement exactly:
+0 ms caught, 50 ms and 150 ms missed.
+
+COST, on the real 18-test lane against the production server:
+  local worker count   3.2 s -> 4.4 s   (wall: 3.74/3.68/3.71 -> 4.88/4.75/5.39)
+  --workers=2 (CI)     4.8 s -> 6.9 s   (= 250 ms x 9 tests per worker)
+
+Both ends of the boundary are pinned by demonstration D14.

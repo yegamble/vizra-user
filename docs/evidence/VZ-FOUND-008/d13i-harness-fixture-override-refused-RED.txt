@@ -6,7 +6,7 @@ SPEC
 npx eslint e2e/specs/__guard.spec.ts
 
 
-/Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts
+<repo>/e2e/specs/__guard.spec.ts
   2:28  error  `test.extend` may not replace the harness's own fixture `vizraHarnessGuard`. That fixture is where the browser-error guard and the runtime stamp both live; replacing it is how a spec would keep the stamp and lose the guard. Overriding `page`, `context` or `browser` is fine — the guard attaches at the browser and covers whatever those fixtures produce  vizra/no-unguarded-playwright-import
 
 ✖ 1 problem (1 error, 0 warnings)

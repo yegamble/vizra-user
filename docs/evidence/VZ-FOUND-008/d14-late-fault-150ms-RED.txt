@@ -1,0 +1,54 @@
+$ demos e2e/demos/late-fault.demo.ts --grep RED:
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first 
+
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+    1 DURING THE TEST:
+      [pageerror] pageerror: __vizra_e2e_fixture__ late fault demonstration (D14)
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+
+       at ../harness/test.ts:324
+
+      322 |         );
+      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 324 |           throw new Error(
+          |                 ^
+      325 |             formatPhasedFailure(
+      326 |               unallowedBefore,
+      327 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/video<n>.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/test-failed-<n>.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first 
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]

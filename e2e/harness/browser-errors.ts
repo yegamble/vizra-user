@@ -43,11 +43,17 @@
  * rather than coercing it. `e2e/harness/browser-errors.test.ts` pins that
  * behaviour in vitest, so it is checked by the cheap lane too.
  *
- * WHEN IT ASSERTS. In fixture teardown, after the test body, so a test cannot
- * pass by simply not looking. Before asserting, the guard makes one round trip
- * into the page (`page.evaluate`) to flush events that the browser has emitted
- * but the driver has not yet delivered — without it an error raised by the last
- * action of a test could arrive after the assertion and be lost.
+ * WHEN IT LISTENS AND WHEN IT ASSERTS — two different times, and conflating
+ * them was a blocking finding of its own. The listeners are installed by a
+ * WORKER-scoped fixture, before the first `beforeAll` runs, so nothing is
+ * missed for being early. The ASSERTION is in the per-test fixture's teardown,
+ * after the test body, so a test cannot pass by simply not looking; each signal
+ * is charged to exactly one test by the cursor arithmetic in `worker-guard.ts`,
+ * and the failure names the phase. Before asserting, the guard settles (see
+ * `SETTLE_MS`) and makes one round trip into each page (`page.evaluate`) to
+ * flush events the browser has emitted but the driver has not yet delivered —
+ * without it an error raised by the last action of a test could arrive after
+ * the assertion and be lost.
  */
 
 import type {
@@ -145,7 +151,12 @@ function pageUrl(page: Page | null | undefined): string {
  *
  * Tying the guard to a second page would only move the hole: the next one is a
  * popup, a new tab, or `browser.newContext()` in the test body. So the guard is
- * attached to the BROWSER for the test's lifetime, at BrowserContext level —
+ * attached to the BROWSER for the WORKER's lifetime, at BrowserContext level.
+ * Worker-scoped, because a test-scoped attachment starts only AFTER `beforeAll`
+ * has run, and a page opened and navigated in a hook was therefore never
+ * observed at all — a blocking finding of its own; see
+ * `e2e/harness/worker-guard.ts` for the measured ordering and the accounting
+ * that charges each signal to exactly one test.
  * `console`, `weberror`, `requestfailed` and `response` all exist on
  * `BrowserContext` in the installed Playwright 1.63.0 types
  * (`playwright-core/types/types.d.ts`, checked, not assumed), and a context
@@ -157,46 +168,72 @@ function pageUrl(page: Page | null | undefined): string {
  *   - a spec that overrides `page` or `context` (their context already exists
  *     when this runs, and is swept);
  *   - `browser.newContext()` and `browser.newPage()` called during the test
- *     (both are wrapped for the test's lifetime and restored afterwards);
+ *     (both are wrapped for the worker's lifetime and restored afterwards);
+ *   - a page opened and navigated in `beforeAll`/`beforeEach`, or shared with an
+ *     earlier test: recorded, and charged to a test by phase;
  *   - `context.newPage()`, and popups/new tabs the page opens itself (a context
  *     listener covers every page in the context);
  *   - a spec that overrides the `browser` fixture — the harness fixture takes
  *     `browser` as a dependency, so it guards whichever browser the spec built.
  *
- * NOT COVERED, and nothing else catches it today. The wrapping below is on the
- * browser instance's OWN properties, so any route to a context that does not go
- * through them escapes. An independent verifier measured three, each from a
- * spec importing only the harness `test`, each passing the complete gate on a
- * page that 404s and throws:
+ * THE WRAPPING BELOW IS ON THE BROWSER INSTANCE'S OWN PROPERTIES, and that is
+ * no longer the whole story. An independent verifier measured three routes that
+ * produce a context without going through them, each from a spec importing only
+ * the harness `test`, each passing the complete gate on a page that 404s and
+ * throws:
  *
  *     Object.getPrototypeOf(browser).newContext.call(browser)
  *     browser.browserType().launch()
  *     playwright.chromium.launchPersistentContext(dir)
  *
- * (`Object.getPrototypeOf(browser).newPage.call(browser)` IS caught, because the
- * prototype's `newPage` calls `this.newContext` — the wrapper.) None of the
- * three imports a Playwright package, so `vizra/no-unguarded-playwright-import`
- * cannot see them; the runtime stamp, the coverage floor, the canary and the
- * workflow parser do not either. Review is the only control. This module used
- * to describe the residual as "a spec that launches its OWN browser, which
- * requires importing a Playwright package … refused by the lint rule"; that was
- * false, and AGENTS.md § Residuals now states it in terms of the OBJECT the
- * harness was never handed. Closing it — a teardown assertion that
- * `browser.contexts()` holds no unguarded context, plus three method names in
- * the lint rule — is queued as the next harness slice and is NOT done here.
+ * (`Object.getPrototypeOf(browser).newPage.call(browser)` was already caught,
+ * because the prototype's `newPage` calls `this.newContext` — the wrapper.)
+ * `e2e/harness/creation-guard.ts` closes all three at runtime: the prototype
+ * route is REGISTERED with the guard below (so a context created and closed
+ * inside the body still has its signals recorded), and a launch or a persistent
+ * context during the test is REFUSED. `unguardedContexts` here is the third
+ * layer — a teardown assertion that no live context on the harness's browser is
+ * one the guard never registered, which catches a creation path nobody has
+ * thought of yet. Read `creation-guard.ts` for what is still open.
+ *
+ * The own-property wrapping is kept even though the prototype patch now covers
+ * the same calls: it is the layer that holds if the prototype patch is ever
+ * removed, and the D13 demonstrations pin both.
  *
  * ALSO NOT COVERED, by design: Playwright's `request` fixture. The kinds below
  * are BROWSER signals; an `APIRequestContext` 404 is not one and does not fail
- * a test. And the flush window is finite — a fault scheduled 0 ms after the
- * body returns is caught, one at 50 ms or 150 ms is not.
+ * a test. And the flush window is finite — see `SETTLE_MS` below for how wide
+ * it is and what it costs.
  */
 export type BrowserGuard = {
-  /** Everything observed, in order, across every guarded context. */
+  /**
+   * Everything observed, in order, across every guarded context, for the
+   * lifetime of the guard — which is the WORKER's lifetime, not one test's.
+   *
+   * APPEND-ONLY, NEVER TRUNCATED, so the INDEX of a record is a monotonic
+   * sequence number and `since()` is exact rather than best-effort. That is
+   * what lets `vizraHarnessGuard` charge each signal to exactly one test: the
+   * records before its setup cursor came from a hook or a shared page, the
+   * ones after came from the test body, and the ones left at the end of the
+   * worker came from `afterAll` and belong to no test at all.
+   */
   readonly records: BrowserErrorRecord[];
+  /** The next sequence number — i.e. how many records exist so far. */
+  cursor(): number;
+  /** Every record appended at or after `cursor`. */
+  since(cursor: number): BrowserErrorRecord[];
   /** Every page currently open in a guarded context (for the flush). */
   pages(): Page[];
   /** How many contexts the guard is watching — asserted by the harness tests. */
   contextCount(): number;
+  /**
+   * Start watching a context. Idempotent, and the entry point the creation
+   * guard uses for a context produced by a route that never touched this
+   * browser instance's own `newContext` / `newPage`.
+   */
+  registerContext(context: BrowserContext): void;
+  /** Is this context one the guard is watching? */
+  isGuarded(context: BrowserContext): boolean;
   /** Restore the wrapped methods and detach every listener. */
   dispose(): void;
 };
@@ -289,8 +326,12 @@ export function guardBrowser(browser: Browser): BrowserGuard {
 
   return {
     records,
+    cursor: () => records.length,
+    since: (cursor: number) => records.slice(Math.max(0, cursor)),
     pages: () => [...guarded].flatMap((context) => safePages(context)),
     contextCount: () => guarded.size,
+    registerContext: guardContext,
+    isGuarded: (context: BrowserContext) => guarded.has(context),
     dispose: () => {
       if (hadOwnNewContext) target.newContext = previousNewContext;
       else delete (target as Partial<Wrappable>).newContext;
@@ -339,11 +380,89 @@ export async function flushBrowserEvents(page: Page): Promise<void> {
   }
 }
 
+/**
+ * THE SETTLE, AND EXACTLY WHAT IT BUYS.
+ *
+ * The guard asserts at a point in time, so there has always been a window after
+ * the test body returns in which a fault is missed. An independent verifier
+ * measured how wide it was: a fault scheduled `0 ms` after the body returns was
+ * caught, and faults at **50 ms and 150 ms were missed**. In other words the
+ * window was "whatever the driver had already delivered" — which for a Next.js
+ * page means a hydration effect, a deferred fetch or a lazily loaded chunk that
+ * throws just after the last assertion is invisible.
+ *
+ * So the flush now waits a fixed, bounded 250 ms before its round trips.
+ * MEASURED ON THIS MACHINE (macOS arm64, Chromium 1243), faults scheduled at
+ * 0 / 50 / 150 / 250 / 400 / 600 ms after the body returns:
+ *
+ *   settle    0 ms  ->  caught: 0                  missed: 50 150 250 400 600
+ *   settle  100 ms  ->  caught: 0 50               missed: 150 250 400 600
+ *   settle  250 ms  ->  caught: 0 50 150 250       missed: 400 600
+ *   settle  400 ms  ->  caught: 0 50 150 250 400   missed: 600
+ *
+ * COST, measured on the real 18-test lane against the production server:
+ * 250 ms per test, which is `3.2 s -> 4.4 s` at the local worker count and
+ * `4.8 s -> 6.9 s` in the CI shape (`--workers=2`, 9 tests per worker). The
+ * demonstration D14 records the numbers and the 20-run determinism check.
+ *
+ * THIS WIDENS THE WINDOW; IT DOES NOT CLOSE IT. A fault at 400 ms is still
+ * missed, and no finite wait changes that. AGENTS.md states the limit as
+ * "≥ 250 ms is caught, 400 ms is not", which is what was measured, rather than
+ * implying the class is covered.
+ */
+const SETTLE_MS = 250;
+
 /** Flush every page the guard is watching, so no page can hide a late event. */
 export async function flushGuardedPages(guard: BrowserGuard): Promise<void> {
+  // One bounded drain for the whole test, not one per page: the cost is a
+  // constant per test rather than a multiple of how many pages it opened.
+  await new Promise<void>((resolve) => setTimeout(resolve, SETTLE_MS));
   for (const page of guard.pages()) {
     await flushBrowserEvents(page);
   }
+}
+
+/**
+ * THE THIRD LAYER: contexts alive on the harness's browser that the guard never
+ * registered.
+ *
+ * `creation-guard.ts` registers a context created by any route through
+ * `Browser.prototype.newContext` / `newPage`, and refuses a second browser
+ * outright. This is the catch-all underneath both: whatever route produced it,
+ * a live context on THIS browser that the guard is not watching means a page
+ * ran unobserved, and the test must fail naming it.
+ *
+ * It is deliberately not the only control, because it cannot be: a context
+ * created and closed inside the test body is gone by teardown (which is why the
+ * prototype route is guarded rather than merely detected), and a separately
+ * launched browser has contexts of its own that `browser.contexts()` cannot see
+ * (which is why launching one is refused).
+ *
+ * Never throws: a disconnected browser has no contexts to report, and a control
+ * that can make the lane flaky is not a control.
+ */
+export function unguardedContexts(
+  browser: Browser,
+  guard: BrowserGuard,
+): BrowserContext[] {
+  try {
+    return browser.contexts().filter((context) => !guard.isGuarded(context));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A one-line description of a context for a failure message. Every URL goes
+ * through `redact.ts` for the same reason every record does: a failure message
+ * is published as a CI artifact, and a query string is where a signed URL
+ * leaks. Never throws — a closed context simply has no pages.
+ */
+export function describeContext(context: BrowserContext): string {
+  const urls = safePages(context).map((page) => pageUrl(page));
+  return urls.length === 0
+    ? "no open pages"
+    : `${urls.length} page(s): ${urls.join(", ")}`;
 }
 
 /** The per-test policy. An object, never a bare array — see the header. */
@@ -428,7 +547,107 @@ export function unallowedRecords(
   );
 }
 
-/** The failure message, listing every unallowed signal and the allow-list in force. */
+/** One record, as every failure message renders it. */
+function renderRecord(record: BrowserErrorRecord): string {
+  return `  [${record.kind}] ${record.detail}\n      at: ${record.where}`;
+}
+
+/** The allow-list footer, shared by every failure message. */
+function renderAllowList(allowed: readonly AllowedBrowserError[]): string[] {
+  if (allowed.length > 0) {
+    return [
+      "Allow-list in force for this test:",
+      ...allowed.map(
+        (entry) => `  ${entry.kind} ${String(entry.match)} — ${entry.reason}`,
+      ),
+    ];
+  }
+  return [
+    "No allow-list is in force. If one of these is genuinely expected, declare it with",
+    "test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.",
+  ];
+}
+
+/**
+ * The failure message when signals arrive in either phase of a test.
+ *
+ * THE PHASE IS NAMED FIRST, and that is the point of the whole worker-scoped
+ * rewrite. "The page was already in this state when your test started" and
+ * "your test did this" send a reader to completely different places, and for
+ * four verification rounds the first sentence could not be said at all —
+ * anything a `beforeAll` hook did was invisible, so the test passed.
+ */
+export function formatPhasedFailure(
+  before: readonly BrowserErrorRecord[],
+  during: readonly BrowserErrorRecord[],
+  allowed: readonly AllowedBrowserError[],
+): string {
+  const sections: string[] = [];
+  if (before.length > 0) {
+    sections.push(
+      `${before.length} BEFORE THE TEST BODY — a hook (beforeAll/beforeEach) or a page shared ` +
+        "with an earlier test produced these, and the page was already in this state when the " +
+        "test started:",
+      ...before.map(renderRecord),
+    );
+  }
+  if (during.length > 0) {
+    sections.push(`${during.length} DURING THE TEST:`, ...during.map(renderRecord));
+  }
+  return [
+    `The page produced ${before.length + during.length} browser error(s) that no allow-list ` +
+      "entry covers.",
+    "AGENTS.md: console and network errors are failures, not noise.",
+    "",
+    ...sections,
+    "",
+    ...renderAllowList(allowed),
+  ].join("\n");
+}
+
+/**
+ * The worker-teardown message for signals that belong to no test at all.
+ *
+ * `afterAll` runs after the last test's accounting and before the worker
+ * fixture tears down — measured on the installed 1.63.0 — so a page a hook
+ * breaks once the suite is over is recorded by the listeners and charged to
+ * nobody. A per-test allow-list cannot reach here, because there is no test to
+ * carry one, so this is default-deny with no exit.
+ */
+export function formatOrphans(
+  records: readonly BrowserErrorRecord[],
+  violations: readonly { readonly detail: string }[],
+): string {
+  return [
+    `${records.length + violations.length} browser signal(s) were produced AFTER THE LAST TEST ` +
+      "in this worker finished — an afterAll/afterEach hook, or a page still running once the " +
+      "suite was over. They belong to no test, so no test could fail for them; this worker " +
+      "fails the run instead.",
+    "AGENTS.md: console and network errors are failures, not noise.",
+    "",
+    ...records.map(renderRecord),
+    ...violations.map((violation) => `  ${violation.detail}`),
+    "",
+    "A per-test allow-list cannot reach here, because there is no test to carry it. If a hook",
+    "legitimately produces a signal, do that work in `beforeAll` — where the first test of the",
+    "group owns it — or in a test.",
+    "",
+    "See e2e/harness/worker-guard.ts.",
+  ].join("\n");
+}
+
+/**
+ * The single-phase failure message, listing every unallowed signal and the
+ * allow-list in force.
+ *
+ * THE FIXTURE NO LONGER CALLS THIS — it calls `formatPhasedFailure`, because a
+ * signal now has to be attributed to "before the test body" or "during it", and
+ * saying which is the whole point of the worker-scoped listening. This is kept
+ * exported and pinned by `browser-errors.test.ts` as the one-phase renderer:
+ * it is the shape `scripts/ci/harness-canary.mjs`'s comment refers to when it
+ * describes the `[kind]` markers, and both formatters share `renderRecord` and
+ * `renderAllowList`, so the message contract cannot drift between them.
+ */
 export function formatFailure(
   unallowed: readonly BrowserErrorRecord[],
   allowed: readonly AllowedBrowserError[],

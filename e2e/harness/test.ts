@@ -43,15 +43,23 @@ import { test as base, expect } from "@playwright/test";
 
 import {
   DENY_ALL,
+  describeContext,
   flushGuardedPages,
-  formatFailure,
-  guardBrowser,
+  formatOrphans,
+  formatPhasedFailure,
   unallowedRecords,
+  unguardedContexts,
   validatePolicy,
   type BrowserErrorPolicy,
   type BrowserGuard,
 } from "./browser-errors";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
+import {
+  createWorkerHarness,
+  isGenuineWorkerHarness,
+  REPLACED_WORKER_GUARD,
+  type WorkerHarness,
+} from "./worker-guard";
 
 /**
  * Claimed at MODULE LOAD, which in a worker happens while `playwright.config.ts`
@@ -73,15 +81,16 @@ export type VizraFixtures = {
   browserErrorPolicy: BrowserErrorPolicy;
 
   /**
-   * THE GUARD AND THE STAMP, IN ONE AUTOMATIC FIXTURE.
+   * THE ACCOUNTING, per test — and the stamp.
    *
-   * They used to be two: an `auto` fixture that stamped, and a `page` override
-   * that guarded. `test.extend` replaces one without the other, and an
-   * independent verifier did exactly that — kept the stamp, replaced `page`,
-   * and got the whole gate green on a page that 404s and throws. One fixture
-   * means "stamped" implies "guarded": removing the guard removes the stamp,
-   * which both the in-process reporter and the out-of-process check already
-   * refuse.
+   * It used to be the LISTENING too, and that was the hole. A page opened and
+   * navigated in `test.beforeAll` — the idiom Playwright's own documentation
+   * teaches for sharing a page — did everything it was going to do before this
+   * fixture existed, so the guard observed nothing and the test passed on a
+   * page that 404s and throws. The listening moved to `vizraWorkerGuard`, which
+   * Playwright sets up before the first `beforeAll` (measured, see
+   * `e2e/harness/worker-guard.ts`); what is left here is charging each recorded
+   * signal to exactly one test, and stamping.
    *
    * Automatic and not meant to be referenced by a spec.
    * `vizra/no-unguarded-playwright-import` refuses a spec that overrides this
@@ -90,50 +99,111 @@ export type VizraFixtures = {
   vizraHarnessGuard: BrowserGuard;
 };
 
-export const test = base.extend<VizraFixtures>({
+export type VizraWorkerFixtures = {
+  /**
+   * THE LISTENING, for the whole worker. Automatic, worker-scoped, and set up
+   * BEFORE any `beforeAll` hook runs — which is the entire point. See
+   * `e2e/harness/worker-guard.ts` for the measured ordering, for why the
+   * accounting stayed per test, and for how replacing this fixture costs the
+   * stamp rather than silently costing the guard.
+   */
+  vizraWorkerGuard: WorkerHarness;
+};
+
+export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
   // An option fixture, so `test.use({ browserErrorPolicy: ... })` works at file
   // or describe scope and is visible in the diff of the spec that needs it.
   browserErrorPolicy: [DENY_ALL, { option: true }],
 
-  // THE GUARD **AND** THE RUNTIME PROOF, in one `auto: true` fixture that a
-  // spec cannot replace without losing the stamp.
+  // ---------------------------------------------------------------------
+  // THE LISTENING — worker-scoped, automatic.
+  // ---------------------------------------------------------------------
   //
   // IT DEPENDS ON `browser`, NOT ON `page`, AND THAT IS THE POINT. Attaching to
-  // one page guarded one page: the verifier's exploit overrode the `page`
-  // fixture to hand back a page from a context the guard had never seen, kept
-  // its stamp, and passed on a page that 404s and throws. Guarding a second page
+  // one page guarded one page: a verifier's exploit overrode the `page` fixture
+  // to hand back a page from a context the guard had never seen, kept its
+  // stamp, and passed on a page that 404s and throws. Guarding a second page
   // would only move the hole to a popup or a fresh context. So the guard is
   // installed on the BROWSER — at BrowserContext level, which covers every page
-  // in every context, including popups and new tabs — for this test's lifetime,
-  // and `guardBrowser` restores what it wrapped in teardown. If a spec overrides
-  // the `browser` fixture, Playwright hands THAT browser here and it is the one
-  // guarded.
+  // in every context, including popups and new tabs.
+  //
+  // AND IT IS WORKER-SCOPED, because a test-scoped fixture is set up after
+  // `beforeAll` has already run. Depending on `browser` (worker-scoped) means
+  // Playwright resolves the runner's own browser first, so the browser launch
+  // this guard refuses during a test is untouched at worker setup — which is
+  // what keeps an overridden `browser` fixture legal (D13g).
+  vizraWorkerGuard: [
+    // The callback parameter is `provide`, not `use`: `react-hooks/rules-of-hooks`
+    // reads a call to `use(...)` inside a try/catch as a misplaced React hook,
+    // and the try/catch is load-bearing here.
+    async ({ browser }, provide) => {
+      const harness = createWorkerHarness(browser);
+      try {
+        await provide(harness);
+
+        // THE LATE EDGE FOR HOOKS. Anything recorded after the last test's
+        // accounting belongs to no test: `afterAll`, or a page still doing
+        // something after the final test finished. Measured on 1.63.0: a throw
+        // here gives `npx playwright test` exit 1 with "1 error was not a part
+        // of any test", even when every test passed — so a broken page visited
+        // only in `afterAll` cannot leave the lane green.
+        const orphanRecords = harness.guard.since(harness.claimedRecords);
+        const orphanViolations = harness.violations.slice(
+          harness.claimedViolations,
+        );
+        if (orphanRecords.length > 0 || orphanViolations.length > 0) {
+          throw new Error(formatOrphans(orphanRecords, orphanViolations));
+        }
+      } finally {
+        // The browser is shared by every test in this worker and outlives the
+        // guard, so the wrapping and the listeners are restored however this
+        // ends.
+        harness.dispose();
+      }
+    },
+    { scope: "worker", auto: true },
+  ],
+
+  // ---------------------------------------------------------------------
+  // THE ACCOUNTING **AND** THE RUNTIME PROOF — test-scoped, automatic.
+  // ---------------------------------------------------------------------
   //
   // WHY `context` IS A DECLARED DEPENDENCY, AND WHY NOT `page`. It is there
   // purely for ORDERING, and the ordering was measured rather than assumed:
   //
-  //   - depending on `browser` alone, Playwright sets this automatic fixture up
-  //     FIRST and therefore tears it down LAST. A probe printed `pages=0` at
-  //     that moment: the context was already closed, so the flush had nothing
-  //     to flush, late events were lost, and the trace of the failure this
-  //     fixture reports had already been written (a demonstration that inspects
-  //     that trace went from 21 members to 8).
-  //   - depending on `page` fixes the teardown but moves the setup: the guard
-  //     is installed after an overridden `page` fixture has already built its
-  //     context, so a spec that navigates INSIDE its own fixture and never in
-  //     the body escaped. Measured: that spec passed on a broken page.
+  //   - with neither, this fixture is set up first and torn down LAST. A probe
+  //     printed `pages=0` at that moment: the context was already closed, so
+  //     the flush had nothing to flush, late events were lost, and the trace of
+  //     the failure this fixture reports had already been written (a
+  //     demonstration that inspects that trace went from 21 members to 8).
+  //   - depending on `page` fixes the teardown but moves the setup later still.
   //   - depending on `context` gives both. Playwright's `page` fixture does not
   //     close the page — the context does — so at this fixture's teardown the
-  //     page is still open (`pages=1`, measured) while the wrapping was
-  //     installed before `page` was ever created. The pre-navigation spec above
-  //     now fails with all three records.
+  //     page is still open (`pages=1`, measured).
   //
   // A spec that overrides `page` to build its own context still gets the
-  // default context created (this fixture depends on it); that costs one unused
-  // context per test and is what makes the wrapper present before the override
-  // runs. Any context that already exists is swept as well.
+  // default context created (this fixture depends on it). Any context that
+  // already exists is guarded by the worker fixture, which ran first.
   vizraHarnessGuard: [
-    async ({ browser, context, browserErrorPolicy }, runTest, testInfo) => {
+    async (
+      { browser, context, browserErrorPolicy, vizraWorkerGuard },
+      runTest,
+      testInfo,
+    ) => {
+      // STAMPED IMPLIES GUARDED, one level up. Moving the listening into a
+      // second fixture would otherwise let a spec `test.extend` the WORKER
+      // fixture with a no-op, keep this one and its stamp, and lose the guard —
+      // exactly the shape that made FINDING 11 blocking. A harness built by
+      // `createWorkerHarness` is branded in a module-private WeakSet that
+      // nothing outside `worker-guard.ts` can add to, and this check runs
+      // BEFORE the stamp is written, so a replaced worker fixture costs the
+      // stamp and both floor checks refuse the run.
+      if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
+        throw new Error(REPLACED_WORKER_GUARD);
+      }
+      const worker = vizraWorkerGuard;
+      const guard = worker.guard;
+
       const policyProblems = validatePolicy(browserErrorPolicy);
       if (policyProblems.length > 0) {
         throw new Error(policyProblems.join("\n"));
@@ -146,12 +216,20 @@ export const test = base.extend<VizraFixtures>({
       // is guarded like any other.
       void context;
 
-      const guard = guardBrowser(browser);
+      // PHASE 1 — everything recorded since the previous test finished. That is
+      // a `beforeAll` hook, or a shared page that did something between two
+      // tests. Before the listening was worker-scoped this window did not exist
+      // and its contents were invisible.
+      const beforeBodyRecords = guard.since(worker.claimedRecords);
+      const beforeBodyViolations = worker.violations.slice(
+        worker.claimedViolations,
+      );
+      const bodyStartRecord = guard.cursor();
+      const bodyStartViolation = worker.violations.length;
 
       // The stamp is written when the test STARTS, so a test that times out or
       // crashes is still stamped and the two checks stay independent of each
-      // other. It cannot be written without this fixture running, and this
-      // fixture is where the guard is installed: stamped implies guarded.
+      // other.
       testInfo.annotations.push({
         type: STAMP_ANNOTATION,
         description: signStamp({
@@ -167,9 +245,20 @@ export const test = base.extend<VizraFixtures>({
         await runTest(guard);
 
         // The page is still OPEN here — measured, not assumed (`pages=1`).
-        // Playwright's `page` fixture does not close the page; the `context`
-        // fixture does, and this fixture is torn down before it.
+        // The settle lives in here too; see `flushGuardedPages`.
         await flushGuardedPages(guard);
+
+        // PHASE 2 — everything recorded during this test: the body itself, and
+        // `beforeEach`/`afterEach`, which the measured ordering puts inside
+        // this window.
+        const duringBodyRecords = guard.since(bodyStartRecord);
+        const duringBodyViolations = worker.violations.slice(bodyStartViolation);
+
+        // Contexts alive on THIS browser that the guard never registered. The
+        // creation guard registers everything that goes through
+        // `Browser.prototype`, so this is the catch-all for a route nobody has
+        // thought of yet.
+        const strays = unguardedContexts(browser, guard);
 
         // Attach everything observed, pass or fail: a passing run's record is
         // what makes "no errors" evidence rather than an absence of looking.
@@ -177,7 +266,13 @@ export const test = base.extend<VizraFixtures>({
           body: JSON.stringify(
             {
               contextsGuarded: guard.contextCount(),
-              records: guard.records,
+              contextsUnguarded: strays.length,
+              creationViolations: [
+                ...beforeBodyViolations,
+                ...duringBodyViolations,
+              ],
+              recordsBeforeTestBody: beforeBodyRecords,
+              recordsDuringTestBody: duringBodyRecords,
               allowed: allowedBrowserErrors.map((entry) => ({
                 kind: entry.kind,
                 match: String(entry.match),
@@ -190,15 +285,57 @@ export const test = base.extend<VizraFixtures>({
           contentType: "application/json",
         });
 
-        const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-        if (unallowed.length > 0) {
-          throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+        // Reported BEFORE the browser-error records: a test that reached an
+        // unguarded browser has no trustworthy record set to report, so
+        // "the guard did not see everything" must be the headline, not a
+        // footnote under whatever the guarded pages happened to log.
+        const violations = [...beforeBodyViolations, ...duringBodyViolations];
+        if (violations.length > 0) {
+          throw new Error(
+            `${violations.length} attempt(s) to create a browser or context the harness was ` +
+              "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
+              violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
+          );
+        }
+        if (strays.length > 0) {
+          throw new Error(
+            `${strays.length} context(s) the harness was never handed are open on this browser ` +
+              "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
+              "guard, over every context it created.\n\n" +
+              strays
+                .map((stray) => `  an unguarded context, ${describeContext(stray)}`)
+                .join("\n") +
+              "\n\nSee e2e/harness/creation-guard.ts.",
+          );
+        }
+
+        // Both phases are judged under the SAME per-test allow-list, and the
+        // failure says which phase produced each signal — "before the test
+        // body" is the sentence that would have saved four verification rounds.
+        const unallowedBefore = unallowedRecords(
+          beforeBodyRecords,
+          allowedBrowserErrors,
+        );
+        const unallowedDuring = unallowedRecords(
+          duringBodyRecords,
+          allowedBrowserErrors,
+        );
+        if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+          throw new Error(
+            formatPhasedFailure(
+              unallowedBefore,
+              unallowedDuring,
+              allowedBrowserErrors,
+            ),
+          );
         }
       } finally {
-        // The browser is worker-scoped and shared by every test in this worker.
-        // Leaving a wrapper or a listener behind would make one test's fixture
-        // observe the next test's pages, so it is restored however this ends.
-        guard.dispose();
+        // Charge everything up to here to this test, so the next test starts
+        // from a correct cursor even if this one timed out or threw. The
+        // buffers themselves are never truncated — the index IS the sequence
+        // number.
+        worker.claimedRecords = guard.cursor();
+        worker.claimedViolations = worker.violations.length;
       }
     },
     { auto: true },

@@ -1,5 +1,5 @@
-$ bash scripts/ci/check-e2e-lane.sh /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
+$ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
-OK: /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-mutant.yml still drives the built image, runs `npm run e2e` unconditionally, re-checks the coverage floor after it, runs the harness canary, and redacts artifacts before EVERY upload step publishes them.
+OK: <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml still drives the built image, runs `npm run e2e` unconditionally, re-checks the coverage floor after it, runs the harness canary, and redacts artifacts before EVERY upload step publishes them.
 
 [exit 0]

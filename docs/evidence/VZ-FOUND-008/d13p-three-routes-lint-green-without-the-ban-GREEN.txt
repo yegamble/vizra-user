@@ -1,0 +1,6 @@
+$ bash -c npx eslint --config eslint.config.no-banned-methods.mjs e2e/specs/__guard.spec.ts \
+    && echo "lint green: the three routes are import-free, so the package bans never see them"
+
+lint green: the three routes are import-free, so the package bans never see them
+
+[exit 0]

@@ -11,13 +11,14 @@
  * would have caught it is `npm run e2e:demos`, and that is not a CI lane: it
  * needs Docker, a dev server and several minutes.
  *
- * So the three demonstrations that matter most run IN the lane, against the same
+ * So the four demonstrations that matter most run IN the lane, against the same
  * container the lane just drove, and each one is REQUIRED TO FAIL for its own
- * named reason:
+ * named reason — one per guarded signal kind:
  *
  *   console.error on the page      -> "browser error(s) that no allow-list entry covers"
  *   a sub-resource returning 404   -> "http 404"
  *   an uncaught exception          -> "pageerror"
+ *   a request that never completes -> "requestfailed"
  *
  * If any of them passes, or fails for a different reason, the lane is RED. That
  * makes "the guard was quietly switched off" a named CI failure instead of a
@@ -62,9 +63,10 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
  * So each fixture now declares the kinds the guard MUST record and the kinds it
  * must NOT, measured against the committed demos:
  *
- *   console-error       -> {console}            (a plain console.error)
- *   failed-request      -> {response, console}  (Chromium logs the 404 too)
+ *   console-error       -> {console}                 (a plain console.error)
+ *   failed-request      -> {response, console}       (Chromium logs the 404 too)
  *   uncaught-exception  -> {pageerror}
+ *   aborted-request     -> {requestfailed, console}  (Chromium logs the refusal too)
  *
  * Swapping any fixture's fault for another kind therefore turns the canary red:
  * a 404 in the console fixture adds `[response]`, a throw in the 404 fixture
@@ -77,15 +79,16 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
  * and it buys per-fixture isolation, without which "must NOT contain" could
  * never be asserted at all.
  *
- * WHAT THIS DOES NOT COVER: `requestfailed`, the fourth guarded signal kind.
- * None of the three fixtures produces one — a 404 is a COMPLETED response, not
- * a failed request — so an independent verifier measured that removing the
- * `requestfailed` listener from the guard leaves this canary GREEN, while
- * removing `console`, `weberror` or `response` turns it red. One of the four
- * kinds the guard watches (aborted requests, connection refused, DNS failures)
- * therefore has no canary coverage. A fourth fixture against a closed port or
- * an aborted route, with expected kinds ["requestfailed"], is queued as the
- * next harness slice and is NOT done here. AGENTS.md says the same.
+ * ALL FOUR GUARDED KINDS ARE COVERED, and the fourth is here because it was
+ * once missing. An independent verifier neutered each listener in turn and
+ * measured: `console`, `weberror` and `response` each turned this canary red,
+ * and `requestfailed` left it GREEN — no fixture produced one, because a 404 is
+ * a COMPLETED response, not a failed request. So the one kind that catches
+ * aborted requests, connection refused and DNS failures could have been dropped
+ * from the guard with no lane noticing. `e2e/demos/aborted-request.demo.ts`
+ * refuses a connection with `route.abort("connectionrefused")` — hermetic,
+ * unlike a closed port, which depends on nothing listening on the runner — and
+ * the exact-kind-set assertion below now fails if that listener goes away.
  */
 const CANARIES = [
   {
@@ -108,6 +111,17 @@ const CANARIES = [
     what: "an uncaught exception in the page",
     expect: ["[pageerror]", "pageerror"],
     forbid: ["[response]", "[console]", "[requestfailed]"],
+  },
+  {
+    file: "e2e/demos/aborted-request.demo.ts",
+    what: "a request that never completes",
+    // `[console]` is NOT forbidden here, for the same measured reason as the
+    // 404 fixture: Chromium logs the refused connection itself. `[response]`
+    // IS forbidden, and that is the point of this fixture — a failed request
+    // produces no response at all, which is why the `response` listener cannot
+    // stand in for the `requestfailed` one.
+    expect: ["[requestfailed]", "requestfailed", "ERR_CONNECTION_REFUSED"],
+    forbid: ["[response]", "[pageerror]"],
   },
 ];
 
@@ -211,6 +225,6 @@ if (problems.length > 0) {
 
 console.log(
   `OK: the harness canary failed all ${CANARIES.length} fault-injection fixtures, each with the ` +
-    "exact set of record kinds it demonstrates and no others " +
-    "([console] / [response]+http 404 / [pageerror]).",
+    "exact set of record kinds it demonstrates and no others — one per guarded kind " +
+    "([console] / [response]+http 404 / [pageerror] / [requestfailed]).",
 );

@@ -1,0 +1,14 @@
+D12 browser-errors.ts BEFORE  caa78ffe17c3b96f1d69dbb12ad35c73806bd1bfab04274eaf29092d7956c215  e2e/harness/browser-errors.ts
+D12 browser-errors.ts RESTORED  caa78ffe17c3b96f1d69dbb12ad35c73806bd1bfab04274eaf29092d7956c215  e2e/harness/browser-errors.ts
+D12e console-error.demo.ts BEFORE  03ba7ec55347b25307a72b67da34f55347d2ba94de038d1c27dfee013888ab43  e2e/demos/console-error.demo.ts
+D12e console-error.demo.ts RESTORED  03ba7ec55347b25307a72b67da34f55347d2ba94de038d1c27dfee013888ab43  e2e/demos/console-error.demo.ts
+D13o creation-guard.ts BEFORE  a86c8557e6b3a951d465d120aea0453d47fc8387fb771cb596ce61246d710083  e2e/harness/creation-guard.ts
+D13o creation-guard.ts RESTORED  a86c8557e6b3a951d465d120aea0453d47fc8387fb771cb596ce61246d710083  e2e/harness/creation-guard.ts
+D13q test.ts BEFORE  4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da  e2e/harness/test.ts
+D13q worker-guard.ts BEFORE  4fc5c024604b8453050209b6f31848c2c96414558d26f9efe147a7a01006e9e8  e2e/harness/worker-guard.ts
+D13q test.ts RESTORED  4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da  e2e/harness/test.ts
+D13q worker-guard.ts RESTORED  4fc5c024604b8453050209b6f31848c2c96414558d26f9efe147a7a01006e9e8  e2e/harness/worker-guard.ts
+D15i test.ts BEFORE  4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da  e2e/harness/test.ts
+D15i test.ts MUTATED  22d8e4a805207a1e418946d5d027878fcd86a51268752870cfc4633fbef6a6b6  e2e/harness/test.ts
+D15i test.ts RESTORED  4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da  e2e/harness/test.ts
+D15j test.ts RESTORED  4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da  e2e/harness/test.ts

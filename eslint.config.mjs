@@ -89,8 +89,16 @@ const eslintConfig = defineConfig([
           // `vizraHarnessStamp` is the fixture's old name, kept in the list so
           // that a spec written against the previous design fails loudly rather
           // than silently declaring an unused fixture.
+          // `vizraWorkerGuard` is the WORKER-scoped fixture that installs the
+          // listeners before the first `beforeAll` runs. Replacing it would
+          // keep the stamp and lose the guard — the shape that made FINDING 11
+          // blocking, one scope up — so it is refused here as the early warning
+          // and refused at runtime by the brand check in
+          // `e2e/harness/worker-guard.ts`, which fails the test before it can
+          // stamp itself.
           harnessFixtures: [
             "vizraHarnessGuard",
+            "vizraWorkerGuard",
             "vizraHarnessStamp",
             "browserErrorPolicy",
           ],

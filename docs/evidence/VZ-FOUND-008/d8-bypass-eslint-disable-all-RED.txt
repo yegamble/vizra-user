@@ -1,7 +1,7 @@
-$ npx eslint /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__bypass.spec.ts
+$ npx eslint <repo>/e2e/specs/__bypass.spec.ts
 
 
-/Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__bypass.spec.ts
+<repo>/e2e/specs/__bypass.spec.ts
   2:1  warning  '/* eslint-disable */' has no effect because you have 'noInlineConfig' setting in your config
   4:1  error    This file must not reference `@playwright/test`. Playwright's own `test` is not guarded: a spec that uses it is exempt from the console/network/page-error checks in e2e/harness/test.ts, and passes while the page is broken. Import { test, expect } from the harness entry (e2e/harness/test) instead  vizra/no-unguarded-playwright-import
 

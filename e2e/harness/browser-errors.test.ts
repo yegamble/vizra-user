@@ -20,9 +20,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   DENY_ALL,
+  describeContext,
   formatFailure,
   guardBrowser,
   unallowedRecords,
+  unguardedContexts,
   validatePolicy,
   type AllowedBrowserError,
   type BrowserErrorRecord,
@@ -325,6 +327,93 @@ describe("guardBrowser", () => {
     inner.dispose();
     outer.dispose();
     expect(browser.newContext).toBe(original);
+  });
+});
+
+describe("unguardedContexts — the third layer", () => {
+  /**
+   * `creation-guard.ts` registers a context created by any route through
+   * `Browser.prototype`, and refuses a second browser outright. This is the
+   * catch-all beneath both: whatever route produced it, a live context on the
+   * harness's browser that the guard is not watching means a page ran
+   * unobserved. These cases pin that it fires on a stray, stays silent on a
+   * guarded context, and never throws.
+   */
+  type FakeContext = {
+    on: (event: string, handler: (payload: unknown) => void) => void;
+    off: (event: string, handler: (payload: unknown) => void) => void;
+    pages: () => unknown[];
+  };
+  const bare = (pages: unknown[] = []): FakeContext => ({
+    on: () => {},
+    off: () => {},
+    pages: () => pages,
+  });
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const guardOf = (browser: unknown) => guardBrowser(browser as any);
+  const unguardedOf = (browser: unknown, guard: unknown) =>
+    unguardedContexts(browser as any, guard as any);
+  const describeOf = (context: unknown) => describeContext(context as any);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  it("reports nothing when every live context was registered", () => {
+    const existing = bare();
+    const browser = { contexts: () => [existing] };
+    const guard = guardOf(browser);
+    expect(unguardedOf(browser, guard)).toHaveLength(0);
+    guard.dispose();
+  });
+
+  it("reports a context that appeared after the guard was installed by a route it never saw", () => {
+    const live: FakeContext[] = [bare()];
+    const browser = { contexts: () => live };
+    const guard = guardOf(browser);
+    // The shape of the prototype route with the creation guard's registration
+    // removed: a context simply EXISTS that nothing handed to the guard.
+    const stray = bare([{ url: () => "http://127.0.0.1:3210/?x=1" }]);
+    live.push(stray);
+    expect(unguardedOf(browser, guard)).toEqual([stray]);
+    guard.dispose();
+  });
+
+  it("stops reporting it once the creation guard registers it", () => {
+    const live: FakeContext[] = [];
+    const browser = { contexts: () => live };
+    const guard = guardOf(browser);
+    const stray = bare();
+    live.push(stray);
+    expect(unguardedOf(browser, guard)).toHaveLength(1);
+    // This is exactly what `creation-guard.ts` calls.
+    guard.registerContext(stray as never);
+    expect(unguardedOf(browser, guard)).toHaveLength(0);
+    guard.dispose();
+  });
+
+  it("returns nothing rather than throwing when the browser has gone", () => {
+    const browser = {
+      contexts: () => {
+        throw new Error("browser has been closed");
+      },
+    };
+    const guard = guardOf({ contexts: () => [] });
+    expect(() => unguardedOf(browser, guard)).not.toThrow();
+    expect(unguardedOf(browser, guard)).toHaveLength(0);
+    guard.dispose();
+  });
+
+  it("REDACTS the query string when it describes a stray context", () => {
+    // The description goes into a failure message, which is published as a CI
+    // artifact. A query string is where a signed URL leaks.
+    const description = describeOf(
+      bare([{ url: () => "http://127.0.0.1:3210/m.jpg?X-Amz-Signature=SENTINELVALUE" }]),
+    );
+    expect(description).not.toContain("SENTINELVALUE");
+    expect(description).toContain("?<redacted: 1 parameter(s)>");
+    expect(description).toContain("/m.jpg");
+  });
+
+  it("says so plainly when a stray context has no open page", () => {
+    expect(describeOf(bare())).toBe("no open pages");
   });
 });
 
