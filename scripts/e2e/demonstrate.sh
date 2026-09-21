@@ -162,13 +162,26 @@ npx playwright --version > /dev/null 2>&1 || {
   exit 2
 }
 
+# alive URL  -> 0 if it answers right now.
+alive() { curl --silent --fail --max-time 2 "$1" -o /dev/null; }
+
+# WAIT for readiness rather than racing it. 60 single-second attempts was not a
+# lot of patience on a loaded machine: an independent verifier ran the suite
+# under CPU load and two INVERSE controls failed with ERR_CONNECTION_REFUSED,
+# reported as "a demonstration did not demonstrate" - which is the one sentence
+# this script must never say about an infrastructure problem. The budget is now
+# 120 s, and a miss is BLOCKED with the name of what never came up.
 wait_for() {
-  local url=$1 name=$2
-  for _ in $(seq 1 60); do
-    if curl --silent --fail --max-time 2 "$url" -o /dev/null; then return 0; fi
+  local url=$1 name=$2 attempt=0
+  while [ "$attempt" -lt 120 ]; do
+    if alive "$url"; then
+      [ "$attempt" -gt 0 ] && echo "  ($name answered after ${attempt}s)"
+      return 0
+    fi
+    attempt=$((attempt + 1))
     sleep 1
   done
-  echo "BLOCKED: $name never answered at $url"
+  echo "BLOCKED: $name never answered at $url after ${attempt}s"
   return 2
 }
 
@@ -228,6 +241,26 @@ half() {
   # any string a half asserts on. See scripts/e2e/normalise-transcript.mjs.
   node "$repo/scripts/e2e/normalise-transcript.mjs" "$out" "$repo"
 
+  # INFRASTRUCTURE IS NOT A FAILED DEMONSTRATION, and conflating them is how a
+  # suite teaches people to re-run it. An independent verifier ran this under
+  # CPU load and watched two INVERSE controls fail with ERR_CONNECTION_REFUSED
+  # while the script reported "a demonstration did not demonstrate".
+  #
+  # The discriminator is a LIVENESS PROBE, not a grep for "connection refused" —
+  # D3b asserts ERR_CONNECTION_REFUSED on purpose (it is the fourth guarded
+  # signal kind), so a transcript-pattern test would misclassify the one
+  # demonstration whose whole subject is a refused connection. A half is BLOCKED
+  # only when it failed AND the server it was driving is not answering.
+  if [ "$rc" -ne "$want" ] || ! grep -Fq -- "$pattern" "$out"; then
+    if [ -n "${prod_url:-}" ] && ! alive "$prod_url/health"; then
+      echo "BLOCKED $name: the production server at $prod_url is not answering — this is an" \
+        "infrastructure failure, NOT a failed demonstration. See $out"
+      blocked=$((blocked + 1))
+      # Give it back if it is coming back, so one stall does not cascade.
+      wait_for "$prod_url/health" "the production server" || true
+      return 0
+    fi
+  fi
   if [ "$rc" -ne "$want" ]; then
     echo "FAIL $name: exit $rc, wanted $want — see $out"
     fail=$((fail + 1))
@@ -1910,7 +1943,16 @@ echo "transcripts:   $evidence"
   echo "::error::a demonstration did not demonstrate. That is a failure, not a formality."
   exit 1
 }
+# BLOCKED IS NOT A PASS, and it is not a FAIL either — the two exit codes are
+# different on purpose. The meta `AGENTS.md` is explicit that a check which could
+# not run is BLOCKED and never a pass; conflating it with a failed demonstration
+# is what made an independent verifier read "a demonstration did not demonstrate"
+# when the real answer was "the server was not up". Exit 2, named, so a reader
+# knows which of the two happened without opening a transcript.
 if [ "$blocked" -gt 0 ]; then
-  echo "NOTE: $blocked demonstration(s) were BLOCKED and did not run. They are not passes."
+  echo "::error::$blocked demonstration(s) were BLOCKED by infrastructure, not by a failed" \
+    "control — the production server stopped answering. They are NOT passes, and this run" \
+    "proves nothing about them. Re-run on a quiescent machine."
+  exit 2
 fi
 echo "OK: every demonstration that ran went red on the mutation and green on restore."

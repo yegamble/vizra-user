@@ -49,6 +49,30 @@ const pageErrorRecord: BrowserErrorRecord = {
   where: "http://127.0.0.1:3210/",
 };
 
+/**
+ * ONE ESLint instance for the whole file, created on first use.
+ *
+ * WHY: thirteen cases each did `new ESLint({ cwd: repoRoot })`, and every one of
+ * those loads and resolves the repository's whole flat configuration — the
+ * plugins, the custom rules, the typescript parser. Warm that is fast; COLD it
+ * is not, and an independent verifier hit `Test timed out in 5000ms` here on one
+ * cold `npm run ci` and could not reproduce it in five more runs. A test that
+ * fails once in six on a cold cache is a test that teaches people to re-run CI.
+ *
+ * The instance is stateless for what these cases do — `lintFiles`, `lintText`
+ * and `calculateConfigForFile` are all reads — so sharing it changes no
+ * assertion. It is created lazily so the cases that never touch ESLint (most of
+ * this file) pay nothing.
+ *
+ * The alternative was a bigger `testTimeout`, which hides the cost rather than
+ * removing it and leaves the same cliff one machine-generation away.
+ */
+let eslintInstance: ESLint | undefined;
+function sharedEslint(): ESLint {
+  eslintInstance ??= new ESLint({ cwd: repoRoot });
+  return eslintInstance;
+}
+
 describe("validatePolicy", () => {
   it("accepts the deny-all default", () => {
     expect(validatePolicy(DENY_ALL)).toEqual([]);
@@ -484,7 +508,7 @@ describe("specs use the guarded test", () => {
   it("applies the guarded-import rule to every one of them", async () => {
     // The repository's REAL configuration, not a hand-built one: the property
     // under test is that eslint.config.mjs wires the rule to these paths.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const results = await eslint.lintFiles(files);
 
     // A file ESLint decided not to lint at all would silently pass, so assert
@@ -518,7 +542,7 @@ describe("specs use the guarded test", () => {
    * form — a future ESLint could keep the option and change what it covers.
    */
   it("the resolved config for e2e/specs and e2e/demos forbids inline config", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     for (const file of ["e2e/specs/home.spec.ts", "e2e/demos/console-error.demo.ts"]) {
       const config = (await eslint.calculateConfigForFile(path.join(repoRoot, file))) as {
         linterOptions?: { noInlineConfig?: boolean };
@@ -536,7 +560,7 @@ describe("specs use the guarded test", () => {
     ["/* eslint-disable */", "block disable, no rule named"],
     ["/* eslint vizra/no-unguarded-playwright-import: \"off\" */", "inline severity override"],
   ])("an inline directive (%s) does not exempt a spec", async (directive) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `${directive}\nimport { test } from "@playwright/test";\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__inline_directive__.spec.ts") },
@@ -549,7 +573,7 @@ describe("specs use the guarded test", () => {
   });
 
   it("eslint-disable-next-line does not exempt the line after it either", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `// eslint-disable-next-line vizra/no-unguarded-playwright-import\n` +
         `import { test } from "@playwright/test";\nexport default test;\n`,
@@ -566,7 +590,7 @@ describe("specs use the guarded test", () => {
     // It used to pass lint and RUN; it failed the lane only because loading a
     // second runner copy breaks the real tests. That is an accident, not a
     // control.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import * as pw from "playwright/test";\nexport default pw.test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__unscoped__.spec.ts") },
@@ -594,7 +618,7 @@ describe("specs use the guarded test", () => {
    * directories and not tomorrow's passes the tests above and fails these.
    */
   it("resolves the rule to severity 2 with noInlineConfig for every file under e2e/", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const everything: string[] = [];
     const walkAll = (dir: string) => {
       for (const entry of readdirSync(dir)) {
@@ -630,7 +654,7 @@ describe("specs use the guarded test", () => {
     ["e2e/__loose.spec.ts", "a spec directly under e2e/"],
     ["e2e/specs/helpers/__helper.ts", "a helper beside a spec, not itself a spec"],
   ])("%s (%s) is covered by the rule at severity 2", async (relative) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const config = (await eslint.calculateConfigForFile(path.join(repoRoot, relative))) as {
       rules?: Record<string, unknown>;
       linterOptions?: { noInlineConfig?: boolean };
@@ -644,7 +668,7 @@ describe("specs use the guarded test", () => {
     // The exemption is deliberate and it is the only one. If this ever starts
     // failing, the harness has been brought under its own rule and cannot work;
     // if the assertion is deleted, the exemption stops being a stated decision.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const config = (await eslint.calculateConfigForFile(
       path.join(repoRoot, "e2e/harness/test.ts"),
     )) as { rules?: Record<string, unknown> };
@@ -666,7 +690,7 @@ describe("specs use the guarded test", () => {
     ['const s = await import("../harness/stamp");', "a dynamic import"],
     ['import x from "../harness/stamp-reporter";', "the reporter"],
   ])("a spec may not reach the sealed stamp module (%s)", async (line) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { test } from "../harness/test";\n${line}\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__sealed__.spec.ts") },
@@ -690,7 +714,7 @@ describe("specs use the guarded test", () => {
     ["vizraHarnessStamp", "its previous name, so the old shape fails loudly"],
     ["browserErrorPolicy", "the allow-list option fixture"],
   ])("a spec may not replace the harness fixture %s (%s)", async (fixture) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { test as base } from "../harness/test";\n` +
         `const test = base.extend({ ${fixture}: async ({}, run) => { await run(); } });\n` +
@@ -711,7 +735,7 @@ describe("specs use the guarded test", () => {
     // a locale is guarded rather than exempt. A harness nobody can extend is a
     // harness people work around, and banning `.extend` wholesale would have
     // been the easy, wrong fix.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     for (const fixture of ["page", "context", "browser"]) {
       const [result] = await eslint.lintText(
         `import { test as base } from "../harness/test";\n` +
@@ -732,7 +756,7 @@ describe("specs use the guarded test", () => {
     // e2e/specs/production-build.spec.ts legitimately imports
     // ../harness/production-build. Sealing the whole directory would have broken
     // it, and a rule that breaks legitimate code gets switched off.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { probeProductionBuild } from "../harness/production-build";\n` +
         `import { test } from "../harness/test";\nexport default [test, probeProductionBuild];\n`,
@@ -748,7 +772,7 @@ describe("specs use the guarded test", () => {
   it("the rule is configured as an error for e2e/specs, not a warning", async () => {
     // A rule set to "warn" would report and let the gate pass. Asked of the
     // real config, for a real path, with a spelling the old regex missed.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import * as pw from "@playwright/test";\nconst test = pw.test;\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__rule_is_wired__.spec.ts") },
