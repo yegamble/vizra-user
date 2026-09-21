@@ -167,3 +167,76 @@ describe("redactExternalText — the two in order", () => {
     expect(out.startsWith("::")).toBe(false);
   });
 });
+
+describe("redactUrlsInText — the four shapes a verifier found uncovered (FINDING 4)", () => {
+  // AGENTS.md said the redaction covered "URLs that carry a scheme or start at
+  // `/`". `//host:8443/p?q` starts at `/`; `HTTPS://h/p?q` carries a scheme;
+  // neither was matched. Each shape is pinned here so the next round cannot
+  // re-discover it, and the AGENTS.md sentence now maps clause by clause to
+  // these cases.
+  const M = "MARKERVALUE";
+
+  it("an UPPERCASE scheme is redacted", () => {
+    expect(redactUrlsInText(`HTTPS://host.example/p?sig=${M}`)).not.toContain(M);
+  });
+
+  it("a mixed-case scheme is redacted", () => {
+    expect(redactUrlsInText(`HtTp://host.example/p?sig=${M}`)).not.toContain(M);
+  });
+
+  it("JSON-ESCAPED slashes are redacted", () => {
+    const json = '{"u":"https:\\/\\/host/p?sig=' + M + '"}';
+    expect(redactUrlsInText(json)).not.toContain(M);
+  });
+
+  it("a PROTOCOL-RELATIVE URL is redacted", () => {
+    expect(redactUrlsInText(`"u":"//host.example:8443/p?sig=${M}"`)).not.toContain(M);
+  });
+
+  it("a protocol-relative URL with no port is redacted", () => {
+    expect(redactUrlsInText(`"u":"//host.example/p?sig=${M}"`)).not.toContain(M);
+  });
+
+  it("a bracketed IPv6 authority with a port is redacted", () => {
+    expect(redactUrlsInText(`"u":"[::1]:3000/p?sig=${M}"`)).not.toContain(M);
+  });
+
+  it("a bracketed IPv6 authority with no port is redacted", () => {
+    expect(redactUrlsInText(`"u":"[2001:db8::1]/p?sig=${M}"`)).not.toContain(M);
+  });
+
+  it("a protocol-relative IPv6 authority is redacted", () => {
+    expect(redactUrlsInText(`"u":"//[::1]:3000/p?sig=${M}"`)).not.toContain(M);
+  });
+
+  it("the host and path stay readable in every one of them", () => {
+    expect(redactUrlsInText(`"u":"//host.example:8443/p?sig=${M}"`)).toContain("//host.example:8443/p");
+    expect(redactUrlsInText(`HTTPS://host.example/p?sig=${M}`)).toContain("host.example/p");
+  });
+
+  it("prose with a bare // and a ? is still untouched", () => {
+    expect(redactUrlsInText("see step 3/4? and a//b?c")).toBe("see step 3/4? and a//b?c");
+  });
+});
+
+describe("sanitiseExternalText — leading whitespace before :: (FINDING 5)", () => {
+  it("two leading spaces do not buy a workflow command", () => {
+    const out = sanitiseExternalText("  ::error file=app.ts::pwned");
+    expect(out).not.toMatch(/^\s*::/);
+    expect(out).toContain("error file=app.ts");
+  });
+
+  it("a leading TAB does not buy a workflow command", () => {
+    expect(sanitiseExternalText("\t" + "::add-mask::secret")).not.toMatch(/^\s*::/);
+  });
+
+  it("mixed leading whitespace does not buy a workflow command", () => {
+    expect(sanitiseExternalText(" " + "\t" + " ::stop-commands::x")).not.toMatch(/^\s*::/);
+  });
+
+  it("a :: in the MIDDLE of a line is left alone — it is not a command", () => {
+    expect(sanitiseExternalText("TypeError: Foo::bar is not a function")).toBe(
+      "TypeError: Foo::bar is not a function",
+    );
+  });
+});

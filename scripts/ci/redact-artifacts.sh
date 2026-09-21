@@ -75,7 +75,7 @@ done
 # The terminator class includes the characters that end a URL inside JSON, HTML
 # and log prose, so a match stops at the URL rather than running to end of line.
 # shellcheck disable=SC2016
-ABSOLUTE_PROGRAM='s{((?:https?|wss?|ftp)://[^\s"'"'"'<>\\)\]]*?)[?\#][^\s"'"'"'<>\\)\]]*}{$1?<redacted>}g'
+ABSOLUTE_PROGRAM='s{((?:https?|wss?|ftp):(?:\\?/){2}[^\s"'"'"'<>\\)\]]*?)[?\#][^\s"'"'"'<>\\)\]]*}{$1?<redacted>}gi'
 
 # RELATIVE URLs need the same treatment, and the first version of this script
 # missed them. The demonstration caught it: the trace recorded
@@ -127,7 +127,18 @@ RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(/[A-Za-z0-9._~%/+-]*)[?\#][^\s"'"'"'<>\
 # way round — `see step 3/4?` has no authority and no path and is untouched.
 # `e2e/harness/redact.ts` carries the same shape for the harness's own output.
 # shellcheck disable=SC2016
-AUTHORITY_PROGRAM='s{(^|[\s"'"'"'(\[=,>])((?:[\w-]+\.)+[\w-]+(?::\d+)?|[\w-]+:\d{1,5}|localhost)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
+AUTHORITY_PROGRAM='s{(^|[\s"'"'"'(\[=,>])((?:[\w-]+\.)+[\w-]+(?::\d+)?|\[[0-9A-Fa-f:.]+\](?::\d{1,5})?|[\w-]+:\d{1,5}|localhost)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
+
+# AND THE PROTOCOL-RELATIVE FORM `//host[:port]/path?query`.
+#
+# It STARTS AT `/`, which is exactly what AGENTS.md named as covered - and it
+# matched none of the three programs: the authority program wants a path
+# directly after the host, and the relative program's character class excludes
+# `:`. Reported by an independent verifier (PR #8 review, FINDING 4) together
+# with a bracketed IPv6 authority, an uppercase scheme and JSON-escaped slashes,
+# all four now handled here and in `e2e/harness/redact.ts`.
+# shellcheck disable=SC2016
+PROTOCOL_RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(//(?:[\w-]+\.)*[\w-]+(?::\d{1,5})?|//\[[0-9A-Fa-f:.]+\](?::\d{1,5})?)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
 
 # AND THE STRUCTURED COPY. A trace's `*.network` member is HAR-shaped, and HAR
 # stores the query a SECOND time, parsed into fields:
@@ -156,6 +167,7 @@ redact_tree() {
     perl -0777 -pi -e "$ABSOLUTE_PROGRAM" "$file"
     perl -0777 -pi -e "$RELATIVE_PROGRAM" "$file"
     perl -0777 -pi -e "$AUTHORITY_PROGRAM" "$file"
+    perl -0777 -pi -e "$PROTOCOL_RELATIVE_PROGRAM" "$file"
     perl -0777 -pi -e "$HAR_QUERY_PROGRAM" "$file"
     count=$((count + 1))
   done < <(find "$root" -type f ! \( "${BINARY_PRUNE[@]}" \) "$@" -print0)

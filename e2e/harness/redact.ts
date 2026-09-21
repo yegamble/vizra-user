@@ -59,7 +59,14 @@ export function redactUrlsInText(text: string): string {
   if (typeof text !== "string" || text === "") return text;
   // Stop at whitespace and at the quote/bracket characters that commonly
   // terminate a URL inside a sentence.
-  const absolute = text.replace(/\b(?:https?|wss?|ftp):\/\/[^\s'"<>()[\]]+/g, (match) => redactUrl(match));
+  // Case-INSENSITIVE, and tolerant of JSON-escaped slashes. `HTTPS://h/p?q`
+  // carries a scheme and was not matched; `{"u":"https:\/\/h\/p?sig=..."}` is
+  // how a JSON document spells the same URL, and the escape made it fall out of
+  // every program. Both were named as covered by AGENTS.md and were not.
+  const absolute = text.replace(
+    /\b(?:https?|wss?|ftp):(?:\\?\/){2}[^\s'"<>()[\]]+/gi,
+    (match) => redactUrl(match),
+  );
 
   // AND THE SCHEME-LESS FORM, which is how Playwright writes a step subtitle.
   //
@@ -84,8 +91,17 @@ export function redactUrlsInText(text: string): string {
   // diagnostic text and leaks nothing. `scripts/ci/redact-artifacts.sh` carries
   // the same shape for bytes the driver wrote before any harness code saw them.
   const authorityRelative = absolute.replace(
-    /(^|[\s'"(<[=,])((?:[A-Za-z0-9-]+\.)+[A-Za-z0-9-]+(?::\d{1,5})?|[A-Za-z0-9-]+:\d{1,5}|localhost)(\/[^\s'"<>()[\]?#]*[?#][^\s'"<>()[\]]*)/g,
+    /(^|[\s'"(<[=,])((?:[A-Za-z0-9-]+\.)+[A-Za-z0-9-]+(?::\d{1,5})?|\[[0-9A-Fa-f:.]+\](?::\d{1,5})?|[A-Za-z0-9-]+:\d{1,5}|localhost)(\/[^\s'"<>()[\]?#]*[?#][^\s'"<>()[\]]*)/g,
     (_match, boundary: string, authority: string, rest: string) => `${boundary}${authority}${redactUrl(rest)}`,
+  );
+
+  // AND THE PROTOCOL-RELATIVE FORM `//host[:port]/path?query`, which STARTS AT
+  // `/` and so was named as covered by AGENTS.md while matching none of the
+  // three programs: the authority program needs a path directly after the host,
+  // and the path-relative program's character class excludes `:`.
+  const protocolRelative = authorityRelative.replace(
+    /(^|[\s'"(<[=,])(\/\/(?:[A-Za-z0-9-]+\.)*[A-Za-z0-9-]+(?::\d{1,5})?|\/\/\[[0-9A-Fa-f:.]+\](?::\d{1,5})?)(\/[^\s'"<>()[\]?#]*[?#][^\s'"<>()[\]]*)/g,
+    (_match, boundary, authority, rest) => `${boundary}${authority}${redactUrl(rest)}`,
   );
 
   // AND THE PATH-RELATIVE FORM. `scripts/ci/redact-artifacts.sh` has carried a
@@ -94,7 +110,7 @@ export function redactUrlsInText(text: string): string {
   // scheme and no host. This module did not, so the two redactors covered
   // different sets and only one of them was written down. They now carry the
   // same three programs: absolute, authority-relative, path-relative.
-  return authorityRelative.replace(
+  return protocolRelative.replace(
     /(^|[\s'"(<[=,])(\/[A-Za-z0-9._~%/+-]*[?#][^\s'"<>()[\]]*)/g,
     (_match, boundary: string, rest: string) => `${boundary}${redactUrl(rest)}`,
   );
@@ -142,7 +158,13 @@ export function sanitiseExternalText(text: string): string {
 
   // A leading `::` is the workflow-command marker. Break it rather than drop
   // it: a reader should still see that the page said something beginning `::`.
-  if (out.startsWith("::")) out = `\u200B${out}`;
+  // A leading `::` is the workflow-command marker, and GitHub tolerates leading
+  // WHITESPACE before it - a verifier found `"  ::error::"` and a tab-prefixed
+  // form unescaped by the first version. Rather than guess how much whitespace
+  // GitHub trims, refuse `::` after ANY run of leading whitespace. Broken rather
+  // than dropped: a reader should still see that the page said something
+  // beginning `::`.
+  out = out.replace(/^(\s*)::/, `$1\u200B::`);
 
   if (out.length > EXTERNAL_TEXT_LIMIT) {
     out = `${out.slice(0, EXTERNAL_TEXT_LIMIT)}… (${out.length - EXTERNAL_TEXT_LIMIT} more character(s) dropped)`;
