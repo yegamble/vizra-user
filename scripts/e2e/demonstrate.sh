@@ -525,9 +525,8 @@ cat >> "$mutant" <<'SECOND_GATED'
         with:
           name: playwright-artifacts-second
           path: |
-            playwright-report/
             test-results/
-          retention-days: 14
+          retention-days: 3
           if-no-files-found: error
 SECOND_GATED
 half d7b-second-gated-upload-GREEN 0 "still drives the built image" \

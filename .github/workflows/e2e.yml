@@ -37,6 +37,29 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # THE PAGE SNAPSHOT IS OFF IN CI, AND ONLY IN CI.
+    #
+    # Playwright writes `test-results/**/error-context.md` whenever a test has
+    # errors. NO configuration option gates that FILE — not `trace`, not
+    # `screenshot`, not `video`; it was still written in a probe with all three
+    # set to "off". But one environment variable gates its worst section
+    # (`playwright/lib/index.js:657-658`):
+    #
+    #     async _takePageSnapshot(context) {
+    #       if (process.env.PLAYWRIGHT_NO_COPY_PROMPT)
+    #         return;
+    #
+    # `# Page snapshot` is an `ariaSnapshot({ mode: "ai" })` of the LIVE PAGE:
+    # every DOM text node and every input's current value. In the probe it is
+    # what captured a typed password while every recorder was off. From M1 that
+    # page is the product, so the snapshot is the richest private-data channel
+    # in anything this lane uploads.
+    #
+    # Set here and never in `package.json`, so a developer running the lane
+    # locally still gets the snapshot on their own machine, where they are
+    # allowed to see it. `scripts/ci/check-e2e-lane.mjs` asserts it is set.
+    env:
+      PLAYWRIGHT_NO_COPY_PROMPT: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -160,9 +183,9 @@ jobs:
         if: failure()
         run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
 
-      # Traces, screenshots, videos and the HTML report — the things that make a
-      # red lane diagnosable without reproducing it locally. Uploaded on
-      # failure; `retain-on-failure` means a green run has nothing to publish.
+      # Traces, screenshots and videos — the things that make a red lane
+      # diagnosable without reproducing it locally. Uploaded on failure;
+      # `retain-on-failure` means a green run has nothing to publish.
       #
       # If the redaction did not succeed, NOTHING is published: a red lane with
       # no artifact is a worse debugging experience and the correct one.
@@ -173,16 +196,48 @@ jobs:
       # deliberately failing spec" would have been unsatisfiable without anyone
       # noticing. If the lane is red, there ARE artifacts; their absence is a
       # defect in this workflow.
+      #
+      # THE PATHS ARE AN ALLOWLIST, AND `playwright-report/` IS NOT ON IT.
+      # `playwright/lib/runner/index.js:3704-3712` appends to
+      # `playwright-report/index.html`:
+      #
+      #     <template id="playwrightReportBase64">data:application/zip;base64,…</template>
+      #
+      # which decodes (magic 504b0304) to a ZIP of the entire report dataset —
+      # error messages, step titles and subtitles, attachment bodies. The
+      # redactor runs perl over index.html as TEXT and cannot touch a base64
+      # payload; it unpacks `*.zip` FILES only. `sweep-artifacts.sh` greps raw
+      # bytes and cannot decode base64 either. Measured on a failing probe:
+      # three planted markers — a scheme-less signed URL, a typed password and
+      # an assertion's received value — live inside that template, invisible to
+      # a raw grep, and STILL LIVE after the redactor reported success. Every
+      # "zero live queries" measurement this repository has recorded was made
+      # with a search blind to this file.
+      #
+      # Nothing diagnostic is lost. `test-results/` still holds `trace.zip`,
+      # `test-failed-1.png`, `video.webm` and `error-context.md`, and
+      # `npx playwright show-trace test-results/<test>/trace.zip` opens the
+      # trace without the HTML report at all. `playwright-report/data/` was a
+      # second, byte-identical copy of those same traces, so this removes a
+      # duplicate rather than a capability.
+      #
+      # RETENTION IS 3 DAYS, AND WHO CAN READ THIS. `yegamble/vizra-user` is a
+      # PRIVATE repository, so artifacts and job logs are readable by its
+      # collaborators — everyone with access now, and anyone an owner adds
+      # later — not by the public. "Not public" is not "not published": an
+      # artifact is a durable copy of whatever the lane saw, held by GitHub,
+      # outside this repository's own access controls. A trace nobody
+      # downloaded in three days is a trace nobody needed.
       - name: Upload Playwright artifacts
         if: failure() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            playwright-report/
             test-results/
+            playwright-report/results.json
             playwright-browsers.txt
-          retention-days: 14
+          retention-days: 3
           if-no-files-found: error
 
       - name: Stop the container
