@@ -18,12 +18,14 @@
  * prototype rather than a real launch.
  */
 
+import type { Browser } from "@playwright/test";
 import { _android, _electron, chromium, firefox, webkit } from "@playwright/test";
 import { describe, expect, it } from "vitest";
 
 import {
   armCreationGuard,
   isCreationGuardArmed,
+  patchBrowserPrototype,
   type CreationViolation,
 } from "./creation-guard";
 
@@ -110,6 +112,89 @@ describe("the creation guard, while armed", () => {
       disarm();
     }
     expect(violations).toHaveLength(3);
+  });
+
+  it("refuses browser.newBrowserCDPSession — a page NO BrowserContext owns", async () => {
+    // FINDING 2, measured by an independent verifier: `Target.createTarget`
+    // over a raw CDP session left `browser.contexts().length` at 1 before and
+    // 1 after, so neither the context listeners nor `unguardedContexts()` could
+    // ever see the page it made. It is a `Browser.prototype` method, so it is
+    // patched where `newContext`/`newPage` are.
+    //
+    // `patchBrowserPrototype` patches `Object.getPrototypeOf(browser)`, so a
+    // stand-in prototype exercises the real code with no browser launched.
+    let cdpCalls = 0;
+    const prototype = {
+      async newContext() {
+        return { kind: "context" };
+      },
+      async newPage() {
+        return { context: () => ({ kind: "context" }) };
+      },
+      async newBrowserCDPSession() {
+        cdpCalls += 1;
+        return { kind: "session" };
+      },
+    };
+    const standIn = Object.create(prototype) as {
+      newBrowserCDPSession: () => Promise<unknown>;
+      newContext: () => Promise<unknown>;
+    };
+    patchBrowserPrototype(standIn as unknown as Browser);
+
+    const { violations, disarm } = arm();
+    try {
+      await expect(standIn.newBrowserCDPSession()).rejects.toThrow(
+        /`browser\.newBrowserCDPSession` was called during a test/,
+      );
+      await expect(standIn.newBrowserCDPSession()).rejects.toThrow(
+        /belongs to no Playwright BrowserContext/,
+      );
+    } finally {
+      disarm();
+    }
+    expect(violations.map((violation) => violation.api)).toEqual([
+      "browser.newBrowserCDPSession",
+      "browser.newBrowserCDPSession",
+    ]);
+    // Refused BEFORE the call, so nothing is created and left behind.
+    expect(cdpCalls, "the original must never run while armed").toBe(0);
+    // Unarmed it delegates, exactly like every other patch here.
+    await standIn.newBrowserCDPSession();
+    expect(cdpCalls).toBe(1);
+  });
+
+  it("registers, rather than refuses, a context made through the patched prototype", async () => {
+    const registered: unknown[] = [];
+    const prototype = {
+      async newContext() {
+        return { kind: "context" };
+      },
+      async newPage() {
+        return { context: () => ({ kind: "page-context" }) };
+      },
+    };
+    const standIn = Object.create(prototype) as {
+      newContext: () => Promise<unknown>;
+      newPage: () => Promise<unknown>;
+    };
+    patchBrowserPrototype(standIn as unknown as Browser);
+
+    const disarm = armCreationGuard({
+      registerContext: (context) => registered.push(context),
+      recordViolation: () => {
+        throw new Error("a context must be GUARDED, never refused");
+      },
+    });
+    try {
+      // Called through the PROTOTYPE, which is the route that escaped the
+      // own-property wrapper — FINDING 12's first row.
+      await Object.getPrototypeOf(standIn).newContext.call(standIn);
+      await standIn.newPage();
+    } finally {
+      disarm();
+    }
+    expect(registered).toEqual([{ kind: "context" }, { kind: "page-context" }]);
   });
 
   it("names the sanctioned route in the refusal, so the message is actionable", async () => {

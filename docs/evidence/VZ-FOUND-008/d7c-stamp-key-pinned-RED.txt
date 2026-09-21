@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-e2e-lane.sh /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
+$ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
   a step sets `VIZRA_E2E_STAMP_KEY`. That key is minted per run so a spec cannot forge the harness stamp; pinning it to a known value would make the stamp forgeable.

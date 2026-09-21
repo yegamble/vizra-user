@@ -1,0 +1,39 @@
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:19:1 › keep the stamp, lose the listeners (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:19:1 › keep the stamp, lose the listeners ─
+
+    Error: vizra harness: the worker-scoped guard `vizraWorkerGuard` was replaced. That fixture is where the browser-error listeners and the creation guard are installed, for the whole worker — which is what covers a page opened in `beforeAll`, before any per-test fixture exists. Replacing it would keep the runtime stamp and lose the guard, so this test refuses to stamp itself and fails instead. See e2e/harness/worker-guard.ts.
+
+       at ../harness/test.ts:202
+
+      200 |       // stamp and both floor checks refuse the run.
+      201 |       if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
+    > 202 |         throw new Error(REPLACED_WORKER_GUARD);
+          |               ^
+      203 |       }
+      204 |       const worker = vizraWorkerGuard;
+      205 |       const guard = worker.guard;
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:202:15)
+
+    Error Context: test-results/__guard-keep-the-stamp-lose-the-listeners-desktop-chromium-1440/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/__guard-keep-the-stamp-lose-the-listeners-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/__guard-keep-the-stamp-lose-the-listeners-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:19:1 › keep the stamp, lose the listeners ──
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]

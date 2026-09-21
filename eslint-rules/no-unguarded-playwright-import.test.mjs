@@ -45,7 +45,12 @@ const SEALED = ["e2e/harness/stamp", "e2e/harness/stamp-reporter"];
  * one of them, and taking them apart is how a verifier kept a valid stamp while
  * the browser-error guard never ran.
  */
-const HARNESS_FIXTURES = ["vizraHarnessGuard", "vizraHarnessStamp", "browserErrorPolicy"];
+const HARNESS_FIXTURES = [
+  "vizraHarnessGuard",
+  "vizraWorkerGuard",
+  "vizraHarnessStamp",
+  "browserErrorPolicy",
+];
 
 ruleTester.run("no-unguarded-playwright-import", rule, {
   valid: [
@@ -62,6 +67,12 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       code: `import { test as base } from "../harness/test";\nconst test = base.extend({\n  page: async ({ browser }, provide) => {\n    const context = await browser.newContext({ viewport: { width: 1024, height: 768 }, locale: "en-GB" });\n    await provide(await context.newPage());\n  },\n});\nexport default test;`,
       filename: SPEC,
       options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+    },
+    {
+      name: "context.newCDPSession is NOT banned — it drives a page the harness already guards",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ page, context }) => { await context.newCDPSession(page); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
     },
     {
       name: "browser.newContext and browser.newPage are NOT banned — they go through the guard",
@@ -477,6 +488,20 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       filename: SPEC,
       options: [{ harnessEntry: "e2e/harness/test" }],
       errors: [{ messageId: "unguardedCreation", data: { name: "launch" } }],
+    },
+    {
+      name: "verifier FINDING 2: browser.newBrowserCDPSession() reaches a page no context owns",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { const s = await browser.newBrowserCDPSession(); await s.send("Target.createTarget", { url: "/" }); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [{ messageId: "unguardedCreation", data: { name: "newBrowserCDPSession" } }],
+    },
+    {
+      name: "the worker-scoped harness fixture may not be replaced either",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({ vizraWorkerGuard: [async ({}, run) => { await run(); }, { scope: "worker", auto: true }] });\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "harnessFixtureOverride" }],
     },
     {
       name: "a demo is guarded by ban 3 too",

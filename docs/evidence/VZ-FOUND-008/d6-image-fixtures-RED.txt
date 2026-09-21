@@ -26,6 +26,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/stamp.test.ts
   app/e2e/harness/stamp.ts
   app/e2e/harness/test.ts
+  app/e2e/harness/worker-guard.test.ts
+  app/e2e/harness/worker-guard.ts
   app/e2e/specs/
   app/e2e/specs/health.spec.ts
   app/e2e/specs/home.spec.ts

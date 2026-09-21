@@ -41,8 +41,16 @@
  *     a throw, not a signer.
  *   - The reporter writes the key to `.vizra-e2e/stamp-key.json` only in
  *     `onEnd`, after the last test has finished, so the out-of-process check can
- *     verify while no running spec can read it. That file is gitignored and is
- *     not in the workflow's artifact upload paths.
+ *     verify it while no running spec can read **this run's** key. The FILE is
+ *     readable mid-run and a spec can open it — an independent verifier did,
+ *     and got 123 bytes. What it gets is the PREVIOUS run's key: the key is
+ *     minted fresh by the main process on every run (verified across three
+ *     consecutive runs), so a stamp signed with what is on disk does not verify
+ *     against the run in progress. On a fresh CI checkout the file does not
+ *     exist at all — it is gitignored, no workflow caches it, and it is not in
+ *     the artifact upload paths. This bullet used to say "no running spec can
+ *     read it", which was false as written; the security property it was
+ *     describing holds.
  *
  * WHAT FORGING THE STAMP WOULD TAKE. Honestly, and in full:
  *

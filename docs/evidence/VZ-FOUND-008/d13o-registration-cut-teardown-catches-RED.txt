@@ -1,9 +1,9 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a stray context left open is named at teardown (11.7s)
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a stray context left open is named at teardown (<time>)
 
 
   1) [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a stray context left open is named at teardown 
@@ -12,11 +12,11 @@ Running 1 test using 1 worker
 
     Locator: locator('h1')
     Expected: visible
-    Timeout: 10000ms
+    Timeout: <time>
     Error: element(s) not found
 
     Call log:
-      - Expect "toBeVisible" locator('h1') with timeout 10000ms
+      - Expect "toBeVisible" locator('h1') with timeout <time>
       - waiting for locator('h1')
 
 
@@ -26,7 +26,7 @@ Running 1 test using 1 worker
          |                                    ^
       21 | });
       22 |
-        at /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts:20:36
+        at <repo>/e2e/specs/__guard.spec.ts:20:36
 
     Error: 1 context(s) the harness was never handed are open on this browser at the end of the test.
     AGENTS.md: a test that passes must have run under the guard, over every context it created.
@@ -35,27 +35,27 @@ Running 1 test using 1 worker
 
     See e2e/harness/creation-guard.ts.
 
-       at ../harness/test.ts:237
+       at ../harness/test.ts:301
 
-      235 |         }
-      236 |         if (strays.length > 0) {
-    > 237 |           throw new Error(
+      299 |         }
+      300 |         if (strays.length > 0) {
+    > 301 |           throw new Error(
           |                 ^
-      238 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
-      239 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
-      240 |               "guard, over every context it created.\n\n" +
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:237:17)
+      302 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
+      303 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
+      304 |               "guard, over every context it created.\n\n" +
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:301:17)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-1.png
+    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-2.png
+    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/video.webm
+    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/error-context.md

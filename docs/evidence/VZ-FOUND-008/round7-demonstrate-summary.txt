@@ -1,0 +1,202 @@
+
+> vizra-user@0.0.0 e2e:demos
+> bash scripts/e2e/demonstrate.sh
+
+
+=== starting the production server on :3211 ===
+branch:     fix/m0-harness-hardening
+head sha:   77305009a7ae5b20411134ce5497f88d824e68ce
+node:       v22.14.0
+playwright: Version 1.63.0
+project:    desktop-chromium-1440
+uname:      Darwin arm64
+--- not committed (volatile), printed here instead ---
+repository: <repo>
+tree state: 136 modified/untracked path(s)
+date:       2026-09-21T06:51:27Z
+build id:   hjkFvZ4kaX0l0ZVhcHLUj
+
+=== D1 — a console.error fails the lane ===
+ok   d1-console-error-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d1-console-error-RED.txt
+ok   d1-console-error-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d1-console-error-GREEN.txt
+
+=== D2 — a resource returning 404 fails the lane ===
+ok   d2-failed-request-RED (exit 1, matched 'http 404') -> <repo>/docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt
+ok   d2-failed-request-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d2-failed-request-GREEN.txt
+
+=== D3 — an uncaught exception fails the lane ===
+ok   d3-uncaught-exception-RED (exit 1, matched 'pageerror') -> <repo>/docs/evidence/VZ-FOUND-008/d3-uncaught-exception-RED.txt
+ok   d3-uncaught-exception-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d3-uncaught-exception-GREEN.txt
+
+=== D3b — a request that never completes fails the lane ===
+ok   d3b-aborted-request-RED (exit 1, matched 'requestfailed') -> <repo>/docs/evidence/VZ-FOUND-008/d3b-aborted-request-RED.txt
+ok   d3b-aborted-request-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d3b-aborted-request-GREEN.txt
+
+=== D4a — zero tests collected ===
+ok   d4a-zero-tests-RED (exit 1, matched 'did not satisfy its coverage floor') -> <repo>/docs/evidence/VZ-FOUND-008/d4a-zero-tests-RED.txt
+ok   d4a-zero-tests-GREEN (exit 0, matched 'e2e coverage floor: OK') -> <repo>/docs/evidence/VZ-FOUND-008/d4a-zero-tests-GREEN.txt
+
+=== D4b — a required project is missing from the configuration ===
+ok   d4b-missing-project-RED (exit 1, matched 'is not in the resolved Playwright configuration') -> <repo>/docs/evidence/VZ-FOUND-008/d4b-missing-project-RED.txt
+ok   d4b-missing-project-GREEN (exit 0, matched 'e2e coverage floor: OK') -> <repo>/docs/evidence/VZ-FOUND-008/d4b-missing-project-GREEN.txt
+
+=== D4c — deleting one test drops a project below its floor ===
+ok   d4c-floor-shortfall-RED (exit 1, matched 'the floor is 9') -> <repo>/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-RED.txt
+ok   d4c-floor-shortfall-GREEN (exit 0, matched 'e2e coverage floor: OK') -> <repo>/docs/evidence/VZ-FOUND-008/d4c-floor-shortfall-GREEN.txt
+
+=== D4c2 — adding a test without raising the floor stays green ===
+ok   d4c2-floor-is-a-minimum-GREEN (exit 0, matched 'desktop-chromium-1440=10/9') -> <repo>/docs/evidence/VZ-FOUND-008/d4c2-floor-is-a-minimum-GREEN.txt
+
+=== D4d — the lane refuses a filtered run ===
+ok   d4d-filtered-run-RED (exit 1, matched 'the run was FILTERED') -> <repo>/docs/evidence/VZ-FOUND-008/d4d-filtered-run-RED.txt
+ok   d4d-filtered-run-GREEN (exit 0, matched 'e2e coverage floor: OK') -> <repo>/docs/evidence/VZ-FOUND-008/d4d-filtered-run-GREEN.txt
+
+=== D5 — pointed at a development server instead of the production build ===
+ok   d5-dev-server-RED (exit 1, matched 'this is not a production build') -> <repo>/docs/evidence/VZ-FOUND-008/d5-dev-server-RED.txt
+ok   d5-dev-server-GREEN (exit 0, matched '4 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d5-dev-server-GREEN.txt
+
+=== D6 — the built image contains no harness file and no fixture token ===
+ok   d6-image-fixtures-GREEN (exit 0, matched 'contains no browser-harness path and no fixture token') -> <repo>/docs/evidence/VZ-FOUND-008/d6-image-fixtures-GREEN.txt
+ok   d6-image-fixtures-RED (exit 1, matched 'contains browser-harness files') -> <repo>/docs/evidence/VZ-FOUND-008/d6-image-fixtures-RED.txt
+
+=== D7 — a weakened e2e workflow fails the lane guard ===
+ok   d7-lane-guard-GREEN (exit 0, matched 'still drives the built image') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-guard-GREEN.txt
+ok   d7-lane-step-deleted-RED (exit 1, matched 'no step runs the browser lane') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-step-deleted-RED.txt
+ok   d7-lane-step-echoed-RED (exit 1, matched 'no step runs the browser lane') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-step-echoed-RED.txt
+ok   d7-lane-step-or-true-RED (exit 1, matched 'launders the exit code') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-step-or-true-RED.txt
+ok   d7-lane-step-if-false-RED (exit 1, matched 'must run unconditionally') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-step-if-false-RED.txt
+ok   d7-lane-guard-artifacts-RED (exit 1, matched 'no step uploads artifacts') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-guard-artifacts-RED.txt
+ok   d7-lane-guard-warn-RED (exit 1, matched 'if-no-files-found: error') -> <repo>/docs/evidence/VZ-FOUND-008/d7-lane-guard-warn-RED.txt
+ok   d7-floor-step-removed-RED (exit 1, matched 'check-coverage-floor-ran.mjs') -> <repo>/docs/evidence/VZ-FOUND-008/d7-floor-step-removed-RED.txt
+ok   d7-upload-not-gated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> <repo>/docs/evidence/VZ-FOUND-008/d7-upload-not-gated-RED.txt
+ok   d7-upload-gated-on-ran-not-succeeded-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> <repo>/docs/evidence/VZ-FOUND-008/d7-upload-gated-on-ran-not-succeeded-RED.txt
+ok   d7-redact-step-has-no-id-RED (exit 1, matched 'no `id:`') -> <repo>/docs/evidence/VZ-FOUND-008/d7-redact-step-has-no-id-RED.txt
+ok   d7-redact-continue-on-error-RED (exit 1, matched 'redaction step sets') -> <repo>/docs/evidence/VZ-FOUND-008/d7-redact-continue-on-error-RED.txt
+ok   d7b-second-ungated-upload-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> <repo>/docs/evidence/VZ-FOUND-008/d7b-second-ungated-upload-RED.txt
+ok   d7b-other-uploader-ungated-RED (exit 1, matched 'not gated on the redaction having SUCCEEDED') -> <repo>/docs/evidence/VZ-FOUND-008/d7b-other-uploader-ungated-RED.txt
+ok   d7b-second-gated-upload-GREEN (exit 0, matched 'still drives the built image') -> <repo>/docs/evidence/VZ-FOUND-008/d7b-second-gated-upload-GREEN.txt
+ok   d7c-canary-step-deleted-RED (exit 1, matched 'harness-canary.mjs') -> <repo>/docs/evidence/VZ-FOUND-008/d7c-canary-step-deleted-RED.txt
+ok   d7c-canary-step-if-false-RED (exit 1, matched 'harness-canary step carries an') -> <repo>/docs/evidence/VZ-FOUND-008/d7c-canary-step-if-false-RED.txt
+ok   d7c-canary-continue-on-error-RED (exit 1, matched 'harness-canary step sets') -> <repo>/docs/evidence/VZ-FOUND-008/d7c-canary-continue-on-error-RED.txt
+ok   d7c-stamp-key-pinned-RED (exit 1, matched 'VIZRA_E2E_STAMP_KEY') -> <repo>/docs/evidence/VZ-FOUND-008/d7c-stamp-key-pinned-RED.txt
+
+=== D8 — a spec reaching Playwright's unguarded test fails the gate ===
+ok   d8-guard-GREEN (exit 0, matched 'no unguarded import') -> <repo>/docs/evidence/VZ-FOUND-008/d8-guard-GREEN.txt
+ok   d8-bypass-namespace-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-namespace-RED.txt
+ok   d8-bypass-single-quotes-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-single-quotes-RED.txt
+ok   d8-bypass-dynamic-import-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-dynamic-import-RED.txt
+ok   d8-bypass-require-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-require-RED.txt
+ok   d8-bypass-reexport-shim-RED (exit 1, matched 'harness entry') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-reexport-shim-RED.txt
+ok   d8-bypass-eslint-disable-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-RED.txt
+ok   d8-bypass-eslint-disable-all-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-eslint-disable-all-RED.txt
+ok   d8-bypass-disable-next-line-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-disable-next-line-RED.txt
+ok   d8-bypass-inline-severity-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-inline-severity-RED.txt
+ok   d8-bypass-unscoped-package-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-unscoped-package-RED.txt
+ok   d8-bypass-fails-the-gate-RED (exit 1, matched 'no-unguarded-playwright-import') -> <repo>/docs/evidence/VZ-FOUND-008/d8-bypass-fails-the-gate-RED.txt
+ok   d8-eslint-disable-fails-npm-run-ci-RED (exit 1, matched 'no-unguarded-playwright-import') -> <repo>/docs/evidence/VZ-FOUND-008/d8-eslint-disable-fails-npm-run-ci-RED.txt
+ok   d8-guarded-import-catches-the-page-RED (exit 1, matched 'pageerror') -> <repo>/docs/evidence/VZ-FOUND-008/d8-guarded-import-catches-the-page-RED.txt
+ok   d8-tree-is-clean-GREEN (exit 0, matched 'no unguarded import') -> <repo>/docs/evidence/VZ-FOUND-008/d8-tree-is-clean-GREEN.txt
+
+=== D9 — a signed-URL-shaped query string does not reach an uploaded artifact ===
+ok   d9-artifact-leak-RED (exit 1, matched 'members containing the sentinel:') -> <repo>/docs/evidence/VZ-FOUND-008/d9-artifact-leak-RED.txt
+ok   d9-redaction-runs-GREEN (exit 0, matched 'redacted URL query strings') -> <repo>/docs/evidence/VZ-FOUND-008/d9-redaction-runs-GREEN.txt
+ok   d9-artifact-redacted-GREEN (exit 0, matched 'members containing the sentinel: 0') -> <repo>/docs/evidence/VZ-FOUND-008/d9-artifact-redacted-GREEN.txt
+
+=== D10 — a spec that handles a credential fails the cheap lane ===
+ok   d10-no-credentials-GREEN (exit 0, matched 'passed') -> <repo>/docs/evidence/VZ-FOUND-008/d10-no-credentials-GREEN.txt
+ok   d10-credential-spec-RED (exit 1, matched 'appears to handle a credential') -> <repo>/docs/evidence/VZ-FOUND-008/d10-credential-spec-RED.txt
+
+=== D11 — a spec that bypasses the harness is RED at runtime, whatever lint thinks ===
+ok   d11a-namespace-import-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> <repo>/docs/evidence/VZ-FOUND-008/d11a-namespace-import-RED.txt
+ok   d11b-lint-defeated-GREEN (exit 0, matched 'the disable comment WORKED') -> <repo>/docs/evidence/VZ-FOUND-008/d11b-lint-defeated-GREEN.txt
+ok   d11b-eslint-disable-RED (exit 1, matched 'succeeded WITHOUT the harness stamp') -> <repo>/docs/evidence/VZ-FOUND-008/d11b-eslint-disable-RED.txt
+ok   d11c-outside-not-collected-GREEN (exit 0, matched 'Total: 18 tests in 3 files') -> <repo>/docs/evidence/VZ-FOUND-008/d11c-outside-not-collected-GREEN.txt
+ok   d11c-outside-refused-by-lint-RED (exit 1, matched 'must not reference') -> <repo>/docs/evidence/VZ-FOUND-008/d11c-outside-refused-by-lint-RED.txt
+ok   d11d-forge-via-sealed-module-RED (exit 1, matched 'already been claimed in this worker') -> <repo>/docs/evidence/VZ-FOUND-008/d11d-forge-via-sealed-module-RED.txt
+ok   d11e-forge-via-environment-RED (exit 1, matched 'does not verify against this run') -> <repo>/docs/evidence/VZ-FOUND-008/d11e-forge-via-environment-RED.txt
+ok   d11f-in-process-reporter-deleted-GREEN (exit 0, matched '20 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d11f-in-process-reporter-deleted-GREEN.txt
+ok   d11f-out-of-process-still-RED (exit 1, matched 'did not prove anything') -> <repo>/docs/evidence/VZ-FOUND-008/d11f-out-of-process-still-RED.txt
+ok   d11-clean-tree-lane-GREEN (exit 0, matched 'e2e harness stamp: OK') -> <repo>/docs/evidence/VZ-FOUND-008/d11-clean-tree-lane-GREEN.txt
+ok   d11-clean-tree-out-of-process-GREEN (exit 0, matched 'carried a valid harness stamp') -> <repo>/docs/evidence/VZ-FOUND-008/d11-clean-tree-out-of-process-GREEN.txt
+
+=== D12 — neutering the guard's listeners turns the required lane red ===
+  digest D12 browser-errors.ts BEFORE                   caa78ffe17c3b96f1d69dbb12ad35c73806bd1bfab04274eaf29092d7956c215
+ok   d12-canary-GREEN (exit 0, matched 'failed all 4 fault-injection fixtures') -> <repo>/docs/evidence/VZ-FOUND-008/d12-canary-GREEN.txt
+ok   d12-console-listener-neutered-RED (exit 1, matched 'console-error.demo.ts') -> <repo>/docs/evidence/VZ-FOUND-008/d12-console-listener-neutered-RED.txt
+ok   d12-pageerror-listener-neutered-RED (exit 1, matched 'uncaught-exception.demo.ts') -> <repo>/docs/evidence/VZ-FOUND-008/d12-pageerror-listener-neutered-RED.txt
+ok   d12-response-listener-neutered-RED (exit 1, matched 'http 404') -> <repo>/docs/evidence/VZ-FOUND-008/d12-response-listener-neutered-RED.txt
+ok   d12d-requestfailed-listener-neutered-RED (exit 1, matched 'aborted-request.demo.ts') -> <repo>/docs/evidence/VZ-FOUND-008/d12d-requestfailed-listener-neutered-RED.txt
+  digest D12 browser-errors.ts RESTORED                 caa78ffe17c3b96f1d69dbb12ad35c73806bd1bfab04274eaf29092d7956c215
+ok   d12-canary-restored-GREEN (exit 0, matched 'failed all 4 fault-injection fixtures') -> <repo>/docs/evidence/VZ-FOUND-008/d12-canary-restored-GREEN.txt
+  digest D12e console-error.demo.ts BEFORE              03ba7ec55347b25307a72b67da34f55347d2ba94de038d1c27dfee013888ab43
+ok   d12e-fixture-fault-type-swapped-RED (exit 1, matched 'failed for the WRONG reason') -> <repo>/docs/evidence/VZ-FOUND-008/d12e-fixture-fault-type-swapped-RED.txt
+  digest D12e console-error.demo.ts RESTORED            03ba7ec55347b25307a72b67da34f55347d2ba94de038d1c27dfee013888ab43
+ok   d12e-fixture-restored-GREEN (exit 0, matched 'exact set of record kinds') -> <repo>/docs/evidence/VZ-FOUND-008/d12e-fixture-restored-GREEN.txt
+
+=== D13 — the guard is attached at the browser, so every page a test creates is guarded ===
+ok   d13a-overridden-page-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13a-overridden-page-fixture-RED.txt
+ok   d13b-second-page-in-default-context-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13b-second-page-in-default-context-RED.txt
+ok   d13c-browser-newContext-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13c-browser-newContext-in-body-RED.txt
+ok   d13d-browser-newPage-in-body-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13d-browser-newPage-in-body-RED.txt
+ok   d13e-overridden-context-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13e-overridden-context-fixture-RED.txt
+ok   d13e2-override-navigates-in-the-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13e2-override-navigates-in-the-fixture-RED.txt
+ok   d13f-popup-window-open-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13f-popup-window-open-RED.txt
+ok   d13g-overridden-browser-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13g-overridden-browser-fixture-RED.txt
+ok   d13j-prototype-newContext-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13j-prototype-newContext-RED.txt
+ok   d13k-browserType-launch-RED (exit 1, matched 'was called during a test') -> <repo>/docs/evidence/VZ-FOUND-008/d13k-browserType-launch-RED.txt
+ok   d13l-launchPersistentContext-RED (exit 1, matched 'was called during a test') -> <repo>/docs/evidence/VZ-FOUND-008/d13l-launchPersistentContext-RED.txt
+ok   d13m-connect-and-connectOverCDP-RED (exit 1, matched 'chromium.connectOverCDP') -> <repo>/docs/evidence/VZ-FOUND-008/d13m-connect-and-connectOverCDP-RED.txt
+ok   d13n-swallowed-refusal-still-RED (exit 1, matched 'attempt(s) to create a browser or context the harness was never handed') -> <repo>/docs/evidence/VZ-FOUND-008/d13n-swallowed-refusal-still-RED.txt
+  digest D13o creation-guard.ts BEFORE                  a86c8557e6b3a951d465d120aea0453d47fc8387fb771cb596ce61246d710083
+ok   d13o-registration-cut-teardown-catches-RED (exit 1, matched 'context(s) the harness was never handed are open on this browser') -> <repo>/docs/evidence/VZ-FOUND-008/d13o-registration-cut-teardown-catches-RED.txt
+  digest D13o creation-guard.ts RESTORED                a86c8557e6b3a951d465d120aea0453d47fc8387fb771cb596ce61246d710083
+ok   d13o-registration-restored-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d13o-registration-restored-RED.txt
+ok   d13p-three-routes-lint-green-without-the-ban-GREEN (exit 0, matched 'lint green: the three routes are import-free') -> <repo>/docs/evidence/VZ-FOUND-008/d13p-three-routes-lint-green-without-the-ban-GREEN.txt
+ok   d13p-three-routes-lint-refused-RED (exit 1, matched 'produces a browser, or a context on one, that the harness was never handed') -> <repo>/docs/evidence/VZ-FOUND-008/d13p-three-routes-lint-refused-RED.txt
+  digest D13q test.ts BEFORE                            4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da
+  digest D13q worker-guard.ts BEFORE                    4fc5c024604b8453050209b6f31848c2c96414558d26f9efe147a7a01006e9e8
+ok   d13q-guardBrowser-call-removed-RED (exit 1, matched 'no longer CALLS `guardBrowser`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-guardBrowser-call-removed-RED.txt
+ok   d13q-validatePolicy-call-removed-RED (exit 1, matched 'no longer CALLS `validatePolicy`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-validatePolicy-call-removed-RED.txt
+ok   d13q-unallowedRecords-call-removed-RED (exit 1, matched 'no longer CALLS `unallowedRecords`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-unallowedRecords-call-removed-RED.txt
+ok   d13q-claimSigner-call-removed-RED (exit 1, matched 'no longer CALLS `claimSigner`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-claimSigner-call-removed-RED.txt
+ok   d13q-creation-guard-deleted-RED (exit 1, matched 'no longer CALLS `armCreationGuard`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-creation-guard-deleted-RED.txt
+ok   d13q-teardown-assertion-deleted-RED (exit 1, matched 'no longer CALLS `unguardedContexts`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-teardown-assertion-deleted-RED.txt
+ok   d13q-orphan-assertion-deleted-RED (exit 1, matched 'no longer CALLS `formatOrphans`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-orphan-assertion-deleted-RED.txt
+ok   d13q-brand-check-deleted-RED (exit 1, matched 'no longer CALLS `isGenuineWorkerHarness`') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-brand-check-deleted-RED.txt
+  digest D13q test.ts RESTORED                          4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da
+  digest D13q worker-guard.ts RESTORED                  4fc5c024604b8453050209b6f31848c2c96414558d26f9efe147a7a01006e9e8
+ok   d13q-lane-guard-restored-GREEN (exit 0, matched 'runs the harness canary') -> <repo>/docs/evidence/VZ-FOUND-008/d13q-lane-guard-restored-GREEN.txt
+ok   d13h-honest-override-stays-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d13h-honest-override-stays-GREEN.txt
+ok   d13i-harness-fixture-override-refused-RED (exit 1, matched 'may not replace the harness') -> <repo>/docs/evidence/VZ-FOUND-008/d13i-harness-fixture-override-refused-RED.txt
+ok   d13i-page-override-stays-lint-clean-GREEN (exit 0, matched 'page override is legal') -> <repo>/docs/evidence/VZ-FOUND-008/d13i-page-override-stays-lint-clean-GREEN.txt
+
+=== D14 — how late a fault can fire and still be caught ===
+ok   d14-late-fault-150ms-RED (exit 1, matched 'late fault demonstration (D14)') -> <repo>/docs/evidence/VZ-FOUND-008/d14-late-fault-150ms-RED.txt
+ok   d14-late-fault-600ms-is-the-LIMIT-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d14-late-fault-600ms-is-the-LIMIT-GREEN.txt
+
+=== D15 — a page broken in a hook, or shared between tests, fails by name ===
+ok   d15a-beforeAll-shared-page-RED (exit 1, matched 'BEFORE THE TEST BODY') -> <repo>/docs/evidence/VZ-FOUND-008/d15a-beforeAll-shared-page-RED.txt
+ok   d15b-beforeEach-RED (exit 1, matched 'DURING THE TEST') -> <repo>/docs/evidence/VZ-FOUND-008/d15b-beforeEach-RED.txt
+ok   d15c-shared-page-second-test-charged-RED (exit 1, matched 'second test must be charged') -> <repo>/docs/evidence/VZ-FOUND-008/d15c-shared-page-second-test-charged-RED.txt
+ok   d15d-afterAll-RED (exit 1, matched 'AFTER THE LAST TEST') -> <repo>/docs/evidence/VZ-FOUND-008/d15d-afterAll-RED.txt
+ok   d15e-describe-serial-RED (exit 1, matched 'BEFORE THE TEST BODY') -> <repo>/docs/evidence/VZ-FOUND-008/d15e-describe-serial-RED.txt
+ok   d15f-worker-scoped-user-fixture-RED (exit 1, matched 'browser error(s) that no allow-list entry covers') -> <repo>/docs/evidence/VZ-FOUND-008/d15f-worker-scoped-user-fixture-RED.txt
+ok   d15g-newBrowserCDPSession-RED (exit 1, matched 'browser.newBrowserCDPSession') -> <repo>/docs/evidence/VZ-FOUND-008/d15g-newBrowserCDPSession-RED.txt
+ok   d15h-replaced-worker-fixture-RED (exit 1, matched 'worker-scoped guard `vizraWorkerGuard` was replaced') -> <repo>/docs/evidence/VZ-FOUND-008/d15h-replaced-worker-fixture-RED.txt
+  digest D15i test.ts BEFORE                            4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da
+  digest D15i test.ts MUTATED                           22d8e4a805207a1e418946d5d027878fcd86a51268752870cfc4633fbef6a6b6
+ok   d15i-before-phase-accounting-cut-GREEN (exit 0, matched '1 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d15i-before-phase-accounting-cut-GREEN.txt
+  digest D15i test.ts RESTORED                          4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da
+ok   d15j-worker-scope-removed-RED (exit 1, matched 'no longer declares an automatic WORKER-scoped fixture') -> <repo>/docs/evidence/VZ-FOUND-008/d15j-worker-scope-removed-RED.txt
+  digest D15j test.ts RESTORED                          4ed1b86d7e4df4ac7de3e6d1a7651524c19eaed0881681ed953a2b2ce37eb9da
+ok   d15k-honest-beforeAll-stays-GREEN (exit 0, matched '2 passed') -> <repo>/docs/evidence/VZ-FOUND-008/d15k-honest-beforeAll-stays-GREEN.txt
+ok   d15k-worker-fixture-override-refused-by-lint-RED (exit 1, matched 'may not replace the harness') -> <repo>/docs/evidence/VZ-FOUND-008/d15k-worker-fixture-override-refused-by-lint-RED.txt
+ok   d15k-newBrowserCDPSession-refused-by-lint-RED (exit 1, matched 'produces a browser, or a context on one, that the harness was never handed') -> <repo>/docs/evidence/VZ-FOUND-008/d15k-newBrowserCDPSession-refused-by-lint-RED.txt
+
+=== verdict ===
+mutation digests: <repo>/docs/evidence/VZ-FOUND-008/mutation-digests.txt
+halves passed: 123
+halves blocked: 0
+halves failed: 0
+transcripts:   <repo>/docs/evidence/VZ-FOUND-008
+OK: every demonstration that ran went red on the mutation and green on restore.

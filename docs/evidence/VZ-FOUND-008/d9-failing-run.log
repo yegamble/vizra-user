@@ -1,7 +1,7 @@
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test (1.1s)
+  ✘ <n> [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test (<time>)
 
 
   1) [desktop-chromium-1440] › e2e/demos/signed-url-artifact.demo.ts:40:7 › RED: a page holding a signed-URL-shaped query string › fails, and the failure is what produces the trace under test 
@@ -9,22 +9,23 @@ Running 1 test using 1 worker
     Error: The page produced 2 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [response] http 404: GET http://127.0.0.1:3211/__vizra_e2e_fixture__/media/photo.jpg?<redacted: 2 parameter(s)>
-          at: http://127.0.0.1:3211/
+    2 DURING THE TEST:
       [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/__vizra_e2e_fixture__/media/photo.jpg?<redacted: 2 parameter(s)>:0:0)
+          at: http://127.0.0.1:3211/
+      [response] http 404: GET http://127.0.0.1:3211/__vizra_e2e_fixture__/media/photo.jpg?<redacted: 2 parameter(s)>
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/__vizra_e2e_fixture__/media/photo.jpg?<redacted: 2 parameter(s)>:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/video.webm
+    test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/test-failed-1.png
+    test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/error-context.md

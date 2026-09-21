@@ -46,6 +46,12 @@
 #       and that the routes really were import-free
 #   D14 THE FLUSH WINDOW. How late after the test body a fault can fire and
 #       still be caught, measured at six delays, with the cost of the settle
+#   D15 THE EARLY EDGE. A page broken in `beforeAll`/`beforeEach`, a page shared
+#       between tests, an `afterAll` hook, a `describe.serial` suite, a
+#       worker-scoped fixture of the spec's own, a raw CDP target, and a
+#       replaced worker-scoped guard — each red BY PHASE — plus the mutation
+#       that cuts the before-phase accounting and shows the verifier's spec
+#       going green again, and the honest inverse controls
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -77,6 +83,22 @@ blocked=0
 started=""
 
 log() { printf '\n=== %s ===\n' "$*"; }
+
+# THE MUTATION LEDGER. Every half below that edits a repository file records a
+# sha256 of that file BEFORE the mutation, AFTER it, and AFTER the restore, so a
+# verifier can confirm from the evidence alone that the tree it inherited is the
+# tree the demonstrations started from — rather than trusting `git status` and a
+# trap handler.
+digest_ledger=""
+digest() {
+  # digest LABEL FILE
+  local label=$1 file=$2
+  local sum
+  sum=$(shasum -a 256 "$file" | cut -d" " -f1)
+  digest_ledger="${digest_ledger}${label}  ${sum}  ${file#"$repo/"}
+"
+  printf '  digest %-46s %s\n' "$label" "$sum"
+}
 
 cleanup() {
   for pid in $started; do
@@ -119,6 +141,10 @@ cleanup() {
     cp "$repo/.test.ts.bak" "$repo/e2e/harness/test.ts"
     rm -f "$repo/.test.ts.bak"
   fi
+  if [ -f "$repo/.worker-guard.ts.bak" ]; then
+    cp "$repo/.worker-guard.ts.bak" "$repo/e2e/harness/worker-guard.ts"
+    rm -f "$repo/.worker-guard.ts.bak"
+  fi
   rm -rf "$repo/.vizra-demo-userdata"
 }
 # INT and TERM as well as EXIT: D12 temporarily neuters e2e/harness/browser-errors.ts,
@@ -157,19 +183,27 @@ wait_for "http://127.0.0.1:$prod_port/health" "the production server"
 prod_url="http://127.0.0.1:$prod_port"
 
 # record WHAT ran, so the transcripts are attributable
+# The COMMITTED environment record holds only what is stable at a given commit,
+# so a re-run at the same SHA leaves it byte-identical and `git status` after
+# the demos means something. The volatile facts — the wall-clock date, the
+# Next.js build id (random per build), the tree state — are printed to the RUN
+# LOG instead, where they are still recorded but do not churn the repository.
 {
-  echo "repository: $(git -C "$repo" rev-parse --show-toplevel)"
   echo "branch:     $(git -C "$repo" rev-parse --abbrev-ref HEAD)"
   echo "head sha:   $(git -C "$repo" rev-parse HEAD)"
-  echo "tree state: $(git -C "$repo" status --porcelain | wc -l | tr -d ' ') modified/untracked path(s)"
-  echo "date:       $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   echo "node:       $(node --version)"
   echo "playwright: $(npx playwright --version)"
-  echo "build id:   $(cat "$repo/.next/BUILD_ID")"
   echo "project:    $project"
   echo "uname:      $(uname -sm)"
 } > "$evidence/environment.txt"
 cat "$evidence/environment.txt"
+{
+  echo "--- not committed (volatile), printed here instead ---"
+  echo "repository: $(git -C "$repo" rev-parse --show-toplevel)"
+  echo "tree state: $(git -C "$repo" status --porcelain | wc -l | tr -d ' ') modified/untracked path(s)"
+  echo "date:       $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  echo "build id:   $(cat "$repo/.next/BUILD_ID")"
+}
 
 # half NAME WANT_RC PATTERN -- command...
 half() {
@@ -186,6 +220,13 @@ half() {
   # the negation, so every failing case would read as a pass.
   "$@" >> "$out" 2>&1 || rc=$?
   printf '\n[exit %s]\n' "$rc" >> "$out"
+  # REPRODUCIBLE TRANSCRIPTS. Without this, a clean re-run rewrote 95 of these
+  # files with the checkout's absolute path, wall-clock durations and
+  # Playwright's parallel completion order — so `git status` after the demos
+  # told a verifier nothing, and the committed evidence carried a home
+  # directory. The normaliser touches only those three things; it cannot reach
+  # any string a half asserts on. See scripts/e2e/normalise-transcript.mjs.
+  node "$repo/scripts/e2e/normalise-transcript.mjs" "$out" "$repo"
 
   if [ "$rc" -ne "$want" ]; then
     echo "FAIL $name: exit $rc, wanted $want — see $out"
@@ -899,6 +940,7 @@ half d11-clean-tree-out-of-process-GREEN 0 "carried a valid harness stamp" \
 log "D12 — neutering the guard's listeners turns the required lane red"
 guard_file="$repo/e2e/harness/browser-errors.ts"
 cp "$guard_file" "$repo/.browser-errors.ts.bak"
+digest "D12 browser-errors.ts BEFORE" "$guard_file"
 
 half d12-canary-GREEN 0 "failed all 4 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
@@ -947,6 +989,7 @@ half d12d-requestfailed-listener-neutered-RED 1 "aborted-request.demo.ts" \
 
 cp "$repo/.browser-errors.ts.bak" "$guard_file"
 rm -f "$repo/.browser-errors.ts.bak"
+digest "D12 browser-errors.ts RESTORED" "$guard_file"
 half d12-canary-restored-GREEN 0 "failed all 4 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
@@ -960,12 +1003,14 @@ half d12-canary-restored-GREEN 0 "failed all 4 fault-injection fixtures" \
 #     runs each fixture alone and asserts the exact SET of record KINDS.
 demo_console="$repo/e2e/demos/console-error.demo.ts"
 cp "$demo_console" "$repo/.console-error.demo.ts.bak"
+digest "D12e console-error.demo.ts BEFORE" "$demo_console"
 sed 's|      console.error(token);|      const i = new Image(); i.src = "/__vizra_e2e_fixture__/swapped-" + token + ".png"; document.body.appendChild(i);|' \
   "$repo/.console-error.demo.ts.bak" > "$demo_console"
 half d12e-fixture-fault-type-swapped-RED 1 "failed for the WRONG reason" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 cp "$repo/.console-error.demo.ts.bak" "$demo_console"
 rm -f "$repo/.console-error.demo.ts.bak"
+digest "D12e console-error.demo.ts RESTORED" "$demo_console"
 half d12e-fixture-restored-GREEN 0 "exact set of record kinds" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
@@ -1026,7 +1071,7 @@ guard_half() {
   write_guard_spec "$(cat)"
   half "$name" 1 "browser error(s) that no allow-list entry covers" \
     -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
-    npx playwright test "$guard_spec" --project="$project"
+    npx playwright test "$guard_spec" --project="$project" --workers=1
 }
 
 # The same, with the diagnostic named at the call site. The F12 routes below do
@@ -1039,7 +1084,7 @@ guard_half_msg() {
   write_guard_spec "$(cat)"
   half "$name" 1 "$pattern" \
     -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
-    npx playwright test "$guard_spec" --project="$project"
+    npx playwright test "$guard_spec" --project="$project" --workers=1
 }
 
 # (a) THE VERIFIER'S EXPLOIT, VERBATIM.
@@ -1314,6 +1359,7 @@ EOF
 #     working on its own rather than asserted.
 cg_file="$repo/e2e/harness/creation-guard.ts"
 cp "$cg_file" "$repo/.creation-guard.ts.bak"
+digest "D13o creation-guard.ts BEFORE" "$cg_file"
 sed 's|      const context = (await originalNewContext.apply(this, args)) as BrowserContext;\n|&|' \
   "$repo/.creation-guard.ts.bak" > "$cg_file"
 perl -0pi -e 's/(const context = \(await originalNewContext\.apply\(this, args\)\) as BrowserContext;\n)      active\?\.registerContext\(context\);/$1      void active;/' "$cg_file"
@@ -1332,6 +1378,7 @@ test("a stray context left open is named at teardown", async ({ page, browser })
 EOF
 cp "$repo/.creation-guard.ts.bak" "$cg_file"
 rm -f "$repo/.creation-guard.ts.bak"
+digest "D13o creation-guard.ts RESTORED" "$cg_file"
 # Restored: the same spec is now caught by the REGISTRATION instead, with the
 # ordinary browser-error diagnostic — both layers, one after the other.
 guard_half d13o-registration-restored-RED <<EOF
@@ -1401,24 +1448,77 @@ half d13p-three-routes-lint-refused-RED 1 "produces a browser, or a context on o
 
 rm -f "$repo/eslint.config.no-banned-methods.mjs"
 
-# (q) THE CHEAP EARLY WARNING for an outright deletion. `check-e2e-lane.mjs`
-#     greps `e2e/harness/test.ts` for the creation guard's two halves. This is
-#     string presence and it is NOT the control — the control is (j)-(o) above —
-#     but a control whose deletion is silent in CI is the defect this whole
-#     repository keeps rediscovering, so the deletion is made loud and the
-#     loudness is demonstrated rather than asserted.
+# (q) THE CHEAP EARLY WARNING for an outright deletion, and the measurement that
+#     rewrote it. `check-e2e-lane.mjs` greps the harness for the calls that make
+#     it a guard. It used to grep for NAMES, and an independent verifier
+#     measured what that bought: with the `guardBrowser` CALL replaced by an
+#     inert object and the IMPORT left in place, `tsc` exit 0, the lane guard
+#     exit 0, and the lane itself exit 0 with `18 passed` — the guard entirely
+#     inert. Only the canary caught it. Every pattern now demands `name(`, and
+#     comments are stripped first, because the first version of THAT fix was
+#     satisfied by a sentence in the fixture's own header comment.
+#
+#     This is string presence and it is NOT the control — the control is
+#     (a)-(o) above and D15 — but a control whose deletion is silent in CI is
+#     the defect this repository keeps rediscovering, so the deletion is made
+#     loud and the loudness is demonstrated rather than asserted.
 harness_entry="$repo/e2e/harness/test.ts"
+worker_guard_file="$repo/e2e/harness/worker-guard.ts"
 cp "$harness_entry" "$repo/.test.ts.bak"
-sed 's|const disarm = armCreationGuard({|const disarm = (() => () => {})(); void ({|' \
-  "$repo/.test.ts.bak" > "$harness_entry"
-half d13q-creation-guard-deleted-RED 1 "no longer arms the creation guard" \
+cp "$worker_guard_file" "$repo/.worker-guard.ts.bak"
+digest "D13q test.ts BEFORE" "$harness_entry"
+digest "D13q worker-guard.ts BEFORE" "$worker_guard_file"
+
+# the four PRE-EXISTING name checks, each with the call removed and the import
+# left — the exact shape the verifier measured passing
+perl -0pi -e 's/const guard = guardBrowser\(browser\);/void guardBrowser;\n  const guard = INERT as unknown as BrowserGuard;/' "$worker_guard_file"
+half d13q-guardBrowser-call-removed-RED 1 "no longer CALLS \`guardBrowser\`" \
   -- bash scripts/ci/check-e2e-lane.sh
-sed 's|const strays = unguardedContexts(browser, guard);|const strays: never[] = [];|' \
-  "$repo/.test.ts.bak" > "$harness_entry"
-half d13q-teardown-assertion-deleted-RED 1 "no longer asserts that every live context" \
+cp "$repo/.worker-guard.ts.bak" "$worker_guard_file"
+
+perl -0pi -e 's/const policyProblems = validatePolicy\(browserErrorPolicy\);/const policyProblems: string[] = []; void validatePolicy;/' "$harness_entry"
+half d13q-validatePolicy-call-removed-RED 1 "no longer CALLS \`validatePolicy\`" \
   -- bash scripts/ci/check-e2e-lane.sh
 cp "$repo/.test.ts.bak" "$harness_entry"
-rm -f "$repo/.test.ts.bak"
+
+# BOTH call sites: the before-phase and the during-phase. Removing one would
+# leave the other, and the check would rightly still pass.
+perl -0pi -e 's/= unallowedRecords\(/= NOT_CALLED(/g' "$harness_entry"
+half d13q-unallowedRecords-call-removed-RED 1 "no longer CALLS \`unallowedRecords\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+
+# `claimSigner` is the one that showed a COMMENT could satisfy the check: the
+# fixture's header says "a spec that calls `claimSigner()` gets a throw".
+perl -0pi -e 's/const signStamp = claimSigner\(\);/const signStamp = STUB; void claimSigner;/' "$harness_entry"
+half d13q-claimSigner-call-removed-RED 1 "no longer CALLS \`claimSigner\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+
+# and the checks this slice added
+perl -0pi -e 's/const disarm = armCreationGuard\(\{/const disarm = STUB; void armCreationGuard; void ({/' "$worker_guard_file"
+half d13q-creation-guard-deleted-RED 1 "no longer CALLS \`armCreationGuard\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.worker-guard.ts.bak" "$worker_guard_file"
+
+perl -0pi -e 's/const strays = unguardedContexts\(browser, guard\);/const strays: never[] = []; void unguardedContexts;/' "$harness_entry"
+half d13q-teardown-assertion-deleted-RED 1 "no longer CALLS \`unguardedContexts\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+
+perl -0pi -e 's/throw new Error\(formatOrphans\(orphanRecords, orphanViolations\)\);/void formatOrphans;/' "$harness_entry"
+half d13q-orphan-assertion-deleted-RED 1 "no longer CALLS \`formatOrphans\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+
+perl -0pi -e 's/isGenuineWorkerHarness\(vizraWorkerGuard\)/NOT_CHECKED/' "$harness_entry"
+half d13q-brand-check-deleted-RED 1 "no longer CALLS \`isGenuineWorkerHarness\`" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+
+rm -f "$repo/.test.ts.bak" "$repo/.worker-guard.ts.bak"
+digest "D13q test.ts RESTORED" "$harness_entry"
+digest "D13q worker-guard.ts RESTORED" "$worker_guard_file"
 half d13q-lane-guard-restored-GREEN 0 "runs the harness canary" \
   -- bash scripts/ci/check-e2e-lane.sh
 
@@ -1493,8 +1593,316 @@ half d14-late-fault-150ms-RED 1 "late fault demonstration (D14)" \
 half d14-late-fault-600ms-is-the-LIMIT-GREEN 0 "1 passed" \
   -- demos e2e/demos/late-fault.demo.ts --grep "LIMIT:"
 
+# --- D15 THE EARLY EDGE: hooks, shared pages, and the worker-scoped guard ---
+# THE HOLE THIS CLOSES, in an independent verifier's own words: "the guard sees
+# nothing a page does before the per-test fixture attaches". The listening used
+# to be installed by the TEST-scoped fixture, which Playwright sets up AFTER
+# `beforeAll` has run — measured order:
+#
+#     worker-auto SETUP
+#       beforeAll
+#       test-auto SETUP → beforeEach → body → afterEach → test-auto TEARDOWN
+#       afterAll
+#     worker-auto TEARDOWN
+#
+# so a page opened and navigated in `beforeAll` had already done everything it
+# was going to do. The verifier's spec — the idiom Playwright's own docs teach
+# for sharing a page — was lint-green, type-green and PASSED on a page that
+# 404s a sub-resource and throws, with the fixture's own attachment reading
+# `{ contextsGuarded: 2, contextsUnguarded: 0, creationViolations: [],
+# records: [] }`: every control reporting success while the guard saw nothing.
+#
+# The listening is now WORKER-scoped (`vizraWorkerGuard`) and only the
+# ACCOUNTING is per test, so each signal is charged to exactly one test and the
+# failure says WHICH PHASE produced it.
+log "D15 — a page broken in a hook, or shared between tests, fails by name"
+
+# (a) THE VERIFIER'S SPEC, VERBATIM. `beforeAll` opens the page and navigates;
+#     the body only asserts. Red, and the diagnostic names the phase.
+guard_half_msg d15a-beforeAll-shared-page-RED "BEFORE THE TEST BODY" <<EOF
+import { expect, test } from "../harness/test";
+
+let shared: import("@playwright/test").Page;
+
+test.beforeAll(async ({ browser }) => {
+  const target = await browser.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+  shared = target;
+});
+
+test("the body only asserts; the hook already broke the page", async () => {
+  await expect(shared.getByRole("heading", { level: 1, name: "Vizra" })).toBeVisible();
+});
+EOF
+
+# (b) `beforeEach`. The measured order puts it INSIDE the per-test window, so it
+#     is charged to the test as DURING rather than BEFORE — which is correct,
+#     and the transcript says so rather than the comment claiming it.
+guard_half_msg d15b-beforeEach-RED "DURING THE TEST" <<EOF
+import { expect, test } from "../harness/test";
+
+let shared: import("@playwright/test").Page;
+
+test.beforeEach(async ({ browser }) => {
+  const target = await browser.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+  shared = target;
+});
+
+test("the body only asserts; beforeEach already broke the page", async () => {
+  await expect(shared.locator("h1")).toBeVisible();
+});
+EOF
+
+# (c) A SHARED PAGE BETWEEN TWO TESTS. The first test arms the fault and passes;
+#     the second navigates the same page and is charged. Nothing is lost at the
+#     seam, and no test is charged twice.
+guard_half_msg d15c-shared-page-second-test-charged-RED "second test must be charged" <<EOF
+import { expect, test } from "../harness/test";
+
+let shared: import("@playwright/test").Page;
+
+test.beforeAll(async ({ browser }) => {
+  shared = await browser.newPage();
+  await shared.goto("$prod_url/");
+});
+
+test("first test arms the fault and passes", async () => {
+  await expect(shared.locator("h1")).toBeVisible();
+  const target = shared;
+  $BREAK
+});
+
+test("second test must be charged", async () => {
+  await shared.goto("$prod_url/");
+  await shared.waitForLoadState("networkidle");
+  await expect(shared.locator("h1")).toBeVisible();
+});
+EOF
+
+# (d) `afterAll`. Nothing is running any more, so no test can be failed for it —
+#     the WORKER fixture's teardown fails the run instead. Measured on 1.63.0: a
+#     throw there gives exit 1 with "1 error was not a part of any test", even
+#     though every test passed.
+guard_half_msg d15d-afterAll-RED "AFTER THE LAST TEST" <<EOF
+import { expect, test } from "../harness/test";
+
+test("a perfectly clean test", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+});
+
+test.afterAll(async ({ browser }) => {
+  const target = await browser.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+});
+EOF
+
+# (e) a `describe.serial` suite sharing one page — the shape a later UI slice is
+#     most likely to write for a multi-step journey.
+guard_half_msg d15e-describe-serial-RED "BEFORE THE TEST BODY" <<EOF
+import { expect, test } from "../harness/test";
+
+test.describe.serial("a journey sharing one page", () => {
+  let target: import("@playwright/test").Page;
+
+  test.beforeAll(async ({ browser }) => {
+    target = await browser.newPage();
+    $BREAK
+    await target.goto("$prod_url/");
+    await target.waitForLoadState("networkidle");
+  });
+
+  test("step one", async () => {
+    await expect(target.locator("h1")).toBeVisible();
+  });
+
+  test("step two", async () => {
+    await expect(target.locator("h1")).toBeVisible();
+  });
+});
+EOF
+
+# (f) a WORKER-SCOPED fixture of the spec's own that opens the page. Worker
+#     fixtures are resolved lazily, when a test first asks, so this lands inside
+#     the first test's window — charged to that test, not lost.
+guard_half_msg d15f-worker-scoped-user-fixture-RED "browser error(s) that no allow-list entry covers" <<EOF
+import { expect, test as base } from "../harness/test";
+
+const test = base.extend<Record<string, never>, { openedPage: import("@playwright/test").Page }>({
+  openedPage: [
+    async ({ browser }, provide) => {
+      const target = await browser.newPage();
+      $BREAK
+      await target.goto("$prod_url/");
+      await target.waitForLoadState("networkidle");
+      await provide(target);
+    },
+    { scope: "worker" },
+  ],
+});
+
+test("a worker fixture of the spec's own opened the page", async ({ openedPage }) => {
+  await expect(openedPage.locator("h1")).toBeVisible();
+});
+EOF
+
+# (g) FINDING 2 — `browser.newBrowserCDPSession()`. `Target.createTarget` makes
+#     a page that belongs to no Playwright BrowserContext, so no listener and no
+#     context sweep can ever see it (`browser.contexts().length` measured 1
+#     before and 1 after). Refused, like every other route to something the
+#     harness was never handed.
+guard_half_msg d15g-newBrowserCDPSession-RED "browser.newBrowserCDPSession" <<EOF
+import { expect, test } from "../harness/test";
+
+test("a raw CDP target no context owns", async ({ page, browser }) => {
+  const session = await browser.newBrowserCDPSession();
+  await session.send("Target.createTarget", { url: "$prod_url/VERIFIER_F6_MISSING.png" });
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (h) STAMPED STILL IMPLIES GUARDED, one scope up. Moving the listening into a
+#     second fixture would otherwise re-open FINDING 11: replace the WORKER
+#     fixture with a no-op, keep the test fixture and its stamp, lose the guard.
+#     The harness brands what it builds in a module-private WeakSet, and the
+#     test fixture refuses to stamp itself if what it was handed is not branded.
+guard_half_msg d15h-replaced-worker-fixture-RED "worker-scoped guard \`vizraWorkerGuard\` was replaced" <<EOF
+import { test as base, expect } from "../harness/test";
+
+const test = base.extend({
+  vizraWorkerGuard: [
+    async ({}, provide) => {
+      await provide({
+        guard: {
+          records: [], cursor: () => 0, since: () => [], pages: () => [],
+          contextCount: () => 0, registerContext() {}, isGuarded: () => true, dispose() {},
+        },
+        violations: [], claimedRecords: 0, claimedViolations: 0, dispose() {},
+      } as never);
+    },
+    { scope: "worker", auto: true },
+  ],
+});
+
+test("keep the stamp, lose the listeners", async ({ page }) => {
+  const target = page;
+  $BREAK
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (i) THE MUTATION THAT PROVES (a) IS LOAD-BEARING. Cut the BEFORE-phase
+#     accounting — the listening stays worker-scoped, the records are still
+#     collected, they are simply never charged — and the verifier's own spec
+#     goes GREEN again, exactly as it did before this slice. That green half is
+#     what makes the red one mean something.
+harness_entry="$repo/e2e/harness/test.ts"
+cp "$harness_entry" "$repo/.test.ts.bak"
+digest "D15i test.ts BEFORE" "$harness_entry"
+perl -0pi -e 's/const beforeBodyRecords = guard\.since\(worker\.claimedRecords\);/const beforeBodyRecords: typeof guard.records = []; void guard.since;/' "$harness_entry"
+digest "D15i test.ts MUTATED" "$harness_entry"
+write_guard_spec "$(cat <<EOF
+import { expect, test } from "../harness/test";
+
+let shared: import("@playwright/test").Page;
+
+test.beforeAll(async ({ browser }) => {
+  const target = await browser.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+  shared = target;
+});
+
+test("the body only asserts; the hook already broke the page", async () => {
+  await expect(shared.getByRole("heading", { level: 1, name: "Vizra" })).toBeVisible();
+});
+EOF
+)"
+half d15i-before-phase-accounting-cut-GREEN 0 "1 passed" \
+  -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+  npx playwright test "$guard_spec" --project="$project" --workers=1
+cp "$repo/.test.ts.bak" "$harness_entry"
+rm -f "$repo/.test.ts.bak"
+digest "D15i test.ts RESTORED" "$harness_entry"
+
+# (j) and the lane guard notices if the listening stops being worker-scoped.
+cp "$harness_entry" "$repo/.test.ts.bak"
+perl -0pi -e 's/\{ scope: "worker", auto: true \}/{ auto: true }/' "$harness_entry"
+half d15j-worker-scope-removed-RED 1 "no longer declares an automatic WORKER-scoped fixture" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+rm -f "$repo/.test.ts.bak"
+digest "D15j test.ts RESTORED" "$harness_entry"
+
+# (k) THE INVERSE CONTROLS. An HONEST `beforeAll` that opens a page and shares it
+#     across two tests, on a HEALTHY page, stays GREEN — and so does the lint on
+#     a spec that uses hooks. A harness that fails honest hook usage would just
+#     teach people to stop using hooks.
+write_guard_spec 'import { expect, test } from "../harness/test";
+
+let shared: import("@playwright/test").Page;
+
+test.beforeAll(async ({ browser }) => {
+  shared = await browser.newPage();
+  await shared.goto("/");
+  await shared.waitForLoadState("networkidle");
+});
+
+test.afterAll(async () => {
+  await shared.close();
+});
+
+test("an honest beforeAll on a healthy page stays green", async () => {
+  await expect(shared.getByRole("heading", { level: 1, name: "Vizra" })).toBeVisible();
+});
+
+test("and a second test on the same shared page", async () => {
+  await expect(shared.getByRole("heading", { level: 1, name: "Vizra" })).toBeVisible();
+});'
+half d15k-honest-beforeAll-stays-GREEN 0 "2 passed" \
+  -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+  npx playwright test "$guard_spec" --project="$project" --workers=1
+
+half d15k-worker-fixture-override-refused-by-lint-RED 1 "may not replace the harness" \
+  -- bash -c 'cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test as base } from "../harness/test";
+const test = base.extend({
+  vizraWorkerGuard: [async ({}, run) => { await run(); }, { scope: "worker", auto: true }],
+});
+export default test;
+SPEC
+npx eslint e2e/specs/__guard.spec.ts'
+
+half d15k-newBrowserCDPSession-refused-by-lint-RED 1 "produces a browser, or a context on one, that the harness was never handed" \
+  -- bash -c 'cat > e2e/specs/__guard.spec.ts <<"SPEC"
+import { test } from "../harness/test";
+test("x", async ({ browser }) => { await browser.newBrowserCDPSession(); });
+SPEC
+npx eslint e2e/specs/__guard.spec.ts'
+
+rm -f "$guard_spec"
+
 # --- verdict ---------------------------------------------------------------
 log "verdict"
+# The raw logs the script redirects into the evidence directory — the two Docker
+# builds, D9's failing run, and the two servers — are normalised here rather
+# than by `half`, because nothing writes them through it. Same three rules.
+for raw in "$evidence"/*.log; do
+  [ -f "$raw" ] && node "$repo/scripts/e2e/normalise-transcript.mjs" "$raw" "$repo"
+done
+printf '%s' "$digest_ledger" > "$evidence/mutation-digests.txt"
+echo "mutation digests: $evidence/mutation-digests.txt"
 echo "halves passed: $pass"
 echo "halves blocked: $blocked"
 echo "halves failed: $fail"

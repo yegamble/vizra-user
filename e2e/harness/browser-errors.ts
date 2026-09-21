@@ -43,11 +43,17 @@
  * rather than coercing it. `e2e/harness/browser-errors.test.ts` pins that
  * behaviour in vitest, so it is checked by the cheap lane too.
  *
- * WHEN IT ASSERTS. In fixture teardown, after the test body, so a test cannot
- * pass by simply not looking. Before asserting, the guard makes one round trip
- * into the page (`page.evaluate`) to flush events that the browser has emitted
- * but the driver has not yet delivered — without it an error raised by the last
- * action of a test could arrive after the assertion and be lost.
+ * WHEN IT LISTENS AND WHEN IT ASSERTS — two different times, and conflating
+ * them was a blocking finding of its own. The listeners are installed by a
+ * WORKER-scoped fixture, before the first `beforeAll` runs, so nothing is
+ * missed for being early. The ASSERTION is in the per-test fixture's teardown,
+ * after the test body, so a test cannot pass by simply not looking; each signal
+ * is charged to exactly one test by the cursor arithmetic in `worker-guard.ts`,
+ * and the failure names the phase. Before asserting, the guard settles (see
+ * `SETTLE_MS`) and makes one round trip into each page (`page.evaluate`) to
+ * flush events the browser has emitted but the driver has not yet delivered —
+ * without it an error raised by the last action of a test could arrive after
+ * the assertion and be lost.
  */
 
 import type {
@@ -145,7 +151,12 @@ function pageUrl(page: Page | null | undefined): string {
  *
  * Tying the guard to a second page would only move the hole: the next one is a
  * popup, a new tab, or `browser.newContext()` in the test body. So the guard is
- * attached to the BROWSER for the test's lifetime, at BrowserContext level —
+ * attached to the BROWSER for the WORKER's lifetime, at BrowserContext level.
+ * Worker-scoped, because a test-scoped attachment starts only AFTER `beforeAll`
+ * has run, and a page opened and navigated in a hook was therefore never
+ * observed at all — a blocking finding of its own; see
+ * `e2e/harness/worker-guard.ts` for the measured ordering and the accounting
+ * that charges each signal to exactly one test.
  * `console`, `weberror`, `requestfailed` and `response` all exist on
  * `BrowserContext` in the installed Playwright 1.63.0 types
  * (`playwright-core/types/types.d.ts`, checked, not assumed), and a context
@@ -157,7 +168,9 @@ function pageUrl(page: Page | null | undefined): string {
  *   - a spec that overrides `page` or `context` (their context already exists
  *     when this runs, and is swept);
  *   - `browser.newContext()` and `browser.newPage()` called during the test
- *     (both are wrapped for the test's lifetime and restored afterwards);
+ *     (both are wrapped for the worker's lifetime and restored afterwards);
+ *   - a page opened and navigated in `beforeAll`/`beforeEach`, or shared with an
+ *     earlier test: recorded, and charged to a test by phase;
  *   - `context.newPage()`, and popups/new tabs the page opens itself (a context
  *     listener covers every page in the context);
  *   - a spec that overrides the `browser` fixture — the harness fixture takes
@@ -193,8 +206,22 @@ function pageUrl(page: Page | null | undefined): string {
  * it is and what it costs.
  */
 export type BrowserGuard = {
-  /** Everything observed, in order, across every guarded context. */
+  /**
+   * Everything observed, in order, across every guarded context, for the
+   * lifetime of the guard — which is the WORKER's lifetime, not one test's.
+   *
+   * APPEND-ONLY, NEVER TRUNCATED, so the INDEX of a record is a monotonic
+   * sequence number and `since()` is exact rather than best-effort. That is
+   * what lets `vizraHarnessGuard` charge each signal to exactly one test: the
+   * records before its setup cursor came from a hook or a shared page, the
+   * ones after came from the test body, and the ones left at the end of the
+   * worker came from `afterAll` and belong to no test at all.
+   */
   readonly records: BrowserErrorRecord[];
+  /** The next sequence number — i.e. how many records exist so far. */
+  cursor(): number;
+  /** Every record appended at or after `cursor`. */
+  since(cursor: number): BrowserErrorRecord[];
   /** Every page currently open in a guarded context (for the flush). */
   pages(): Page[];
   /** How many contexts the guard is watching — asserted by the harness tests. */
@@ -299,6 +326,8 @@ export function guardBrowser(browser: Browser): BrowserGuard {
 
   return {
     records,
+    cursor: () => records.length,
+    since: (cursor: number) => records.slice(Math.max(0, cursor)),
     pages: () => [...guarded].flatMap((context) => safePages(context)),
     contextCount: () => guarded.size,
     registerContext: guardContext,
@@ -518,7 +547,107 @@ export function unallowedRecords(
   );
 }
 
-/** The failure message, listing every unallowed signal and the allow-list in force. */
+/** One record, as every failure message renders it. */
+function renderRecord(record: BrowserErrorRecord): string {
+  return `  [${record.kind}] ${record.detail}\n      at: ${record.where}`;
+}
+
+/** The allow-list footer, shared by every failure message. */
+function renderAllowList(allowed: readonly AllowedBrowserError[]): string[] {
+  if (allowed.length > 0) {
+    return [
+      "Allow-list in force for this test:",
+      ...allowed.map(
+        (entry) => `  ${entry.kind} ${String(entry.match)} — ${entry.reason}`,
+      ),
+    ];
+  }
+  return [
+    "No allow-list is in force. If one of these is genuinely expected, declare it with",
+    "test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.",
+  ];
+}
+
+/**
+ * The failure message when signals arrive in either phase of a test.
+ *
+ * THE PHASE IS NAMED FIRST, and that is the point of the whole worker-scoped
+ * rewrite. "The page was already in this state when your test started" and
+ * "your test did this" send a reader to completely different places, and for
+ * four verification rounds the first sentence could not be said at all —
+ * anything a `beforeAll` hook did was invisible, so the test passed.
+ */
+export function formatPhasedFailure(
+  before: readonly BrowserErrorRecord[],
+  during: readonly BrowserErrorRecord[],
+  allowed: readonly AllowedBrowserError[],
+): string {
+  const sections: string[] = [];
+  if (before.length > 0) {
+    sections.push(
+      `${before.length} BEFORE THE TEST BODY — a hook (beforeAll/beforeEach) or a page shared ` +
+        "with an earlier test produced these, and the page was already in this state when the " +
+        "test started:",
+      ...before.map(renderRecord),
+    );
+  }
+  if (during.length > 0) {
+    sections.push(`${during.length} DURING THE TEST:`, ...during.map(renderRecord));
+  }
+  return [
+    `The page produced ${before.length + during.length} browser error(s) that no allow-list ` +
+      "entry covers.",
+    "AGENTS.md: console and network errors are failures, not noise.",
+    "",
+    ...sections,
+    "",
+    ...renderAllowList(allowed),
+  ].join("\n");
+}
+
+/**
+ * The worker-teardown message for signals that belong to no test at all.
+ *
+ * `afterAll` runs after the last test's accounting and before the worker
+ * fixture tears down — measured on the installed 1.63.0 — so a page a hook
+ * breaks once the suite is over is recorded by the listeners and charged to
+ * nobody. A per-test allow-list cannot reach here, because there is no test to
+ * carry one, so this is default-deny with no exit.
+ */
+export function formatOrphans(
+  records: readonly BrowserErrorRecord[],
+  violations: readonly { readonly detail: string }[],
+): string {
+  return [
+    `${records.length + violations.length} browser signal(s) were produced AFTER THE LAST TEST ` +
+      "in this worker finished — an afterAll/afterEach hook, or a page still running once the " +
+      "suite was over. They belong to no test, so no test could fail for them; this worker " +
+      "fails the run instead.",
+    "AGENTS.md: console and network errors are failures, not noise.",
+    "",
+    ...records.map(renderRecord),
+    ...violations.map((violation) => `  ${violation.detail}`),
+    "",
+    "A per-test allow-list cannot reach here, because there is no test to carry it. If a hook",
+    "legitimately produces a signal, do that work in `beforeAll` — where the first test of the",
+    "group owns it — or in a test.",
+    "",
+    "See e2e/harness/worker-guard.ts.",
+  ].join("\n");
+}
+
+/**
+ * The single-phase failure message, listing every unallowed signal and the
+ * allow-list in force.
+ *
+ * THE FIXTURE NO LONGER CALLS THIS — it calls `formatPhasedFailure`, because a
+ * signal now has to be attributed to "before the test body" or "during it", and
+ * saying which is the whole point of the worker-scoped listening. This is kept
+ * exported and pinned by `browser-errors.test.ts` as the one-phase renderer:
+ * it is the shape `scripts/ci/harness-canary.mjs`'s comment refers to when it
+ * describes the `[kind]` markers, and both formatters share `renderRecord` and
+ * `renderAllowList`, so the message contract cannot drift between them.
+ */
 export function formatFailure(
   unallowed: readonly BrowserErrorRecord[],
   allowed: readonly AllowedBrowserError[],

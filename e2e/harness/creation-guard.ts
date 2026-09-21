@@ -63,10 +63,20 @@
  * module load — playwright-core exports no `Browser` class. It is patched
  * instead at the only moment a Browser first exists: inside the already-patched
  * `launch` / `connect` / `connectOverCDP`, before the Browser is returned to
- * whoever asked for it, and again from the harness fixture as a belt. A spec
- * therefore cannot hold a Browser whose prototype is not already patched —
- * not from the `browser` fixture, not from an overridden one, not from
- * `beforeAll`.
+ * whoever asked for it, and again from the harness's worker fixture as a belt.
+ * A spec therefore cannot hold a Browser whose PROTOTYPE is not already
+ * patched, by any route that yields a Browser — the `browser` fixture, an
+ * overridden one, or a `beforeAll` hook that takes `browser`.
+ *
+ * THAT SENTENCE IS ABOUT THE PROTOTYPE AND NOTHING ELSE. An independent
+ * verifier read an earlier version of it ("not from `beforeAll`") as a claim
+ * that hooks were covered, and they were not: the LISTENERS used to be
+ * installed by a test-scoped fixture, so a page opened and navigated in
+ * `beforeAll` was never observed at all. That is fixed in
+ * `e2e/harness/worker-guard.ts` — the listening is now worker-scoped and
+ * starts before the first `beforeAll` runs (measured against the installed
+ * 1.63.0, not assumed) — but nothing in THIS file was ever the thing that
+ * covered it.
  *
  * WHEN IT IS ARMED. `vizraHarnessGuard` arms it for the duration of one test
  * and disarms it in `finally`. Unarmed, every patch is a plain delegation with
@@ -148,6 +158,12 @@ const OWN_BROWSER_ADVICE =
   "names in `e2e/specs/**` and `e2e/demos/**`, and a second browser is a reviewed harness change " +
   "rather than a line in a test.";
 
+const CDP_ADVICE =
+  "A page created through a raw CDP session belongs to no Playwright BrowserContext, so no " +
+  "listener and no context sweep can ever see it. There is no sanctioned use of it from a spec; " +
+  "if a slice needs CDP, `context.newCDPSession(page)` works on a page the harness already " +
+  "guards.";
+
 const NO_ALTERNATIVE_ADVICE =
   "There is no sanctioned use of this API from a spec: the harness drives one application in " +
   "one browser.";
@@ -200,6 +216,22 @@ export function patchBrowserPrototype(browser: Browser): void {
       return page;
     } as unknown as AnyFn;
   }
+
+  // `newBrowserCDPSession` is REFUSED, not registered, because there is nothing
+  // to register. An independent verifier measured it: a spec can open a raw CDP
+  // session on the harness's own browser and `Target.createTarget` a page that
+  // belongs to NO Playwright BrowserContext — `browser.contexts().length` was 1
+  // before and 1 after — so no context listener can ever see it and
+  // `unguardedContexts()` cannot either. It was lint-green, type-green, and
+  // named nowhere. It is a `Browser.prototype` method, so it is closed in the
+  // same place as `newContext`/`newPage`, and refused for the same reason a
+  // second browser is: the harness cannot watch what it was never handed.
+  patchRefusedMethods(
+    holder,
+    ["newBrowserCDPSession"],
+    (_receiver, method) => `browser.${method}`,
+    CDP_ADVICE,
+  );
 }
 
 /* -------------------------------------------------------------------------- */

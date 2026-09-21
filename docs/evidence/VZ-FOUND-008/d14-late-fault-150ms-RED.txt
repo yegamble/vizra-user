@@ -3,7 +3,7 @@ $ demos e2e/demos/late-fault.demo.ts --grep RED:
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first (677ms)
+  ✘ <n> [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first (<time>)
 
 
   1) [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:51:7 › RED: a fault 150 ms after the body returns › is caught, because the flush settles for 250 ms first 
@@ -11,29 +11,30 @@ Running 1 test using 1 worker
     Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
+    1 DURING THE TEST:
       [pageerror] pageerror: __vizra_e2e_fixture__ late fault demonstration (D14)
           at: http://127.0.0.1:3211/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:250
+       at ../harness/test.ts:324
 
-      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-      249 |         if (unallowed.length > 0) {
-    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+      322 |         );
+      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 324 |           throw new Error(
           |                 ^
-      251 |         }
-      252 |       } finally {
-      253 |         disarm();
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
+      325 |             formatPhasedFailure(
+      326 |               unallowedBefore,
+      327 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/video.webm
+    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/test-failed-1.png
+    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/error-context.md

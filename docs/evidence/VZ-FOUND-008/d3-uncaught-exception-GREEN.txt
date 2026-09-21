@@ -3,9 +3,9 @@ $ demos e2e/demos/uncaught-exception.demo.ts --grep GREEN
 
 Running 1 test using 1 worker
 
-  ✓  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:67:7 › GREEN: the same exception, allow-listed with a written reason › passes once the deliberate throw is declared (773ms)
+  ✓ <n> [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:67:7 › GREEN: the same exception, allow-listed with a written reason › passes once the deliberate throw is declared (<time>)
 
-  1 passed (1.7s)
+  1 passed (<time>)
 e2e harness stamp: OK (1 succeeding result(s) verified).
 
 [exit 0]

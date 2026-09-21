@@ -3,10 +3,10 @@ $ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --grep reports live
 
 Running 2 tests using 2 workers
 
-  ✓  2 [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (1.1s)
-  ✓  1 [mobile-chromium-390] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (1.2s)
+  ✓ <n> [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (<time>)
+  ✓ <n> [mobile-chromium-390] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (<time>)
 
-  2 passed (2.4s)
+  2 passed (<time>)
 
 ::error::the browser lane did not satisfy its coverage floor (e2e/harness/required-projects.json):
   the run was FILTERED (--grep). The lane runs the whole suite: any filter can select a subset that happens to clear the floor, which is how a one-test run reported `coverage floor: OK`. For a deliberately partial local run, set E2E_COVERAGE_FLOOR=off and understand that it proves nothing about coverage.

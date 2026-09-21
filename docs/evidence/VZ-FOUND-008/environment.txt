@@ -1,10 +1,6 @@
-repository: /Users/yosefgamble/github/vizra/vizra-user
 branch:     fix/m0-harness-hardening
-head sha:   90896beb9669a3b305269a298d507fd7a9e27aa4
-tree state: 75 modified/untracked path(s)
-date:       2026-09-21T01:14:10Z
+head sha:   77305009a7ae5b20411134ce5497f88d824e68ce
 node:       v22.14.0
 playwright: Version 1.63.0
-build id:   KqAX_T4OE9gBXElpZpiQU
 project:    desktop-chromium-1440
 uname:      Darwin arm64

@@ -1,50 +1,50 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a browser the harness was never handed (723ms)
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a browser the harness was never handed (<time>)
 
 
   1) [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a browser the harness was never handed 
 
     Error: vizra harness: `chromium.launch` was called during a test, which would produce a browser or context the harness was never handed — and therefore one whose console errors, uncaught exceptions, failed requests and HTTP >= 400 responses nothing is watching. If a slice genuinely needs its own browser, the sanctioned route is an overridden `browser` FIXTURE, which Playwright resolves BEFORE this guard is armed and then hands to `vizraHarnessGuard`, which guards it (demonstration D13g). Write that fixture under `e2e/harness/**`, not in the spec: `vizra/no-unguarded-playwright-import` refuses the method names in `e2e/specs/**` and `e2e/demos/**`, and a second browser is a reviewed harness change rather than a line in a test. See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.
 
-       at ../harness/creation-guard.ts:140
+       at ../harness/creation-guard.ts:150
 
-      138 |     "See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.";
-      139 |   active?.recordViolation({ api, detail });
-    > 140 |   throw new Error(detail);
+      148 |     "See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.";
+      149 |   active?.recordViolation({ api, detail });
+    > 150 |   throw new Error(detail);
           |         ^
-      141 | }
-      142 |
-      143 | const OWN_BROWSER_ADVICE =
-        at refuse (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/creation-guard.ts:140:9)
-        at BrowserType2.launch (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/creation-guard.ts:245:28)
-        at /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__guard.spec.ts:5:43
+      151 | }
+      152 |
+      153 | const OWN_BROWSER_ADVICE =
+        at refuse (<repo>/e2e/harness/creation-guard.ts:150:9)
+        at BrowserType2.launch (<repo>/e2e/harness/creation-guard.ts:277:28)
+        at <repo>/e2e/specs/__guard.spec.ts:5:43
 
     Error: 1 attempt(s) to create a browser or context the harness was never handed.
     AGENTS.md: a test that passes must have run under the guard.
 
       vizra harness: `chromium.launch` was called during a test, which would produce a browser or context the harness was never handed — and therefore one whose console errors, uncaught exceptions, failed requests and HTTP >= 400 responses nothing is watching. If a slice genuinely needs its own browser, the sanctioned route is an overridden `browser` FIXTURE, which Playwright resolves BEFORE this guard is armed and then hands to `vizraHarnessGuard`, which guards it (demonstration D13g). Write that fixture under `e2e/harness/**`, not in the spec: `vizra/no-unguarded-playwright-import` refuses the method names in `e2e/specs/**` and `e2e/demos/**`, and a second browser is a reviewed harness change rather than a line in a test. See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.
 
-       at ../harness/test.ts:230
+       at ../harness/test.ts:294
 
-      228 |         // footnote under whatever the guarded pages happened to log.
-      229 |         if (violations.length > 0) {
-    > 230 |           throw new Error(
+      292 |         const violations = [...beforeBodyViolations, ...duringBodyViolations];
+      293 |         if (violations.length > 0) {
+    > 294 |           throw new Error(
           |                 ^
-      231 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
-      232 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
-      233 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:230:17)
+      295 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
+      296 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
+      297 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:294:17)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-browser-the-harness-was-never-handed-desktop-chromium-1440/test-failed-1.png
+    test-results/__guard-a-browser-the-harness-was-never-handed-desktop-chromium-1440/test-failed-<n>.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__guard-a-browser-the-harness-was-never-handed-desktop-chromium-1440/video.webm
+    test-results/__guard-a-browser-the-harness-was-never-handed-desktop-chromium-1440/video<n>.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     Error Context: test-results/__guard-a-browser-the-harness-was-never-handed-desktop-chromium-1440/error-context.md

@@ -104,6 +104,14 @@ const BANNED_METHODS = new Set([
   "launchServer",
   "connect",
   "connectOverCDP",
+  // `newBrowserCDPSession` does not create a browser — it creates a page NO
+  // Playwright BrowserContext owns. An independent verifier measured it:
+  // `Target.createTarget` over a raw CDP session on the harness's own browser
+  // left `browser.contexts().length` at 1 before and 1 after, so no context
+  // listener and no context sweep could ever see the page. It was lint-green,
+  // type-green, and named nowhere. `context.newCDPSession(page)` is NOT banned:
+  // it operates on a page the harness already guards.
+  "newBrowserCDPSession",
 ]);
 
 /** Does this specifier string name a banned package (or a subpath of one)? */

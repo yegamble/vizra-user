@@ -1,7 +1,7 @@
 $ bash scripts/ci/check-e2e-lane.sh
 
 ::error::the e2e lane no longer tests what it claims to test:
-  e2e/harness/test.ts no longer arms the creation guard (`armCreationGuard`, e2e/harness/creation-guard.ts). Without it a spec can reach a context through `Browser.prototype.newContext` or launch a browser of its own, and nothing watches that page's console errors, exceptions, failed requests or >= 400 responses.
+  e2e/harness/worker-guard.ts no longer CALLS `armCreationGuard`, so a spec can reach a context through `Browser.prototype.newContext` or launch a browser of its own, and nothing watches that page.
   These properties are invisible in a green run, which is why they are asserted here.
 
 [exit 1]

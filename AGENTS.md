@@ -202,14 +202,26 @@ the image's `CMD` does — `next dev` is never a valid target, and
 that is not `development`, immutable `/_next/static` caching) so a lane pointed
 at the wrong server goes red rather than quietly testing something else.
 
-**Default-deny on browser errors, over every page the test creates.**
-`e2e/harness/test.ts` has ONE automatic fixture, `vizraHarnessGuard`, which
-attaches the guard **at the browser** for the test's lifetime and writes the
-runtime stamp. For every test, a console error, an uncaught exception, a failed
-request or any HTTP >= 400 response **observed by a browser context** fails the
-test — whether or not the test body looked, and whichever page produced it. A
-404 from Playwright's `request` fixture is not a browser signal and is out of
-scope; see § Residuals. The only way past it is per test:
+**Default-deny on browser errors, over every page the WORKER opens.**
+`e2e/harness/test.ts` has two automatic fixtures, and which is which matters:
+
+| Fixture | Scope | What it does |
+|---|---|---|
+| `vizraWorkerGuard` | **worker**, automatic | installs the BrowserContext-level listeners and the creation guard, for the worker's whole life, into one append-only buffer |
+| `vizraHarnessGuard` | test, automatic | charges each recorded signal to exactly one test, judges it under that test's allow-list, and writes the runtime stamp |
+
+For every test, a console error, an uncaught exception, a failed request or any
+HTTP >= 400 response **observed by a browser context** fails the test — whether
+or not the test body looked, whichever page produced it, **and whether the page
+was touched by the test body, by a `beforeAll`/`beforeEach` hook, or by an
+earlier test that shared it.** Signals produced after the last test in a worker
+(an `afterAll` hook) belong to no test and fail the **run**, from the worker
+fixture's teardown.
+
+Two things that sentence still does not cover, both stated in § Residuals rather
+than implied away: a 404 from Playwright's `request` fixture is not a browser
+signal, and the flush window is finite at both ends. The only way past the guard
+is per test:
 
 ```ts
 test.use({
@@ -247,10 +259,19 @@ proved "this test came from the harness `test` object"; the claim being made is
 
 Two changes make those the same sentence again.
 
-**One fixture.** The guard and the stamp are in `vizraHarnessGuard`, so removing
-the guard removes the stamp, which both the in-process reporter and the
-out-of-process check already refuse. There is no second fixture for
-`test.extend` to take apart.
+**One fixture per test.** The accounting and the stamp are in
+`vizraHarnessGuard`, so removing one removes the stamp, which both the
+in-process reporter and the out-of-process check already refuse.
+
+**And the second fixture is BRANDED.** The listening later had to move to a
+worker-scoped fixture (below), which re-opened exactly this shape one level up:
+`test.extend({ vizraWorkerGuard: … })` with a no-op would keep the test fixture,
+keep its stamp, and lose the listeners. So `createWorkerHarness` records what it
+builds in a module-private `WeakSet` that nothing outside
+`e2e/harness/worker-guard.ts` can add to, and `vizraHarnessGuard` throws
+**before it stamps** if what Playwright handed it is not branded. Replacing the
+worker fixture therefore costs the stamp too — demonstrated in **D15h**, and
+refused by the lint rule as the early warning.
 
 **Attached at the browser, not at a page.** Guarding a second page would have
 moved the hole to a popup, a new tab or a fresh context. The fixture takes
@@ -259,8 +280,10 @@ and `response` listeners at **BrowserContext** level — all four exist on
 `BrowserContext` in the installed Playwright 1.63.0 types, checked in
 `playwright-core/types/types.d.ts` rather than assumed — and a context event
 fires for every page in that context. It sweeps the contexts that already exist
-and wraps `browser.newContext` / `browser.newPage` for the test's lifetime,
-restoring both afterwards, because the browser is worker-scoped and shared.
+and wraps `browser.newContext` / `browser.newPage` for the WORKER's lifetime,
+restoring both afterwards. (It was the test's lifetime until the `beforeAll`
+finding below; the browser is worker-scoped and shared, so the listening has to
+be too.)
 
 Covered, each demonstrated red then green in **D13**: the verifier's exploit
 verbatim; a second page in the default context; `browser.newContext()` in the
@@ -282,6 +305,62 @@ test is running, and `vizraHarnessGuard` asserts in teardown that no live
 context on the browser is one the guard never registered. Both prototypes are
 patched before any spec can observe an unpatched one. § Residuals gives the
 route-by-route table, the demonstration for each, and what is still open.
+
+#### AND WHY THE LISTENING IS WORKER-SCOPED
+
+Attaching at the browser was not enough, because it was attached at the wrong
+TIME. The listeners were installed by the test-scoped fixture, and Playwright
+sets that up **after `beforeAll` has already run**. An independent verifier
+walked through with the idiom Playwright's own documentation teaches:
+
+```ts
+let shared: Page;
+test.beforeAll(async ({ browser }) => {
+  shared = await browser.newPage();
+  await shared.goto("/");                 // 404s a sub-resource, throws
+});
+test("…", async () => {
+  await expect(shared.getByRole("heading", { level: 1, name: "Vizra" })).toBeVisible();
+});
+```
+
+`tsc` exit 0, `eslint` under the shipped configuration 0 errors,
+`npx playwright test` **1 passed** — on a page that 404s and throws. The
+fixture's own attachment read `{ contextsGuarded: 2, contextsUnguarded: 0,
+creationViolations: [], records: [] }`: every control reporting success while
+the guard had observed nothing, because the page had already done everything it
+was going to do. Nobody writing that spec is evading anything, and a documented
+residual is not a control when the bypass is an idiom honest builders will
+write.
+
+**The measured order, on the installed 1.63.0** (a probe printed it; it was not
+assumed):
+
+```
+worker-auto SETUP
+  beforeAll
+  test-auto SETUP → beforeEach → body → afterEach → test-auto TEARDOWN
+  test-auto SETUP → beforeEach → body → afterEach → test-auto TEARDOWN
+  afterAll
+worker-auto TEARDOWN
+```
+
+So the LISTENING moved to `vizraWorkerGuard`, which is set up before the first
+`beforeAll`, and only the ACCOUNTING stayed per test. The buffer is append-only,
+so a record's index is a monotonic sequence number, and each test claims two
+windows: everything since the previous test finished (a hook, or a page shared
+with an earlier test), and everything during its own body. Both are judged under
+the same per-test allow-list, and the failure **names the phase** — "BEFORE THE
+TEST BODY" is the sentence four verification rounds could not say.
+
+Demonstrated red in **D15**: the verifier's `beforeAll` spec verbatim;
+`beforeEach`; a page shared between two tests, where the second is charged; a
+`describe.serial` journey; a worker-scoped fixture of the spec's own; and
+`afterAll`, which fails the RUN because there is no test left to fail. The
+inverse control matters as much: an honest `beforeAll` that opens a page and
+shares it across two healthy tests stays **green** (D15k). And **D15i** cuts the
+before-phase accounting with a controlled mutation and shows the verifier's spec
+going green again — which is what makes the red halves mean something.
 
 **`context` is a declared dependency purely for ordering, and the ordering was
 measured.** Depending on `browser` alone, Playwright sets an automatic fixture
@@ -325,9 +404,12 @@ Playwright's own `test` writes no such annotation, so **a spec that reaches the
 raw runner — by any syntax, from any directory, with any lint suppression — is
 RED at runtime.** Nothing about that depends on what a file looks like.
 
-The stamp is written by the same fixture that installs the guard, so **stamped
-implies guarded**: a spec cannot keep one and drop the other. That sentence was
-false for one round, and the section above says how.
+The stamp is written by the fixture that does the accounting, and that fixture
+refuses to stamp unless the worker-scoped listener it was handed is one the
+harness built, so **stamped implies guarded**: a spec cannot keep one and drop
+the other, at either scope. That sentence was false for one round at the test
+scope, and would have become false again at the worker scope; the section above
+says how both were closed.
 
 The key is not readable from a spec. It reaches workers through the
 environment, and `e2e/harness/stamp.ts` **deletes it from `process.env` while
@@ -637,6 +719,18 @@ it is trusted.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
+- **`check-e2e-lane.mjs`'s harness checks are string presence, and they now
+  require a CALL.** They used to be `includes("guardBrowser")` and friends, and
+  an independent verifier measured what that bought: with the CALL replaced by
+  an inert guard object and the IMPORT left in place, `tsc` exit 0, the lane
+  guard exit 0, and the lane exit 0 with `18 passed` — the guard entirely
+  inert. Only the canary caught it. Every pattern now demands `name(`, and
+  comments are stripped before matching, because the first version of that fix
+  was itself satisfied by a sentence in the fixture's own header comment.
+  **A mutation that calls and discards the result still passes**, which is the
+  honest limit of a string check: the control is D13/D15's runtime shapes and
+  the canary, not this. Each of the eight checks is demonstrated going red
+  against its own controlled mutation (**D13q**).
 - **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED — three import-free
   routes reached one, and all three are now closed at RUNTIME.** This bullet
   used to say "nothing catches these today"; that sentence is no longer true,
@@ -655,6 +749,7 @@ it is trusted.
   | `browserType().connect()` / `connectOverCDP()` | **refused** | the same patch; reachable without a server because the refusal precedes the call (**D13m**) |
   | `browserType().launchServer()` | **refused** | the same patch — `launchServer` hands back a `wsEndpoint` that `connect` would turn into a Browser, so both ends are closed (unit-tested in `e2e/harness/creation-guard.test.ts`; no D13 half) |
   | `_electron.launch()`, `_android.launchServer()` / `connect()` | **refused** | both reachable from the built-in `playwright` fixture with no import (unit-tested in `e2e/harness/creation-guard.test.ts`) |
+  | `browser.newBrowserCDPSession()` + `Target.createTarget` | **refused** | a raw CDP target belongs to no Playwright BrowserContext — `browser.contexts().length` measured 1 before and 1 after — so no listener and no sweep could ever see it. It is a `Browser.prototype` method, patched where `newContext`/`newPage` are (**D15g**). `context.newCDPSession(page)` is NOT refused: it drives a page the harness already guards |
   | `Object.getPrototypeOf(browser).newPage.call(browser)` | guarded, as before | the prototype's `newPage` calls `this.newContext` |
 
   Three layers, and it matters which is which. `e2e/harness/creation-guard.ts`
@@ -674,7 +769,8 @@ it is trusted.
   (**D13o**).
 
   The lint rule now refuses `browserType`, `launch`, `launchPersistentContext`,
-  `launchServer`, `connect` and `connectOverCDP` in `e2e/specs/**` and
+  `launchServer`, `connect`, `connectOverCDP` and `newBrowserCDPSession` in
+  `e2e/specs/**` and
   `e2e/demos/**` — **as the early warning, not the control.** D13p shows both
   halves: with the method ban switched off, a spec holding all three routes
   passes ESLint, which is exactly the state the verifier measured.
@@ -688,20 +784,39 @@ it is trusted.
   honest idiom, and nothing automated refuses it. And a spec can still write a
   member access the rule cannot read (`browser[name]()`), which the runtime
   guard catches but lint does not.
-- **The harness-owned-fixture ban is lint.** Replacing `vizraHarnessGuard` is
-  refused by the rule and, at runtime, costs the spec its stamp — which both
-  floor checks refuse. Replacing `page`, `context` or `browser` is legitimate,
-  is not refused, and is covered by the guard. D13 runs **fifteen runtime shapes
-  red** (`d13a`–`d13g`, `d13j`–`d13o`) plus two lint halves red, with the honest
-  overrides green; an independent verifier ran eleven shapes of its own against
-  the previous round, all red.
-- **The flush window is finite. It is now 250 ms wide, and that is a widening,
-  not a closing.** The guard settles for a fixed 250 ms after the test body
-  returns, then flushes every guarded page, then asserts. Before this slice the
-  window was "whatever the driver had already delivered": an independent
-  verifier measured `0 ms` caught and **50 ms and 150 ms missed**. Measured now,
-  with faults scheduled at 0 / 50 / 150 / 250 / 400 / 600 ms after the body
-  returns:
+- **The harness-owned-fixture ban is lint; the RUNTIME half is the brand.**
+  Replacing `vizraHarnessGuard` or `vizraWorkerGuard` is refused by the rule,
+  and at runtime costs the spec its stamp — for the test fixture because the
+  stamp lives in it, and for the worker fixture because `vizraHarnessGuard`
+  refuses to stamp a test whose worker guard is not one `createWorkerHarness`
+  built (a module-private `WeakSet`; a look-alike object cannot join it).
+  Replacing `page`, `context` or `browser` is legitimate, is not refused, and is
+  covered by the guard. D13 runs **fifteen runtime shapes red**
+  (`d13a`–`d13g`, `d13j`–`d13o`); D15 adds **eight more** for hooks, shared
+  pages, CDP and the worker fixture; the honest overrides and the honest
+  `beforeAll` stay green.
+- **THE WINDOW HAS TWO EDGES, and they are now closed asymmetrically. Read
+  both.**
+
+  **The EARLY edge is closed.** Anything a page does before a test's body — in
+  `beforeAll`, in `beforeEach`, or because an earlier test shared it — is
+  recorded (the listening is worker-scoped) and charged to a test by name. It
+  used to be invisible: a `beforeAll` that navigated a broken page produced a
+  green test, and that was the blocking finding this slice exists to close.
+
+  **The LATE edge is widened, not closed, and it is two different things.**
+  Within a test, the guard settles a fixed 250 ms after the body returns before
+  it asserts; a fault later than that is missed by THAT test. After the last
+  test in a worker there is no test left to charge, so the worker fixture's
+  teardown fails the **run** instead — measured: a throw there gives
+  `npx playwright test` exit 1 with "1 error was not a part of any test", even
+  when every test passed. What is genuinely lost is a fault that fires after the
+  browser has closed, which nothing can observe.
+
+  Before this slice the in-test window was "whatever the driver had already
+  delivered": an independent verifier measured `0 ms` caught and **50 ms and
+  150 ms missed**. Measured now, with faults scheduled at 0 / 50 / 150 / 250 /
+  400 / 600 ms after the body returns:
 
   | Settle | Caught | Missed |
   |---|---|---|
@@ -717,7 +832,23 @@ it is trusted.
   at 150 ms must fail the test, and a fault at 600 ms passes — that green half
   is the documented limit, and it goes red if the number here ever stops
   matching the code. A spec whose page misbehaves more than about a quarter of a
-  second after it has finished is still not covered.
+  second after its own body finished is not charged to THAT test; if a later
+  test in the same worker is still running it is charged to that one, and if the
+  worker has finished it fails the run — but if the browser has already closed,
+  nothing observes it at all.
+- **The orphan check is default-deny, and a page that never settles will fail
+  the run.** Signals recorded after the last test in a worker are charged to
+  nobody, so the worker fixture's teardown fails the run — there is no per-test
+  allow-list that can reach them, because there is no test to carry one. That is
+  deliberate; it is also the one place where a page that keeps emitting after
+  the suite ends turns the run red. Measured: the production lane ran **20
+  consecutive times with no orphan**, and the one place an orphan appeared was
+  **D5**, whose whole point is that the harness is pointed at `next dev` — a
+  server that holds an HMR WebSocket open and logs its failure whenever it
+  likes. D5 asserts the dev-server diagnostic and stays red either way, but if a
+  future spec drives a page that genuinely never settles, this is where it will
+  bite, and the fix is to close that page in `afterAll` rather than to widen the
+  check.
 - **The `request` fixture is out of the guard's scope, by design.** The guard
   watches BROWSER signals — console, page errors, failed requests and HTTP >= 400
   *responses observed by a browser context*. A 404 from Playwright's

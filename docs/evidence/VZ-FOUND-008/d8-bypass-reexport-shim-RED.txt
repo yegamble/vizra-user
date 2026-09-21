@@ -1,11 +1,11 @@
-$ npx eslint /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__bypass.spec.ts /Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__shim.ts
+$ npx eslint <repo>/e2e/specs/__bypass.spec.ts <repo>/e2e/specs/__shim.ts
 
 
-/Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__bypass.spec.ts
+<repo>/e2e/specs/__bypass.spec.ts
   2:10  error  `expect` must be imported from the harness entry (e2e/harness/test), not from `./__shim`. A module that re-exports Playwright's raw `test` is a bypass with extra steps  vizra/no-unguarded-playwright-import
   2:18  error  `test` must be imported from the harness entry (e2e/harness/test), not from `./__shim`. A module that re-exports Playwright's raw `test` is a bypass with extra steps    vizra/no-unguarded-playwright-import
 
-/Users/yosefgamble/github/vizra/vizra-user/e2e/specs/__shim.ts
+<repo>/e2e/specs/__shim.ts
   2:1  error  This file must not re-export from `@playwright/test`. Re-exporting makes the unguarded `test` reachable from a spec that looks compliant  vizra/no-unguarded-playwright-import
 
 ✖ 3 problems (3 errors, 0 warnings)

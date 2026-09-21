@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-e2e-lane.sh /Users/yosefgamble/github/vizra/vizra-user/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
+$ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
   the artifact upload at step 16 (`actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02`) is not gated on the redaction having SUCCEEDED. It must read `if: failure() && steps.redact.outcome == 'success'`; it reads `failure()`. With two bare `failure()` conditions a redactor that exits non-zero still lets the unredacted tree be published — and a SECOND, ungated upload step publishes it even when the first one is correctly skipped.
