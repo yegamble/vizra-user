@@ -171,6 +171,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `npm run codegen` | regenerate the client from the vendored spec |
 | `node scripts/check-manifest.mjs` | `contracts/manifest.json` is well formed and describes the vendored file: `source_ref: main`, 40-hex commit and blob, matching sha256 and byte count. It does NOT detect staleness — see "Owed" above |
 | `node scripts/vendor-contract.mjs --from ../vizra-core --ref main` | take a newer contract, read from core's object database at that ref |
+| `bash scripts/demonstrate-contract.sh` | the contract guards' red/green demonstrations — a hand-edited client, an edited spec, a remote `$ref`, and four manifest mutations; transcripts to `docs/evidence/revendor/` |
 | `bash scripts/ci/require-checks_test.sh` | the `ci-required` fan-in's own suite, plus the manifest-floor and image-pin cases |
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |

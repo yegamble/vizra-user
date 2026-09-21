@@ -67,7 +67,11 @@ record() {
 echo "== D1: a hand-edited generated client is rejected =="
 # The negative case the ledger names for VZ-FOUND-002: lib/api/generated.ts is
 # generated, never hand-edited.
-perl -0pi -e 's{export interface paths \{}{export interface paths {\n    "/pwned": never;}' "$CLIENT"
+node -e '
+const fs=require("fs"), f="lib/api/generated.ts", s=fs.readFileSync(f,"utf8");
+const marker="export interface paths {";
+if (!s.includes(marker)) { console.error("demo D1: marker not found in "+f); process.exit(2); }
+fs.writeFileSync(f, s.replace(marker, marker+"\n    \"/pwned\": never;"));'
 record d1-handedited-client-RED.txt 1 "lib/api/generated.ts hand-edited: one line added to the generated interface" -- npm run check:contract
 restore
 record d1-handedited-client-GREEN.txt 0 "the same check on the restored tree" -- npm run check:contract
