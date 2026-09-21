@@ -719,18 +719,71 @@ it is trusted.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
-- **`check-e2e-lane.mjs`'s harness checks are string presence, and they now
-  require a CALL.** They used to be `includes("guardBrowser")` and friends, and
-  an independent verifier measured what that bought: with the CALL replaced by
-  an inert guard object and the IMPORT left in place, `tsc` exit 0, the lane
+- **`check-e2e-lane.mjs`'s harness checks are a GREP, and a grep is all they
+  are. Read what defeats them before relying on one.** There are eleven: ten
+  that demand a CALL (`name(`) and one that demands the presence of
+  `STAMP_ANNOTATION`. They used to be `includes("guardBrowser")` and friends,
+  and an independent verifier measured what that bought: with the CALL replaced
+  by an inert guard object and the IMPORT left in place, `tsc` exit 0, the lane
   guard exit 0, and the lane exit 0 with `18 passed` — the guard entirely
-  inert. Only the canary caught it. Every pattern now demands `name(`, and
-  comments are stripped before matching, because the first version of that fix
-  was itself satisfied by a sentence in the fixture's own header comment.
-  **A mutation that calls and discards the result still passes**, which is the
-  honest limit of a string check: the control is D13/D15's runtime shapes and
-  the canary, not this. Each of the eight checks is demonstrated going red
-  against its own controlled mutation (**D13q**).
+  inert. Only the canary caught it. Demanding `name(` closes that case, and each
+  of the eleven is demonstrated going red against its own controlled mutation
+  (**D13q**).
+
+  **It does NOT "strip comments", and this file said that it did.** Measured
+  against `withoutComments` directly, with the call removed in each case:
+
+  | Decoy left behind | Check |
+  |---|---|
+  | nothing | **RED** — the control working |
+  | a line comment where `//` starts the line | **RED** — stripped |
+  | a block comment `/* … */`, JSDoc included | **RED** — stripped |
+  | a **trailing** line comment: `void 0; // formatOrphans(a, b)` | **GREEN — defeated** |
+  | a **string literal**: `const s = "formatOrphans(";` | **GREEN — defeated** |
+  | **call-and-discard**: `void formatOrphans(a, b);` | **GREEN — defeated** |
+
+  An independent verifier drove the trailing-comment case end to end on the one
+  control the canary cannot reach: delete the orphan assertion from
+  `e2e/harness/test.ts`, leave `// formatOrphans(…)` trailing — `tsc` exit 0,
+  `check-e2e-lane.sh` exit 0, the canary exit 0, and an `afterAll` that breaks a
+  page **passes**. Blast radius is bounded: if a later test runs in the same
+  worker the records leak forward and are charged to it (measured), so only a
+  dirty `afterAll` that is the last thing a worker does goes fully silent.
+
+  **This matters more for the late edge than anywhere else**, because for
+  `afterAll` → worker-teardown this grep is the ONLY compensating control — the
+  canary cannot exercise it and the out-of-process check does not see it. For
+  every other symbol the control is D13/D15's runtime shapes and the canary, and
+  the grep is only an early warning. Defeating it needs an edit to
+  `e2e/harness/**` (a CODEOWNERS path) by someone who also leaves a decoy, so it
+  is deliberate evasion rather than an honest mistake — but it is not what
+  "greps for the assertion by call, so deleting it is not silent" claimed.
+  **That sentence is still in the header of `e2e/harness/worker-guard.ts` and it
+  overstates the control**; it is left unedited only because
+  `docs/evidence/VZ-FOUND-008/mutation-digests.txt` pins that file's bytes, and
+  correcting it lands with the control. **Queued for the next vizra-user harness
+  slice**: match on a tokenised or parsed source so comments and string literals
+  cannot satisfy a check, with `require-checks_test.sh` cases for the
+  trailing-comment and string flavours. Not done here.
+- **`globalSetup` and `globalTeardown` are outside the guard entirely, and
+  nothing refuses one.** The listening starts at WORKER setup; `globalSetup`
+  runs in the Playwright main process before any worker exists, so no listener
+  is attached and the creation guard is unarmed. An independent verifier
+  measured it: a `globalSetup` that launches its own Chromium and opens a page
+  which 404s a sub-resource and throws gives `npx playwright test` exit **0**,
+  `3 passed`, with no guard message — and the module provably ran (it wrote a
+  marker file). `check-e2e-lane.sh` exits 0 too; neither this file nor any
+  script mentioned it before this paragraph.
+
+  It sits with the other config-level residuals rather than with the holes: it
+  needs a `playwright.config.ts` edit, which is a `.github/CODEOWNERS` path and
+  not reachable from a spec, and the repository has no `globalSetup` key today.
+  A setup **project** (`dependencies: [...]`) is by contrast fully covered — its
+  tests are ordinary tests and the verifier's broken one failed with
+  `[response] http 404`. **Queued for the next vizra-user harness slice**: have
+  `check-e2e-lane.mjs` refuse a `globalSetup`/`globalTeardown` key outright,
+  since nothing here needs one, or guard it if a later slice does. Not done
+  here.
 - **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED — three import-free
   routes reached one, and all three are now closed at RUNTIME.** This bullet
   used to say "nothing catches these today"; that sentence is no longer true,

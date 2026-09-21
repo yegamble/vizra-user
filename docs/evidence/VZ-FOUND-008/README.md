@@ -169,8 +169,17 @@ even when every test passed — measured on 1.63.0 — and
 `check-e2e-lane.mjs` proves the lane runs exactly `npm run e2e` with no
 exit-code laundering, so a non-zero exit is a red lane. That is the mechanism
 chosen over writing a second per-run record; the cost is that the
-out-of-process check does not independently see this one case, so the lane guard
-greps for the assertion by call.
+out-of-process check does not independently see this one case, so the lane
+guard's grep for `formatOrphans(` is the only compensating control — **and that
+grep is weak**. Measured after this round: it strips block comments and a line
+comment that starts a line, but a TRAILING `//` comment, a string literal, or a
+call whose result is discarded all satisfy it. An independent verifier deleted
+the orphan assertion, left `// formatOrphans(…)` trailing, and got `tsc` 0, the
+lane guard 0, the canary 0 and a passing `afterAll` on a broken page. It needs
+an `e2e/harness/**` edit plus a decoy, so it is deliberate evasion rather than
+an honest mistake — but the round-7 claim that "deleting it is not silent" was
+too strong, and AGENTS.md § Residuals now states this in full. Matching a
+tokenised source is queued as its own slice.
 
 #### Round 7 — what ran
 

@@ -517,10 +517,31 @@ const HARNESS_CALLS = [
  * throw", and that sentence satisfied the regex. A check that a prose
  * paragraph can satisfy is not a check.
  *
- * Block comments go entirely; a line comment goes only when `//` is the first
- * non-whitespace on its line, so a `"http://…"` inside a string is never
- * touched. Both directions are safe: this can only make the patterns match
- * LESS, i.e. fail closed.
+ * WHAT IT ACTUALLY STRIPS, AND WHAT STILL SATISFIES A CHECK. Block comments go
+ * entirely, JSDoc included. A LINE comment goes only when `//` is the first
+ * non-whitespace on its line — which keeps a `"http://…"` inside a string safe,
+ * and is also the limit. Measured against this function, with the call removed
+ * in each case:
+ *
+ *     nothing left behind                          -> RED   (working)
+ *     `// name(…)` at the start of a line          -> RED   (stripped)
+ *     a block comment naming it, JSDoc included    -> RED   (stripped)
+ *     `void 0; // name(…)`   TRAILING comment      -> GREEN  DEFEATED
+ *     `const s = "name(";`   string literal        -> GREEN  DEFEATED
+ *     `void name(…);`        call-and-discard      -> GREEN  DEFEATED
+ *
+ * An earlier version of this comment said "this can only make the patterns
+ * match LESS, i.e. fail closed". THAT WAS FALSE: a trailing comment or a string
+ * fails it OPEN, and an independent verifier drove the trailing-comment case
+ * end to end — orphan assertion deleted, `// formatOrphans(…)` left trailing,
+ * `tsc` 0, this script 0, the canary 0, and an `afterAll` that breaks a page
+ * passing.
+ *
+ * Read AGENTS.md § Residuals before relying on one of these checks, especially
+ * the `formatOrphans` one: for the late edge it is the only compensating
+ * control, because the canary cannot exercise a worker-teardown assertion and
+ * the out-of-process check does not see it. Matching a tokenised or parsed
+ * source instead is queued as its own slice.
  */
 function withoutComments(source) {
   return source
