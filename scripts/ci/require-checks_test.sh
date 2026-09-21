@@ -1080,6 +1080,9 @@ title="a GLOB in an upload path fails by name"
 lane_expect 1 'glob or exclusion metacharacter' 's|^            test-results/$|            test-*/|'
 
 title="a \${{ }} expression in an upload path fails by name"
+# The `${{ }}` must reach the sed program LITERALLY — that is the mutation under
+# test. Double quotes would make the shell try to expand it.
+# shellcheck disable=SC2016
 lane_expect 1 'expression' 's|^            test-results/$|            ${{ runner.temp }}/|'
 
 title="include-hidden-files: true fails by name"
@@ -1089,6 +1092,9 @@ title="an upload path outside the allowlist fails by name"
 lane_expect 1 'not on the allowlist' 's|^            test-results/$|            test-results/\n            playwright-report/index.html|'
 
 title="a \$GITHUB_STEP_SUMMARY write in the e2e job fails by name"
+# `$GITHUB_STEP_SUMMARY` is the text being injected into the workflow, not a
+# variable this script should expand.
+# shellcheck disable=SC2016
 lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      - name: Container logs$|      - name: Summary\n        run: echo hi >> $GITHUB_STEP_SUMMARY\n      - name: Container logs|'
 
 title="an actions/cache step caching .vizra-e2e fails by name"
