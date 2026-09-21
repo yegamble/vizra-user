@@ -73,6 +73,27 @@ function sharedEslint(): ESLint {
   return eslintInstance;
 }
 
+/**
+ * AND AN EXPLICIT TIMEOUT, because sharing the instance was NOT enough and I
+ * published that it was.
+ *
+ * The first version of this note said the shared instance "removes the
+ * mechanism", on the evidence of ten consecutive cold runs. It then failed
+ * again, in the same case, on a machine carrying a load average of 46 — the
+ * thirteen constructions were the multiplier, but the FIRST one still resolves
+ * the whole flat configuration (plugins, the custom rules, the TypeScript
+ * parser) and lints every spec under `e2e/`, and that work alone does not fit in
+ * vitest's 5000 ms default when the CPU is contended.
+ *
+ * So: both halves. The instance is shared, which is the real saving, and the
+ * cases that touch ESLint carry a timeout sized for the work rather than for a
+ * quiet machine. 30 s is not a guess — it is ~20x the measured warm cost and
+ * ~4x the worst cold-and-contended run observed. It is scoped to the ESLint
+ * cases; every other test in this file keeps the 5000 ms default, so a genuine
+ * hang somewhere else still fails fast.
+ */
+const ESLINT_CASE_TIMEOUT_MS = 30_000;
+
 describe("validatePolicy", () => {
   it("accepts the deny-all default", () => {
     expect(validatePolicy(DENY_ALL)).toEqual([]);
@@ -523,7 +544,7 @@ describe("specs use the guarded test", () => {
         .map((message) => `${path.relative(repoRoot, result.filePath)}:${message.line} ${message.message}`),
     );
     expect(violations, violations.join("\n")).toEqual([]);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * INLINE DIRECTIVES ARE OFF for these directories.
@@ -553,7 +574,7 @@ describe("specs use the guarded test", () => {
           "turns the browser-error guard off for that file",
       ).toBe(true);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it.each([
     ["/* eslint-disable vizra/no-unguarded-playwright-import */", "block disable, rule named"],
@@ -584,7 +605,7 @@ describe("specs use the guarded test", () => {
     );
     expect(message).toBeDefined();
     expect(message?.severity).toBe(2);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("the unscoped `playwright/test` spelling is refused by the rule, not by luck", async () => {
     // It used to pass lint and RUN; it failed the lane only because loading a
@@ -600,7 +621,7 @@ describe("specs use the guarded test", () => {
     );
     expect(message).toBeDefined();
     expect(message?.severity).toBe(2);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * THE CLASS, NOT THE DIRECTORY.
@@ -646,7 +667,7 @@ describe("specs use the guarded test", () => {
         `${path.relative(repoRoot, file)} must resolve linterOptions.noInlineConfig === true`,
       ).toBe(true);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it.each([
     ["e2e/other/__r1.spec.ts", "the verifier's third bypass, in a directory that does not exist"],
@@ -673,7 +694,7 @@ describe("specs use the guarded test", () => {
       path.join(repoRoot, "e2e/harness/test.ts"),
     )) as { rules?: Record<string, unknown> };
     expect(config.rules?.["vizra/no-unguarded-playwright-import"]).toBeUndefined();
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * THE SEALED MODULES. `e2e/harness/stamp.ts` holds the per-run key that proves
@@ -750,7 +771,7 @@ describe("specs use the guarded test", () => {
         `overriding ${fixture} must stay legal`,
       ).toEqual([]);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("other harness modules stay importable — the seal is narrow, not a blanket ban", async () => {
     // e2e/specs/production-build.spec.ts legitimately imports
@@ -767,7 +788,7 @@ describe("specs use the guarded test", () => {
         (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
       ),
     ).toEqual([]);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("the rule is configured as an error for e2e/specs, not a warning", async () => {
     // A rule set to "warn" would report and let the gate pass. Asked of the
@@ -782,5 +803,5 @@ describe("specs use the guarded test", () => {
     );
     expect(message, "the rule did not fire on a namespace import in e2e/specs/").toBeDefined();
     expect(message?.severity, "the rule must be an error, never a warning").toBe(2);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 });
