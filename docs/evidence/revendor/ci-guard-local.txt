@@ -1,0 +1,31 @@
+# ci-guard's own checks, run locally (this PR touches .github/workflows/contract-ci.yml, so the guard lane will run)
+# 2026-09-21T00:15:18Z, Darwin arm64, head 549e589e2cc99a66cc8d0c01166d44bbd209db89
+
+$ bash scripts/ci/check-required-manifest.sh
+OK: all 5 entries in .github/required-checks.txt map to a defined job.
+# exit=0
+
+$ bash scripts/ci/check-required-floor.sh
+OK: .github/required-checks.txt still requires the floor: frontend contract e2e.
+# exit=0
+
+$ bash scripts/ci/check-image-pins.sh
+OK: all 3 external FROM lines in Dockerfile are @sha256-pinned at node 22.14.0.
+# exit=0
+
+$ bash scripts/ci/check-e2e-lane.sh
+OK: .github/workflows/e2e.yml still drives the built image, runs `npm run e2e` unconditionally, re-checks the coverage floor after it, runs the harness canary, and redacts artifacts before EVERY upload step publishes them.
+# exit=0
+
+$ bash scripts/ci/require-checks_test.sh
+ok 105 - a --platform flag does not hide the image from the guard
+ok 106 - a commented-out FROM is not a FROM
+ok 107 - a Dockerfile with no external FROM refuses to pass vacuously
+ok 108 - a stage reference is not an external image and needs no digest
+ok 109 - the committed Dockerfile satisfies the image-pin guard
+require-checks_test: 102 cases, 109 assertions, 0 failed
+# exit=0
+
+$ shellcheck -x scripts/ci/*.sh scripts/demonstrate-contract.sh
+
+# exit=0 (no output above = clean)

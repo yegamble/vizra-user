@@ -1,0 +1,17 @@
+# a spec whose $ref points at a remote host
+# $ node scripts/check-spec-refs.mjs /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.Unn4pqKVa3/poisoned.yaml
+# source: 549e589e2cc99a66cc8d0c01166d44bbd209db89 (+ the mutation this demonstration describes)
+# node v22.14.0, Darwin arm64
+
+
+❌ /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.Unn4pqKVa3/poisoned.yaml contains 1 non-local $ref:
+  line 9: $ref: https://attacker.example/pwn.yaml#/Schema
+
+Only in-document pointers (`#/...`) may appear in the vendored contract.
+A remote $ref makes codegen fetch a host of the spec author's choosing in CI;
+a file $ref adds an input that contracts/manifest.json's sha256 does not cover.
+The contract is vizra-core's to change (ADR-002): re-vendor it with
+scripts/vendor-contract.mjs rather than editing the copy here.
+
+
+# exit=1 (expected 1)

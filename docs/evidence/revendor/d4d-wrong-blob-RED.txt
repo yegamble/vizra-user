@@ -1,0 +1,19 @@
+# manifest source_blob replaced with a different object id
+# $ npm run check:contract
+# source: 549e589e2cc99a66cc8d0c01166d44bbd209db89 (+ the mutation this demonstration describes)
+# node v22.14.0, Darwin arm64
+
+
+> vizra-user@0.0.0 check:contract
+> node scripts/check-contract.mjs
+
+
+❌ contracts/vizra-core/api/openapi.yaml is not the blob the manifest names.
+   manifest: 0000000000000000000000000000000000000000
+   on disk:  58030e7f0d90d9bf00f44782d705aad72a18407c
+   Compare with: git -C ../vizra-core rev-parse <source_commit>:api/openapi.yaml
+✨ openapi-typescript 7.13.0
+🚀 /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml → /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/vizra-contract-Rirjhe/generated.ts [24ms]
+
+
+# exit=1 (expected 1)

@@ -1,0 +1,28 @@
+# the vendored contract edited in place (two lines appended)
+# $ npm run check:contract
+# source: 549e589e2cc99a66cc8d0c01166d44bbd209db89 (+ the mutation this demonstration describes)
+# node v22.14.0, Darwin arm64
+
+
+> vizra-user@0.0.0 check:contract
+> node scripts/check-contract.mjs
+
+
+❌ contracts/vizra-core/api/openapi.yaml is not the blob the manifest names.
+   manifest: 58030e7f0d90d9bf00f44782d705aad72a18407c
+   on disk:  ee9cf704e087083b291cfbffb3324146ff9868e5
+   Compare with: git -C ../vizra-core rev-parse <source_commit>:api/openapi.yaml
+
+❌ contracts/vizra-core/api/openapi.yaml does not match its manifest.
+   manifest: 128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d
+   on disk:  6ecefbe55c37db777d1a8764fe34eef8cafd2e2f0165ed1e6306b0cfb899c15a
+   The contract is vizra-core's to change. Re-vendor it with scripts/vendor-contract.mjs;
+   do not edit the vendored copy here.
+
+❌ contracts/vizra-core/api/openapi.yaml is 10724 bytes; the manifest says 10695.
+   Re-vendor rather than adjusting the number.
+✨ openapi-typescript 7.13.0
+🚀 /Users/yosefgamble/github/vizra/vizra-user/contracts/vizra-core/api/openapi.yaml → /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/vizra-contract-by5WhY/generated.ts [21.3ms]
+
+
+# exit=1 (expected 1)

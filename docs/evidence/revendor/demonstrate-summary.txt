@@ -1,0 +1,4 @@
+# contract demonstrations — summary
+# 2026-09-21T00:14:28Z, node v22.14.0, Darwin arm64
+# head: 549e589e2cc99a66cc8d0c01166d44bbd209db89
+# 12 expected outcomes, 0 unexpected
