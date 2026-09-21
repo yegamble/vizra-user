@@ -5,16 +5,16 @@ $ env E2E_BASE_URL=http://127.0.0.1:3211 node scripts/ci/harness-canary.mjs
 
 Running 1 test using 1 worker
 
-  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (287ms)
+  ✓  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (729ms)
 
-  1 passed (821ms)
+  1 passed (1.6s)
 e2e harness stamp: OK (1 succeeding result(s) verified).
 
 --- e2e/demos/failed-request.demo.ts (a sub-resource that returns 404) ---
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (764ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (1.5s)
 
 
   1) [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
@@ -28,16 +28,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:195
+       at ../harness/test.ts:250
 
-      193 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-      194 |         if (unallowed.length > 0) {
-    > 195 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+      249 |         if (unallowed.length > 0) {
+    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
           |                 ^
-      196 |         }
-      197 |       } finally {
-      198 |         // The browser is worker-scoped and shared by every test in this worker.
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+      251 |         }
+      252 |       } finally {
+      253 |         disarm();
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/video.webm
@@ -65,7 +65,7 @@ e2e harness stamp: OK (0 succeeding result(s) verified).
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (223ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (800ms)
 
 
   1) [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
@@ -79,16 +79,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:195
+       at ../harness/test.ts:250
 
-      193 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-      194 |         if (unallowed.length > 0) {
-    > 195 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+      249 |         if (unallowed.length > 0) {
+    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
           |                 ^
-      196 |         }
-      197 |       } finally {
-      198 |         // The browser is worker-scoped and shared by every test in this worker.
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+      251 |         }
+      252 |       } finally {
+      253 |         disarm();
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/video.webm
@@ -110,6 +110,57 @@ Running 1 test using 1 worker
 
   1 failed
     [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+--- e2e/demos/aborted-request.demo.ts (a request that never completes) ---
+
+Running 1 test using 1 worker
+
+  ✘  1 [desktop-chromium-1440] › e2e/demos/aborted-request.demo.ts:65:7 › RED: a request that never completes › fails even though nothing on the page looks wrong (891ms)
+
+
+  1) [desktop-chromium-1440] › e2e/demos/aborted-request.demo.ts:65:7 › RED: a request that never completes › fails even though nothing on the page looks wrong 
+
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [requestfailed] requestfailed: GET http://127.0.0.1:3211/__vizra_e2e_fixture__/aborted-on-purpose.bin — net::ERR_CONNECTION_REFUSED
+          at: http://127.0.0.1:3211/
+
+    No allow-list is in force. If one of these is genuinely expected, declare it with
+    test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
+
+       at ../harness/test.ts:250
+
+      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+      249 |         if (unallowed.length > 0) {
+    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+          |                 ^
+      251 |         }
+      252 |       } finally {
+      253 |         disarm();
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/demos/aborted-request.demo.ts:65:7 › RED: a request that never completes › fails even though nothing on the page looks wrong 
 e2e harness stamp: OK (0 succeeding result(s) verified).
 ::error::the browser harness no longer fails a broken page:
   e2e/demos/console-error.demo.ts (a console.error on the page) PASSED. The browser-error guard in e2e/harness/browser-errors.ts is no longer failing a page that logs, throws or 404s — which is invisible in an ordinary green lane, because a guard that has stopped looking finds nothing to report.

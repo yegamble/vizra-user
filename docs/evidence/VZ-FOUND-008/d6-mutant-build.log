@@ -5,27 +5,31 @@
 #1 DONE 0.0s
 
 #2 [internal] load metadata for docker.io/library/vizra-user:demonstrate
-#2 DONE 0.0s
+#2 DONE 0.1s
 
-#3 [internal] load build context
-#3 transferring context: 134.96kB 0.0s done
+#3 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:647206b7d5ed72ab988042680b2d1153cdb8c7906920cfb37fa0ebaa17682570
+#3 resolve docker.io/library/vizra-user:demonstrate@sha256:647206b7d5ed72ab988042680b2d1153cdb8c7906920cfb37fa0ebaa17682570 0.0s done
 #3 DONE 0.0s
 
-#4 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:ffe181e6f5ba760c5b5afda995ed8ca8977f5d2ad8a7b0780c3250d815b80929
-#4 resolve docker.io/library/vizra-user:demonstrate@sha256:ffe181e6f5ba760c5b5afda995ed8ca8977f5d2ad8a7b0780c3250d815b80929 0.0s done
+#4 [internal] load build context
+#4 transferring context: 23B
+#4 transferring context: 175.05kB 0.0s done
 #4 DONE 0.0s
+
+#3 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:647206b7d5ed72ab988042680b2d1153cdb8c7906920cfb37fa0ebaa17682570
+#3 DONE 0.0s
 
 #5 [2/2] COPY e2e ./e2e
 #5 DONE 0.0s
 
 #6 exporting to image
-#6 exporting layers 0.0s done
-#6 exporting manifest sha256:bac98534715c201035d8e6120fe56bdd9b3b3b7eebd0135511bd5be1aa060a2e done
-#6 exporting config sha256:428a494eb1d417487884ce82bead4afb02c864272d411fe126039ca4814e7501 done
-#6 exporting attestation manifest sha256:513950ff01c657d862dfe362b831a0d7086f581fa0a0c932acb740cf97670110 done
-#6 exporting manifest list sha256:c994659f6b58f4198d12f864eba4c83d00e81fc1459bee95327bf69721a139e4 done
+#6 exporting layers 0.1s done
+#6 exporting manifest sha256:8655283ca4bd09c28f46f5767ffe82618dedd1297ec7b923b55c37bc42e4a327 0.0s done
+#6 exporting config sha256:4bb7f488b7c945423f61d01aae24fe0086c2b4a8cee11a19b96920359cfbb259 0.0s done
+#6 exporting attestation manifest sha256:7a415952f68db8d33d3b21a052aa76b1aaa0adacae15d15587be7c4fe2de202c 0.0s done
+#6 exporting manifest list sha256:7e68f8a3c1ceca620771e44297cc525d370d0f0ba21426b8600ccfc840dd7536 done
 #6 naming to docker.io/library/vizra-user:demonstrate-with-fixtures done
 #6 unpacking to docker.io/library/vizra-user:demonstrate-with-fixtures 0.0s done
-#6 DONE 0.1s
+#6 DONE 0.3s
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/scy0bpkq1wno2d3822nc817sg
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/c0chcrofxmmnrsr1hz3wra1r2

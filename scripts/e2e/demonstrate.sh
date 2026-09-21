@@ -13,6 +13,7 @@
 #   D1  a page that logs console.error fails the lane
 #   D2  a page that requests a resource returning 404 fails the lane
 #   D3  an uncaught exception in the page fails the lane
+#   D3b a request that never completes fails the lane (the fourth guarded kind)
 #   D4  the lane fails when ZERO tests are collected, or a project is missing
 #   D5  the lane fails when pointed at a dev server instead of the production build
 #   D6  the built image contains no harness file and no fixture token
@@ -29,14 +30,22 @@
 #       door, plus two the verifier has not tried, plus the out-of-process half
 #       with the in-process reporter deleted
 #   D12 THE CANARY. Neutering the guard's own listeners, one at a time, turns
-#       the required `e2e` lane red — the case that was silent in CI — and a
-#       fixture that fails for the WRONG reason turns it red too
+#       the required `e2e` lane red — the case that was silent in CI — for ALL
+#       FOUR guarded kinds, `requestfailed` included; and a fixture that fails
+#       for the WRONG reason turns it red too
 #   D13 STAMPED IMPLIES GUARDED. The guard is attached at the BROWSER, so every
 #       context and page a test creates is guarded: the verifier's fixture-
 #       override exploit, a second page, a fresh context, `browser.newPage`, an
 #       overridden `context`, an override that navigates inside ITSELF, a popup,
-#       and an overridden `browser` — plus the inverse control, that an HONEST
-#       override on a healthy page stays green
+#       and an overridden `browser` — plus the THREE IMPORT-FREE ROUTES an
+#       independent verifier measured reaching an unguarded page (the browser's
+#       prototype `newContext`, `browserType().launch()` and
+#       `launchPersistentContext`), `connect`/`connectOverCDP`, a swallowed
+#       refusal, and the teardown catch-all with the registration cut — plus the
+#       inverse controls, that an HONEST override on a healthy page stays green
+#       and that the routes really were import-free
+#   D14 THE FLUSH WINDOW. How late after the test body a fault can fire and
+#       still be caught, measured at six delays, with the cost of the settle
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -82,6 +91,7 @@ cleanup() {
     "$repo/e2e/specs/__stamp.spec.ts" \
     "$repo/e2e/specs/__guard.spec.ts" \
     "$repo/eslint.config.no-inline-config.mjs" \
+    "$repo/eslint.config.no-banned-methods.mjs" \
     "$repo/playwright.config.no-stamp-reporter.ts"
   rm -rf "$repo/e2e/other"
   # D12e swaps the console fixture's fault type; restore it whatever happens.
@@ -96,6 +106,20 @@ cleanup() {
     cp "$repo/.browser-errors.ts.bak" "$repo/e2e/harness/browser-errors.ts"
     rm -f "$repo/.browser-errors.ts.bak"
   fi
+  # D13p neuters the creation guard's registration; restore it whatever
+  # happens, for the same reason as the guard above.
+  if [ -f "$repo/.creation-guard.ts.bak" ]; then
+    cp "$repo/.creation-guard.ts.bak" "$repo/e2e/harness/creation-guard.ts"
+    rm -f "$repo/.creation-guard.ts.bak"
+  fi
+  # D13q neuters e2e/harness/test.ts to prove the lane guard notices; restore
+  # it whatever happens, so an interrupted run never leaves the harness entry
+  # with its creation guard removed on disk.
+  if [ -f "$repo/.test.ts.bak" ]; then
+    cp "$repo/.test.ts.bak" "$repo/e2e/harness/test.ts"
+    rm -f "$repo/.test.ts.bak"
+  fi
+  rm -rf "$repo/.vizra-demo-userdata"
 }
 # INT and TERM as well as EXIT: D12 temporarily neuters e2e/harness/browser-errors.ts,
 # and an interrupted run must never leave the guard switched off on disk.
@@ -201,6 +225,16 @@ half d3-uncaught-exception-RED 1 "pageerror" \
   -- demos e2e/demos/uncaught-exception.demo.ts --grep "RED"
 half d3-uncaught-exception-GREEN 0 "1 passed" \
   -- demos e2e/demos/uncaught-exception.demo.ts --grep "GREEN"
+
+# --- D3b a request that never completes ------------------------------------
+# The FOURTH guarded kind. It had no fixture, and an independent verifier
+# measured the consequence: the `requestfailed` listener could be deleted from
+# the guard and the canary stayed green (D12d).
+log "D3b — a request that never completes fails the lane"
+half d3b-aborted-request-RED 1 "requestfailed" \
+  -- demos e2e/demos/aborted-request.demo.ts --grep "RED"
+half d3b-aborted-request-GREEN 0 "1 passed" \
+  -- demos e2e/demos/aborted-request.demo.ts --grep "GREEN"
 
 # --- D4a zero tests collected ----------------------------------------------
 # A filter that matches nothing. Playwright's own exit code answers "did
@@ -866,7 +900,7 @@ log "D12 — neutering the guard's listeners turns the required lane red"
 guard_file="$repo/e2e/harness/browser-errors.ts"
 cp "$guard_file" "$repo/.browser-errors.ts.bak"
 
-half d12-canary-GREEN 0 "failed all 3 fault-injection fixtures" \
+half d12-canary-GREEN 0 "failed all 4 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
 # The mutations remove ONE listener registration at a time, from the
@@ -898,16 +932,22 @@ sed 's|context.on("response", onResponse);|void onResponse;|' \
 half d12-response-listener-neutered-RED 1 "http 404" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
-# (d) the requestfailed listener is never registered. Added with the browser-
-#     level rewrite: four listeners now, so four mutations.
+# (d) the requestfailed listener is never registered. THIS WAS THE HOLE. An
+#     independent verifier measured this same mutation leaving the canary GREEN
+#     — the transcript is kept at
+#     docs/evidence/VZ-FOUND-008/d12-requestfailed-listener-neutered-GREEN.txt
+#     as the record of the defect — because none of the three fixtures produced
+#     a `requestfailed` record: a 404 is a COMPLETED response, not a failed
+#     request. `e2e/demos/aborted-request.demo.ts` is the fourth fixture, and
+#     this mutation is now RED by name.
 sed 's|context.on("requestfailed", onRequestFailed);|void onRequestFailed;|' \
   "$repo/.browser-errors.ts.bak" > "$guard_file"
-half d12-requestfailed-listener-neutered-GREEN 0 "exact set of record kinds" \
+half d12d-requestfailed-listener-neutered-RED 1 "aborted-request.demo.ts" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
 cp "$repo/.browser-errors.ts.bak" "$guard_file"
 rm -f "$repo/.browser-errors.ts.bak"
-half d12-canary-restored-GREEN 0 "failed all 3 fault-injection fixtures" \
+half d12-canary-restored-GREEN 0 "failed all 4 fault-injection fixtures" \
   -- env E2E_BASE_URL="$prod_url" node scripts/ci/harness-canary.mjs
 
 # (e) a fixture that fails for the WRONG REASON. The first canary required each
@@ -985,6 +1025,19 @@ guard_half() {
   local name=$1
   write_guard_spec "$(cat)"
   half "$name" 1 "browser error(s) that no allow-list entry covers" \
+    -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+    npx playwright test "$guard_spec" --project="$project"
+}
+
+# The same, with the diagnostic named at the call site. The F12 routes below do
+# not fail on the page's OWN errors — a refused launch never reaches a page —
+# so requiring the browser-error message for them would be requiring the wrong
+# thing, and a half that matches the wrong string proves nothing.
+guard_half_msg() {
+  # guard_half_msg NAME PATTERN -- the spec source on stdin
+  local name=$1 pattern=$2
+  write_guard_spec "$(cat)"
+  half "$name" 1 "$pattern" \
     -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
     npx playwright test "$guard_spec" --project="$project"
 }
@@ -1153,6 +1206,222 @@ test("a browser the spec launched through the built-in fixture", async ({ page }
 });
 EOF
 
+# --- F12: the three IMPORT-FREE routes, closed at RUNTIME -------------------
+# An independent verifier measured each of these reaching an unguarded page from
+# a spec in e2e/specs/ importing ONLY the harness `test`, each passing the
+# COMPLETE gate on a page that 404s a sub-resource and throws on every load:
+# lint green, lane exit 0 with `20 passed, coverage floor: OK (10/9 10/9),
+# harness stamp: OK (20 verified)`, out-of-process check exit 0.
+#
+#     Object.getPrototypeOf(browser).newContext.call(browser)
+#     browser.browserType().launch()
+#     playwright.chromium.launchPersistentContext(dir)
+#
+# None imports a Playwright package, which is why the package bans could not see
+# them and why AGENTS.md said "nothing catches these today".
+# `e2e/harness/creation-guard.ts` is what changed that, and these halves are the
+# proof. The lint rule is the early warning and is demonstrated separately
+# below, with the ban switched OFF first so the "lint green" half is real.
+
+# (j) the browser's PROTOTYPE `newContext` — the harness's OWN browser, escaped
+#     because the wrapper is an own property. It is now GUARDED rather than
+#     merely detected, so the ordinary browser-error diagnostic is what fires;
+#     that also means a context created and CLOSED inside the body is caught,
+#     which a teardown-only check could never do. This half closes it.
+guard_half d13j-prototype-newContext-RED <<EOF
+import { test, expect } from "../harness/test";
+
+test("a context made through the browser's prototype, closed before the end", async ({ page, browser }) => {
+  const viaPrototype = Object.getPrototypeOf(browser).newContext;
+  const context = await viaPrototype.call(browser);
+  const target = await context.newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await context.close();
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (k) browser.browserType().launch() — a SECOND BROWSER, which
+#     `browser.contexts()` cannot see by construction. Refused at the call site.
+guard_half_msg d13k-browserType-launch-RED "was called during a test" <<EOF
+import { test, expect } from "../harness/test";
+
+test("a browser the harness was never handed", async ({ page, browser }) => {
+  const own = await browser.browserType().launch();
+  const target = await own.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+  await own.close();
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (l) launchPersistentContext — a context on a second browser, through the
+#     built-in `playwright` fixture. No import, and no `browser` either.
+guard_half_msg d13l-launchPersistentContext-RED "was called during a test" <<EOF
+import { test, expect } from "../harness/test";
+
+test("a persistent context the harness was never handed", async ({ page, playwright }) => {
+  const context = await playwright.chromium.launchPersistentContext("$repo/.vizra-demo-userdata");
+  const target = await context.newPage();
+  $BREAK
+  await target.goto("$prod_url/");
+  await target.waitForLoadState("networkidle");
+  await context.close();
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (m) connect / connectOverCDP. Reachable without a server, because the refusal
+#     happens BEFORE the call is made — which is the point of refusing rather
+#     than detecting: nothing is launched and left behind.
+guard_half_msg d13m-connect-and-connectOverCDP-RED "chromium.connectOverCDP" <<'EOF'
+import { test, expect } from "../harness/test";
+
+test("connect and connectOverCDP reach a browser nothing is watching", async ({ page, browser }) => {
+  await browser.browserType().connect("ws://127.0.0.1:1/x").catch(() => {});
+  await browser.browserType().connectOverCDP("http://127.0.0.1:1").catch(() => {});
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (n) THE SWALLOWED REFUSAL. A spec that catches the throw gets no browser, and
+#     the attempt is still recorded, so teardown fails it by name. Without this,
+#     `try { … } catch {}` would be a one-line opt-out.
+guard_half_msg d13n-swallowed-refusal-still-RED "attempt(s) to create a browser or context the harness was never handed" <<'EOF'
+import { test, expect } from "../harness/test";
+
+test("swallowing the refusal does not swallow the failure", async ({ page, browser }) => {
+  try {
+    await browser.browserType().launch();
+  } catch {
+    // deliberately ignored — the test must fail anyway
+  }
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (o) THE THIRD LAYER, demonstrated by cutting the second. With the creation
+#     guard's REGISTRATION removed — the prototype patch still delegating, so
+#     nothing else changes — a context made through the prototype is watched by
+#     nothing, and the teardown catch-all is what names it. This is the layer
+#     that covers a creation path nobody has thought of yet, so it is shown
+#     working on its own rather than asserted.
+cg_file="$repo/e2e/harness/creation-guard.ts"
+cp "$cg_file" "$repo/.creation-guard.ts.bak"
+sed 's|      const context = (await originalNewContext.apply(this, args)) as BrowserContext;\n|&|' \
+  "$repo/.creation-guard.ts.bak" > "$cg_file"
+perl -0pi -e 's/(const context = \(await originalNewContext\.apply\(this, args\)\) as BrowserContext;\n)      active\?\.registerContext\(context\);/$1      void active;/' "$cg_file"
+guard_half_msg d13o-registration-cut-teardown-catches-RED "context(s) the harness was never handed are open on this browser" <<EOF
+import { test, expect } from "../harness/test";
+
+test("a stray context left open is named at teardown", async ({ page, browser }) => {
+  const viaPrototype = Object.getPrototypeOf(browser).newContext;
+  const context = await viaPrototype.call(browser);
+  const target = await context.newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+cp "$repo/.creation-guard.ts.bak" "$cg_file"
+rm -f "$repo/.creation-guard.ts.bak"
+# Restored: the same spec is now caught by the REGISTRATION instead, with the
+# ordinary browser-error diagnostic — both layers, one after the other.
+guard_half d13o-registration-restored-RED <<EOF
+import { test, expect } from "../harness/test";
+
+test("with registration restored the same context is guarded, not merely detected", async ({ page, browser }) => {
+  const viaPrototype = Object.getPrototypeOf(browser).newContext;
+  const context = await viaPrototype.call(browser);
+  const target = await context.newPage();
+  $BREAK
+  await target.goto("/");
+  await target.waitForLoadState("networkidle");
+  await expect(page.locator("h1")).toBeVisible();
+});
+EOF
+
+# (p) THE LINT EARLY WARNING, red and green. The green half is the point: with
+#     the method ban switched off, ESLint passes a spec holding all three
+#     routes — which is exactly the state the verifier measured, and the reason
+#     the runtime halves above are the control and not the rule.
+cat > "$repo/eslint.config.no-banned-methods.mjs" <<'NOBANNED'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+// The controlled mutation for D13p: the repository's real configuration with
+// `bannedMethods: []` forced on `vizra/no-unguarded-playwright-import`, i.e.
+// the rule as it was before this slice. The three routes then pass lint, which
+// is what an independent verifier measured.
+import base from "./eslint.config.mjs";
+
+export default base.map((entry) => {
+  const configured = entry?.rules?.["vizra/no-unguarded-playwright-import"];
+  if (!Array.isArray(configured)) return entry;
+  const [severity, options] = configured;
+  return {
+    ...entry,
+    rules: {
+      ...entry.rules,
+      "vizra/no-unguarded-playwright-import": [
+        severity,
+        { ...(options ?? {}), bannedMethods: [] },
+      ],
+    },
+  };
+});
+NOBANNED
+
+write_three_routes() {
+  cat > "$guard_spec" <<'ROUTES'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { test } from "../harness/test";
+
+test("the three import-free routes", async ({ browser, playwright }) => {
+  await Object.getPrototypeOf(browser).newContext.call(browser);
+  await browser.browserType().launch();
+  await playwright.chromium.launchPersistentContext("/tmp/vizra-x");
+});
+ROUTES
+}
+
+write_three_routes
+half d13p-three-routes-lint-green-without-the-ban-GREEN 0 "lint green: the three routes are import-free" \
+  -- bash -c 'npx eslint --config eslint.config.no-banned-methods.mjs e2e/specs/__guard.spec.ts \
+    && echo "lint green: the three routes are import-free, so the package bans never see them"'
+
+write_three_routes
+half d13p-three-routes-lint-refused-RED 1 "produces a browser, or a context on one, that the harness was never handed" \
+  -- npx eslint e2e/specs/__guard.spec.ts
+
+rm -f "$repo/eslint.config.no-banned-methods.mjs"
+
+# (q) THE CHEAP EARLY WARNING for an outright deletion. `check-e2e-lane.mjs`
+#     greps `e2e/harness/test.ts` for the creation guard's two halves. This is
+#     string presence and it is NOT the control — the control is (j)-(o) above —
+#     but a control whose deletion is silent in CI is the defect this whole
+#     repository keeps rediscovering, so the deletion is made loud and the
+#     loudness is demonstrated rather than asserted.
+harness_entry="$repo/e2e/harness/test.ts"
+cp "$harness_entry" "$repo/.test.ts.bak"
+sed 's|const disarm = armCreationGuard({|const disarm = (() => () => {})(); void ({|' \
+  "$repo/.test.ts.bak" > "$harness_entry"
+half d13q-creation-guard-deleted-RED 1 "no longer arms the creation guard" \
+  -- bash scripts/ci/check-e2e-lane.sh
+sed 's|const strays = unguardedContexts(browser, guard);|const strays: never[] = [];|' \
+  "$repo/.test.ts.bak" > "$harness_entry"
+half d13q-teardown-assertion-deleted-RED 1 "no longer asserts that every live context" \
+  -- bash scripts/ci/check-e2e-lane.sh
+cp "$repo/.test.ts.bak" "$harness_entry"
+rm -f "$repo/.test.ts.bak"
+half d13q-lane-guard-restored-GREEN 0 "runs the harness canary" \
+  -- bash scripts/ci/check-e2e-lane.sh
+
 # (h) THE INVERSE CONTROL, and it matters as much as the seven above. An HONEST
 #     override — a different viewport and locale, on a HEALTHY page — must stay
 #     GREEN. A harness nobody can extend is a harness people work around, and
@@ -1204,6 +1473,25 @@ SPEC
 npx eslint e2e/specs/__guard.spec.ts && echo "OK: a page override is legal — the guard attaches at the browser"'
 
 rm -f "$guard_spec"
+
+# --- D14 THE FLUSH WINDOW ---------------------------------------------------
+# The guard asserts at a point in time. An independent verifier measured the
+# window: 0 ms caught, 50 ms and 150 ms MISSED. `flushGuardedPages` now settles
+# for a fixed 250 ms first, and both ends of the new boundary are pinned here —
+# the RED half would go green if the settle were shortened, and the LIMIT half
+# would go red if it were lengthened. The honest claim is "wider, not closed".
+#
+# Measured on this machine, faults at 0/50/150/250/400/600 ms after the body:
+#   settle   0 ms -> caught 0                 | settle 250 ms -> caught 0 50 150 250
+#   settle 100 ms -> caught 0 50              | settle 400 ms -> caught 0 50 150 250 400
+# Cost: 250 ms per test — the 18-test lane went 3.2 s -> 4.4 s locally and
+# 4.8 s -> 6.9 s at `--workers=2` (the CI shape), and ran 20 consecutive times
+# with 18 passed every time. See docs/evidence/VZ-FOUND-008/d14-*.txt.
+log "D14 — how late a fault can fire and still be caught"
+half d14-late-fault-150ms-RED 1 "late fault demonstration (D14)" \
+  -- demos e2e/demos/late-fault.demo.ts --grep "RED:"
+half d14-late-fault-600ms-is-the-LIMIT-GREEN 0 "1 passed" \
+  -- demos e2e/demos/late-fault.demo.ts --grep "LIMIT:"
 
 # --- verdict ---------------------------------------------------------------
 log "verdict"

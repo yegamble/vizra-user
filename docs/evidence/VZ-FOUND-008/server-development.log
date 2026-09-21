@@ -1,14 +1,14 @@
 ▲ Next.js 16.3.5 (Turbopack)
 - Local:         http://localhost:3212
 - Network:       http://192.168.1.141:3212
-✓ Ready in 313ms
-✓ Running next.config.ts took 138ms
+✓ Ready in 654ms
+✓ Running next.config.ts took 52ms
 
- GET /health 200 in 622ms (next.js: 483ms, application-code: 139ms)
- GET / 200 in 155ms (next.js: 28ms, application-code: 126ms)
- GET /health 200 in 148ms (next.js: 26ms, application-code: 122ms)
- GET /health 200 in 149ms (next.js: 48ms, application-code: 101ms)
- GET / 200 in 72ms (next.js: 12ms, application-code: 60ms)
+ GET /health 200 in 926ms (next.js: 734ms, application-code: 192ms)
+ GET /health 200 in 712ms (next.js: 16ms, application-code: 696ms)
+ GET / 200 in 709ms (next.js: 130ms, application-code: 579ms)
+ GET / 200 in 244ms (next.js: 36ms, application-code: 208ms)
+ GET /health 200 in 336ms (next.js: 35ms, application-code: 301ms)
 ⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
 Cross-origin access to Next.js dev resources is blocked by default for safety.
 

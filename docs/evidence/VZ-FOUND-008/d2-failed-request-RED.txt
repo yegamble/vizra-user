@@ -3,8 +3,8 @@ $ demos e2e/demos/failed-request.demo.ts --grep RED
 
 Running 2 tests using 2 workers
 
-  ✓  2 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:76:7 › GREEN: the same 404, allow-listed with a written reason › passes once the deliberate 404 is declared (785ms)
-  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (841ms)
+  ✓  2 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:76:7 › GREEN: the same 404, allow-listed with a written reason › passes once the deliberate 404 is declared (1.6s)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine (1.8s)
 
 
   1) [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
@@ -20,7 +20,7 @@ Running 2 tests using 2 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/__vizra_e2e_fixture__/missing-on-purpose.png:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/video.webm
@@ -42,7 +42,7 @@ Running 2 tests using 2 workers
 
   1 failed
     [desktop-chromium-1440] › e2e/demos/failed-request.demo.ts:35:7 › RED: a sub-resource that 404s › fails even though the visible page is perfectly fine 
-  1 passed (1.4s)
+  1 passed (3.0s)
 e2e harness stamp: OK (1 succeeding result(s) verified).
 
 [exit 1]

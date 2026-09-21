@@ -54,6 +54,27 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       code: `import { expect, test } from "../harness/test";\ntest("x", async ({ page }) => { await page.goto("/"); });`,
       filename: SPEC,
     },
+    // BAN 3's inverse control. The honest fixture overrides — a viewport, a
+    // locale, a second context — name none of the creation methods and stay
+    // clean. A harness nobody can extend is a harness people work around.
+    {
+      name: "an honest page override that only sets a viewport stays valid",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({\n  page: async ({ browser }, provide) => {\n    const context = await browser.newContext({ viewport: { width: 1024, height: 768 }, locale: "en-GB" });\n    await provide(await context.newPage());\n  },\n});\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+    },
+    {
+      name: "browser.newContext and browser.newPage are NOT banned — they go through the guard",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { const c = await browser.newContext(); await c.newPage(); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+    },
+    {
+      name: "an empty bannedMethods list turns ban 3 off, so the option is honest about what it controls",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { await browser.browserType().launch(); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", bannedMethods: [] }],
+    },
     // Single quotes are fine when the SOURCE is right — the rule is about the
     // module, never about how the string is punctuated.
     {
@@ -395,6 +416,88 @@ ruleTester.run("no-unguarded-playwright-import", rule, {
       filename: SPEC,
       options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
       errors: [{ messageId: "harnessFixtureUnreadable" }],
+    },
+    // --- BAN 3: the import-free routes to an unguarded browser ------------
+    // All three were measured by an independent verifier passing the COMPLETE
+    // gate on a page that 404s a sub-resource and throws on every load — lint
+    // green, lane exit 0, floor OK, stamp OK, out-of-process exit 0 — because
+    // none of them imports a Playwright package. Reproduced verbatim.
+    {
+      name: "verifier: browser.browserType().launch() — two reportable members",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { const own = await browser.browserType().launch(); await own.newPage(); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [
+        { messageId: "unguardedCreation", data: { name: "launch" } },
+        { messageId: "unguardedCreation", data: { name: "browserType" } },
+      ],
+    },
+    {
+      name: "verifier: playwright.chromium.launchPersistentContext(dir)",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ playwright }) => { await playwright.chromium.launchPersistentContext("/tmp/x"); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [{ messageId: "unguardedCreation", data: { name: "launchPersistentContext" } }],
+    },
+    {
+      name: "connect and connectOverCDP reach a browser the harness never launched",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { await browser.browserType().connect("ws://h/1"); await browser.browserType().connectOverCDP("http://h"); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [
+        { messageId: "unguardedCreation", data: { name: "connect" } },
+        { messageId: "unguardedCreation", data: { name: "browserType" } },
+        { messageId: "unguardedCreation", data: { name: "connectOverCDP" } },
+        { messageId: "unguardedCreation", data: { name: "browserType" } },
+      ],
+    },
+    {
+      name: "launchServer plus connect is the same escape in two steps",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ playwright }) => { const s = await playwright.chromium.launchServer(); await playwright.chromium.connect(s.wsEndpoint()); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [
+        { messageId: "unguardedCreation", data: { name: "launchServer" } },
+        { messageId: "unguardedCreation", data: { name: "connect" } },
+      ],
+    },
+    {
+      name: "naming the member without calling it is reportable too",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { const f = browser.browserType; await f.call(browser).launch(); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [
+        { messageId: "unguardedCreation", data: { name: "browserType" } },
+        { messageId: "unguardedCreation", data: { name: "launch" } },
+      ],
+    },
+    {
+      name: "a computed member with a literal key is read as well",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ playwright }) => { await playwright.chromium["launch"](); });`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      errors: [{ messageId: "unguardedCreation", data: { name: "launch" } }],
+    },
+    {
+      name: "a demo is guarded by ban 3 too",
+      code: `import { test } from "../harness/test";\ntest("x", async ({ browser }) => { await browser.browserType().launch(); });`,
+      filename: DEMO,
+      options: [{ harnessEntry: "e2e/harness/test" }],
+      // The outer member (`.launch`) is visited before the inner
+      // (`.browserType`), and both start at the same column, so this is the
+      // order ESLint reports. Pinned rather than sorted: a change in either
+      // would mean the rule started reading a different node.
+      errors: [
+        { messageId: "unguardedCreation", data: { name: "launch" } },
+        { messageId: "unguardedCreation", data: { name: "browserType" } },
+      ],
+    },
+    {
+      name: "an overridden browser fixture written IN A SPEC is refused: a second browser belongs in e2e/harness/**",
+      code: `import { test as base } from "../harness/test";\nconst test = base.extend({\n  browser: [async ({ playwright }, provide) => { const b = await playwright.chromium.launch(); await provide(b); await b.close(); }, { scope: "worker" }],\n});\nexport default test;`,
+      filename: SPEC,
+      options: [{ harnessEntry: "e2e/harness/test", harnessFixtures: HARNESS_FIXTURES }],
+      errors: [{ messageId: "unguardedCreation", data: { name: "launch" } }],
     },
     {
       name: "a demo may not replace the harness fixture either",

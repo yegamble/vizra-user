@@ -43,14 +43,21 @@ import { test as base, expect } from "@playwright/test";
 
 import {
   DENY_ALL,
+  describeContext,
   flushGuardedPages,
   formatFailure,
   guardBrowser,
   unallowedRecords,
+  unguardedContexts,
   validatePolicy,
   type BrowserErrorPolicy,
   type BrowserGuard,
 } from "./browser-errors";
+import {
+  armCreationGuard,
+  patchBrowserPrototype,
+  type CreationViolation,
+} from "./creation-guard";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
 
 /**
@@ -148,6 +155,23 @@ export const test = base.extend<VizraFixtures>({
 
       const guard = guardBrowser(browser);
 
+      // THE CREATION GUARD (e2e/harness/creation-guard.ts). The wrapping above
+      // is on this browser instance's OWN `newContext` / `newPage`, and a
+      // verifier measured three import-free routes around it: the prototype's
+      // `newContext`, `browser.browserType().launch()` and
+      // `launchPersistentContext`. Armed here for exactly this test, it
+      // registers a context produced by any route through `Browser.prototype`
+      // and REFUSES a browser or persistent context launched during the body.
+      // Disarmed in `finally`, so the runner's own worker-browser launch and an
+      // overridden `browser` fixture — both resolved before this body runs —
+      // are untouched.
+      patchBrowserPrototype(browser);
+      const violations: CreationViolation[] = [];
+      const disarm = armCreationGuard({
+        registerContext: guard.registerContext,
+        recordViolation: (violation) => violations.push(violation),
+      });
+
       // The stamp is written when the test STARTS, so a test that times out or
       // crashes is still stamped and the two checks stay independent of each
       // other. It cannot be written without this fixture running, and this
@@ -171,12 +195,20 @@ export const test = base.extend<VizraFixtures>({
         // fixture does, and this fixture is torn down before it.
         await flushGuardedPages(guard);
 
+        // Contexts alive on THIS browser that the guard never registered. The
+        // creation guard registers everything that goes through
+        // `Browser.prototype`, so this is the catch-all for a route nobody has
+        // thought of yet — it is read before `dispose()` clears the set.
+        const strays = unguardedContexts(browser, guard);
+
         // Attach everything observed, pass or fail: a passing run's record is
         // what makes "no errors" evidence rather than an absence of looking.
         await testInfo.attach("browser-signals.json", {
           body: JSON.stringify(
             {
               contextsGuarded: guard.contextCount(),
+              contextsUnguarded: strays.length,
+              creationViolations: violations,
               records: guard.records,
               allowed: allowedBrowserErrors.map((entry) => ({
                 kind: entry.kind,
@@ -190,11 +222,35 @@ export const test = base.extend<VizraFixtures>({
           contentType: "application/json",
         });
 
+        // Reported BEFORE the browser-error records: a test that reached an
+        // unguarded browser has no trustworthy record set to report, so
+        // "the guard did not see everything" must be the headline, not a
+        // footnote under whatever the guarded pages happened to log.
+        if (violations.length > 0) {
+          throw new Error(
+            `${violations.length} attempt(s) to create a browser or context the harness was ` +
+              "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
+              violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
+          );
+        }
+        if (strays.length > 0) {
+          throw new Error(
+            `${strays.length} context(s) the harness was never handed are open on this browser ` +
+              "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
+              "guard, over every context it created.\n\n" +
+              strays
+                .map((context) => `  an unguarded context, ${describeContext(context)}`)
+                .join("\n") +
+              "\n\nSee e2e/harness/creation-guard.ts.",
+          );
+        }
+
         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
         if (unallowed.length > 0) {
           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
         }
       } finally {
+        disarm();
         // The browser is worker-scoped and shared by every test in this worker.
         // Leaving a wrapper or a listener behind would make one test's fixture
         // observe the next test's pages, so it is restored however this ends.

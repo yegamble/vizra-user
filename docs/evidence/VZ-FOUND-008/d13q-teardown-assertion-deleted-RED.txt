@@ -1,0 +1,7 @@
+$ bash scripts/ci/check-e2e-lane.sh
+
+::error::the e2e lane no longer tests what it claims to test:
+  e2e/harness/test.ts no longer asserts that every live context on the browser is one the guard registered (`unguardedContexts`). That teardown assertion is the catch-all underneath the creation guard, for a context-creation path nobody has thought of yet.
+  These properties are invisible in a green run, which is why they are asserted here.
+
+[exit 1]

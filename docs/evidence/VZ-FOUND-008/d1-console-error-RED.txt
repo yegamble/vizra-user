@@ -3,7 +3,7 @@ $ demos e2e/demos/console-error.demo.ts --grep RED
 
 Running 1 test using 1 worker
 
-  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (327ms)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console (1.2s)
 
 
   1) [desktop-chromium-1440] › e2e/demos/console-error.demo.ts:22:7 › RED: an unexpected console.error › fails even though the test body itself asserts nothing about the console 
@@ -17,16 +17,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:195
+       at ../harness/test.ts:250
 
-      193 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-      194 |         if (unallowed.length > 0) {
-    > 195 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+      249 |         if (unallowed.length > 0) {
+    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
           |                 ^
-      196 |         }
-      197 |       } finally {
-      198 |         // The browser is worker-scoped and shared by every test in this worker.
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+      251 |         }
+      252 |       } finally {
+      253 |         disarm();
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/video.webm

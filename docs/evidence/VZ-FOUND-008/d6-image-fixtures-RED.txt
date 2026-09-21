@@ -3,8 +3,10 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
   app/e2e/demos/
+  app/e2e/demos/aborted-request.demo.ts
   app/e2e/demos/console-error.demo.ts
   app/e2e/demos/failed-request.demo.ts
+  app/e2e/demos/late-fault.demo.ts
   app/e2e/demos/signed-url-artifact.demo.ts
   app/e2e/demos/uncaught-exception.demo.ts
   app/e2e/harness/
@@ -12,6 +14,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/browser-errors.ts
   app/e2e/harness/collection.test.ts
   app/e2e/harness/coverage-reporter.ts
+  app/e2e/harness/creation-guard.test.ts
+  app/e2e/harness/creation-guard.ts
   app/e2e/harness/no-credentials-in-specs.test.ts
   app/e2e/harness/production-build.ts
   app/e2e/harness/redact.test.ts

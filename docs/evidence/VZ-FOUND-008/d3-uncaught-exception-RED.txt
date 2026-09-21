@@ -3,8 +3,8 @@ $ demos e2e/demos/uncaught-exception.demo.ts --grep RED
 
 Running 2 tests using 2 workers
 
-  ✓  2 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:67:7 › GREEN: the same exception, allow-listed with a written reason › passes once the deliberate throw is declared (223ms)
-  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (242ms)
+  ✓  2 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:67:7 › GREEN: the same exception, allow-listed with a written reason › passes once the deliberate throw is declared (1.1s)
+  ✘  1 [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes (1.2s)
 
 
   1) [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
@@ -18,16 +18,16 @@ Running 2 tests using 2 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:195
+       at ../harness/test.ts:250
 
-      193 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
-      194 |         if (unallowed.length > 0) {
-    > 195 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
+      248 |         const unallowed = unallowedRecords(guard.records, allowedBrowserErrors);
+      249 |         if (unallowed.length > 0) {
+    > 250 |           throw new Error(formatFailure(unallowed, allowedBrowserErrors));
           |                 ^
-      196 |         }
-      197 |       } finally {
-      198 |         // The browser is worker-scoped and shared by every test in this worker.
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:195:17)
+      251 |         }
+      252 |       } finally {
+      253 |         disarm();
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (/Users/yosefgamble/github/vizra/vizra-user/e2e/harness/test.ts:250:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/video.webm
@@ -49,7 +49,7 @@ Running 2 tests using 2 workers
 
   1 failed
     [desktop-chromium-1440] › e2e/demos/uncaught-exception.demo.ts:32:7 › RED: an uncaught exception › fails even though every assertion in the body passes 
-  1 passed (618ms)
+  1 passed (2.2s)
 e2e harness stamp: OK (1 succeeding result(s) verified).
 
 [exit 1]

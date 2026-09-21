@@ -1,0 +1,59 @@
+$ npm run ci   (round 6 — harness hardening, final tree)
+branch: fix/m0-harness-hardening   base: 90896beb9669a3b305269a298d507fd7a9e27aa4
+node: v22.14.0  playwright: Version 1.63.0  uname: Darwin arm64
+
+
+> vizra-user@0.0.0 ci
+> npm run lint && npm run typecheck && npm run test && npm run build
+
+
+> vizra-user@0.0.0 lint
+> eslint
+
+
+> vizra-user@0.0.0 typecheck
+> tsc --noEmit
+
+
+> vizra-user@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/yosefgamble/github/vizra/vizra-user
+
+
+ Test Files  14 passed (14)
+      Tests  341 passed (341)
+   Start at  21:30:18
+   Duration  4.77s (tests 49%, import 34%, transform 15%, worker 1%)
+
+    Isolate  14 workers spawned · ~401ms startup each (spawn + environment, per file)
+             at least ~401ms faster with isolate: false — reuses workers across files instead of one per file
+
+
+> vizra-user@0.0.0 build
+> next build
+
+▲ Next.js 16.3.5 (Turbopack)
+✓ Running next.config.ts took 131ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 891ms
+  Running TypeScript ...
+  Finished TypeScript in 2.4s ...
+  Collecting page data using 5 workers ...
+  Generating static pages using 5 workers (0/3) ...
+✓ Generating static pages using 5 workers (3/3) in 820ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+└ ƒ /health
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+[exit 0]

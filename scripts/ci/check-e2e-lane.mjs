@@ -454,6 +454,35 @@ try {
         "the guard removes the stamp that both floor checks require.",
     );
   }
+  // The creation guard. Without it, three import-free routes reach a browser
+  // or a context the harness was never handed — measured by an independent
+  // verifier, each passing the complete gate on a page that 404s and throws.
+  // String presence, like every check in this block: the CONTROL is D13's
+  // fifteen runtime shapes and the unit tests in
+  // `e2e/harness/creation-guard.test.ts`. This is the early warning for an
+  // outright deletion.
+  // `.includes("armCreationGuard")` would be satisfied by the IMPORT LINE
+  // alone — measured, not assumed: D13q's first mutation removes the call and
+  // leaves the import, and an identifier check passed it. So both of these
+  // require a CALL. A mutation that calls and then discards the result still
+  // passes, which is the honest limit of a string check and why the control is
+  // D13's runtime shapes.
+  if (!/armCreationGuard\s*\(/.test(guard)) {
+    add(
+      "e2e/harness/test.ts no longer arms the creation guard " +
+        "(`armCreationGuard`, e2e/harness/creation-guard.ts). Without it a spec can reach a " +
+        "context through `Browser.prototype.newContext` or launch a browser of its own, and " +
+        "nothing watches that page's console errors, exceptions, failed requests or >= 400 " +
+        "responses.",
+    );
+  }
+  if (!/unguardedContexts\s*\(/.test(guard)) {
+    add(
+      "e2e/harness/test.ts no longer asserts that every live context on the browser is one the " +
+        "guard registered (`unguardedContexts`). That teardown assertion is the catch-all " +
+        "underneath the creation guard, for a context-creation path nobody has thought of yet.",
+    );
+  }
   if (/^\s{2}page\s*:\s*async/m.test(guard)) {
     add(
       "e2e/harness/test.ts overrides the `page` fixture again. The guard belongs in the " +

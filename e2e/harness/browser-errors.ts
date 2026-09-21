@@ -163,32 +163,34 @@ function pageUrl(page: Page | null | undefined): string {
  *   - a spec that overrides the `browser` fixture — the harness fixture takes
  *     `browser` as a dependency, so it guards whichever browser the spec built.
  *
- * NOT COVERED, and nothing else catches it today. The wrapping below is on the
- * browser instance's OWN properties, so any route to a context that does not go
- * through them escapes. An independent verifier measured three, each from a
- * spec importing only the harness `test`, each passing the complete gate on a
- * page that 404s and throws:
+ * THE WRAPPING BELOW IS ON THE BROWSER INSTANCE'S OWN PROPERTIES, and that is
+ * no longer the whole story. An independent verifier measured three routes that
+ * produce a context without going through them, each from a spec importing only
+ * the harness `test`, each passing the complete gate on a page that 404s and
+ * throws:
  *
  *     Object.getPrototypeOf(browser).newContext.call(browser)
  *     browser.browserType().launch()
  *     playwright.chromium.launchPersistentContext(dir)
  *
- * (`Object.getPrototypeOf(browser).newPage.call(browser)` IS caught, because the
- * prototype's `newPage` calls `this.newContext` — the wrapper.) None of the
- * three imports a Playwright package, so `vizra/no-unguarded-playwright-import`
- * cannot see them; the runtime stamp, the coverage floor, the canary and the
- * workflow parser do not either. Review is the only control. This module used
- * to describe the residual as "a spec that launches its OWN browser, which
- * requires importing a Playwright package … refused by the lint rule"; that was
- * false, and AGENTS.md § Residuals now states it in terms of the OBJECT the
- * harness was never handed. Closing it — a teardown assertion that
- * `browser.contexts()` holds no unguarded context, plus three method names in
- * the lint rule — is queued as the next harness slice and is NOT done here.
+ * (`Object.getPrototypeOf(browser).newPage.call(browser)` was already caught,
+ * because the prototype's `newPage` calls `this.newContext` — the wrapper.)
+ * `e2e/harness/creation-guard.ts` closes all three at runtime: the prototype
+ * route is REGISTERED with the guard below (so a context created and closed
+ * inside the body still has its signals recorded), and a launch or a persistent
+ * context during the test is REFUSED. `unguardedContexts` here is the third
+ * layer — a teardown assertion that no live context on the harness's browser is
+ * one the guard never registered, which catches a creation path nobody has
+ * thought of yet. Read `creation-guard.ts` for what is still open.
+ *
+ * The own-property wrapping is kept even though the prototype patch now covers
+ * the same calls: it is the layer that holds if the prototype patch is ever
+ * removed, and the D13 demonstrations pin both.
  *
  * ALSO NOT COVERED, by design: Playwright's `request` fixture. The kinds below
  * are BROWSER signals; an `APIRequestContext` 404 is not one and does not fail
- * a test. And the flush window is finite — a fault scheduled 0 ms after the
- * body returns is caught, one at 50 ms or 150 ms is not.
+ * a test. And the flush window is finite — see `SETTLE_MS` below for how wide
+ * it is and what it costs.
  */
 export type BrowserGuard = {
   /** Everything observed, in order, across every guarded context. */
@@ -197,6 +199,14 @@ export type BrowserGuard = {
   pages(): Page[];
   /** How many contexts the guard is watching — asserted by the harness tests. */
   contextCount(): number;
+  /**
+   * Start watching a context. Idempotent, and the entry point the creation
+   * guard uses for a context produced by a route that never touched this
+   * browser instance's own `newContext` / `newPage`.
+   */
+  registerContext(context: BrowserContext): void;
+  /** Is this context one the guard is watching? */
+  isGuarded(context: BrowserContext): boolean;
   /** Restore the wrapped methods and detach every listener. */
   dispose(): void;
 };
@@ -291,6 +301,8 @@ export function guardBrowser(browser: Browser): BrowserGuard {
     records,
     pages: () => [...guarded].flatMap((context) => safePages(context)),
     contextCount: () => guarded.size,
+    registerContext: guardContext,
+    isGuarded: (context: BrowserContext) => guarded.has(context),
     dispose: () => {
       if (hadOwnNewContext) target.newContext = previousNewContext;
       else delete (target as Partial<Wrappable>).newContext;
@@ -339,11 +351,89 @@ export async function flushBrowserEvents(page: Page): Promise<void> {
   }
 }
 
+/**
+ * THE SETTLE, AND EXACTLY WHAT IT BUYS.
+ *
+ * The guard asserts at a point in time, so there has always been a window after
+ * the test body returns in which a fault is missed. An independent verifier
+ * measured how wide it was: a fault scheduled `0 ms` after the body returns was
+ * caught, and faults at **50 ms and 150 ms were missed**. In other words the
+ * window was "whatever the driver had already delivered" — which for a Next.js
+ * page means a hydration effect, a deferred fetch or a lazily loaded chunk that
+ * throws just after the last assertion is invisible.
+ *
+ * So the flush now waits a fixed, bounded 250 ms before its round trips.
+ * MEASURED ON THIS MACHINE (macOS arm64, Chromium 1243), faults scheduled at
+ * 0 / 50 / 150 / 250 / 400 / 600 ms after the body returns:
+ *
+ *   settle    0 ms  ->  caught: 0                  missed: 50 150 250 400 600
+ *   settle  100 ms  ->  caught: 0 50               missed: 150 250 400 600
+ *   settle  250 ms  ->  caught: 0 50 150 250       missed: 400 600
+ *   settle  400 ms  ->  caught: 0 50 150 250 400   missed: 600
+ *
+ * COST, measured on the real 18-test lane against the production server:
+ * 250 ms per test, which is `3.2 s -> 4.4 s` at the local worker count and
+ * `4.8 s -> 6.9 s` in the CI shape (`--workers=2`, 9 tests per worker). The
+ * demonstration D14 records the numbers and the 20-run determinism check.
+ *
+ * THIS WIDENS THE WINDOW; IT DOES NOT CLOSE IT. A fault at 400 ms is still
+ * missed, and no finite wait changes that. AGENTS.md states the limit as
+ * "≥ 250 ms is caught, 400 ms is not", which is what was measured, rather than
+ * implying the class is covered.
+ */
+const SETTLE_MS = 250;
+
 /** Flush every page the guard is watching, so no page can hide a late event. */
 export async function flushGuardedPages(guard: BrowserGuard): Promise<void> {
+  // One bounded drain for the whole test, not one per page: the cost is a
+  // constant per test rather than a multiple of how many pages it opened.
+  await new Promise<void>((resolve) => setTimeout(resolve, SETTLE_MS));
   for (const page of guard.pages()) {
     await flushBrowserEvents(page);
   }
+}
+
+/**
+ * THE THIRD LAYER: contexts alive on the harness's browser that the guard never
+ * registered.
+ *
+ * `creation-guard.ts` registers a context created by any route through
+ * `Browser.prototype.newContext` / `newPage`, and refuses a second browser
+ * outright. This is the catch-all underneath both: whatever route produced it,
+ * a live context on THIS browser that the guard is not watching means a page
+ * ran unobserved, and the test must fail naming it.
+ *
+ * It is deliberately not the only control, because it cannot be: a context
+ * created and closed inside the test body is gone by teardown (which is why the
+ * prototype route is guarded rather than merely detected), and a separately
+ * launched browser has contexts of its own that `browser.contexts()` cannot see
+ * (which is why launching one is refused).
+ *
+ * Never throws: a disconnected browser has no contexts to report, and a control
+ * that can make the lane flaky is not a control.
+ */
+export function unguardedContexts(
+  browser: Browser,
+  guard: BrowserGuard,
+): BrowserContext[] {
+  try {
+    return browser.contexts().filter((context) => !guard.isGuarded(context));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A one-line description of a context for a failure message. Every URL goes
+ * through `redact.ts` for the same reason every record does: a failure message
+ * is published as a CI artifact, and a query string is where a signed URL
+ * leaks. Never throws — a closed context simply has no pages.
+ */
+export function describeContext(context: BrowserContext): string {
+  const urls = safePages(context).map((page) => pageUrl(page));
+  return urls.length === 0
+    ? "no open pages"
+    : `${urls.length} page(s): ${urls.join(", ")}`;
 }
 
 /** The per-test policy. An object, never a bare array — see the header. */

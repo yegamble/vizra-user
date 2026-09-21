@@ -178,7 +178,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
 | `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
-| `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the three fault-injection fixtures must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
+| `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
 | `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
@@ -269,6 +269,19 @@ fixture that navigates **inside itself** and never in the body; a popup the page
 opens with `window.open`; and an overridden `browser` fixture (which needs no
 import at all — `playwright` is a built-in fixture — so lint cannot see it and
 only the runtime catches it).
+
+**And the routes that went AROUND the instance wrapper.** Wrapping the browser
+instance's own `newContext` / `newPage` left the prototype method reachable, and
+left a spec free to launch a browser of its own — three import-free routes an
+independent verifier walked through the complete gate. `e2e/harness/creation-guard.ts`
+closes them: `Browser.prototype.newContext` / `newPage` are patched so every
+context they produce is REGISTERED with the guard, `BrowserType.prototype`'s
+`launch` / `launchPersistentContext` / `launchServer` / `connect` /
+`connectOverCDP` (and Electron's and Android's equivalents) are REFUSED while a
+test is running, and `vizraHarnessGuard` asserts in teardown that no live
+context on the browser is one the guard never registered. Both prototypes are
+patched before any spec can observe an unpatched one. § Residuals gives the
+route-by-route table, the demonstration for each, and what is still open.
 
 **`context` is a declared dependency purely for ordering, and the ordering was
 measured.** Depending on `browser` alone, Playwright sets an automatic fixture
@@ -536,10 +549,20 @@ for it — the kinds that must be present, and the kinds that must not:
 | `e2e/demos/console-error.demo.ts` | `[console]`, `console.error` | `[response]`, `[pageerror]`, `[requestfailed]` |
 | `e2e/demos/failed-request.demo.ts` | `[response]`, `http 404` | `[pageerror]`, `[requestfailed]` |
 | `e2e/demos/uncaught-exception.demo.ts` | `[pageerror]` | `[response]`, `[console]`, `[requestfailed]` |
+| `e2e/demos/aborted-request.demo.ts` | `[requestfailed]`, `ERR_CONNECTION_REFUSED` | `[response]`, `[pageerror]` |
 
-`[console]` is deliberately allowed for the 404 fixture: Chromium logs the
-failed load itself. That is measured, in
-`docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt`, not assumed.
+`[console]` is deliberately allowed for the two network fixtures: Chromium logs
+the failed load itself. That is measured, in
+`docs/evidence/VZ-FOUND-008/d2-failed-request-RED.txt` and
+`d3b-aborted-request-RED.txt`, not assumed.
+
+**One fixture per guarded kind, and the fourth is why.** `aborted-request` is a
+sub-resource whose connection is refused with `route.abort("connectionrefused")`
+— hermetic, unlike a request to a closed port, which turns green on a runner
+that happens to have something listening. It differs from the 404 fixture in
+exactly one respect, which is the one under demonstration: its request never
+completes, so it produces `requestfailed` and no `response` at all. That is why
+the `response` listener cannot stand in for the `requestfailed` one.
 
 **This replaces a claim that was overstated.** The first version required each
 fixture's diagnostic to appear somewhere in one combined output and said each
@@ -553,26 +576,27 @@ fault type and shows the canary going red with "failed for the WRONG reason".
 
 Per-fixture and not merely a count, because the other sharp case needs it too:
 with the `response` listener neutered the 404 fixture still fails, on the console
-error the 404 also produces, so a canary that counted failures would pass. About
-six seconds, three browser launches. `check-e2e-lane.mjs` asserts the step
+error the 404 also produces, so a canary that counted failures would pass. Four
+browser launches, about six seconds (measured `real 5.77` on this machine).
+`check-e2e-lane.mjs` asserts the step
 exists, runs exactly that command, is unconditional, does not
 `continue-on-error` and drives the container; `require-checks_test.sh` drives
-all of that against mutated workflows. Demonstration D12 removes each of the
-four context listeners in turn and shows the lane going red for three of them —
-and honestly GREEN for `requestfailed`.
+all of that against mutated workflows.
 
-**THE CANARY COVERS THREE OF THE FOUR GUARDED SIGNAL KINDS.** There is no
-`requestfailed` fixture: the three demonstrate a console error, an HTTP 404 and
-an uncaught exception, and a 404 is a *completed response*, not a failed
-request. An independent verifier measured the consequence directly — neutering
-the `console`, `weberror` or `response` listener turns the canary red; neutering
-`requestfailed` leaves it **green**. So the one kind that catches aborted
-requests, connection refused and DNS failures could be dropped from the guard
-and no lane would notice, which is the exact defect class the canary exists to
-close for the other three. **Queued with the harness slice**: a fourth fixture
-that requests a closed port or aborts a route, with expected kinds
-`["requestfailed"]`, so the exact-kind-set assertion covers all four. Not done
-here.
+**THE CANARY NOW COVERS ALL FOUR GUARDED SIGNAL KINDS, and the fourth was
+missing.** For one round there was no `requestfailed` fixture — the three
+demonstrated a console error, an HTTP 404 and an uncaught exception, and a 404
+is a *completed response*, not a failed request. An independent verifier
+measured the consequence directly: neutering the `console`, `weberror` or
+`response` listener turned the canary red, and neutering `requestfailed` left it
+**green**, so the one kind that catches aborted requests, connection refused and
+DNS failures could have been dropped from the guard with no lane noticing.
+Demonstration **D12** now removes each of the four context listeners in turn and
+the lane goes red for **all four**, each for its own named reason; the
+transcript of the defect is kept at
+`docs/evidence/VZ-FOUND-008/d12-requestfailed-listener-neutered-GREEN.txt`
+beside its replacement `d12d-requestfailed-listener-neutered-RED.txt`, so the
+before and after are both on record.
 
 The Docker D6 pair, D5 (`next dev`), D7 (the workflow parser) and D9 (artifact
 redaction) are deliberately NOT in the canary: they need a second image build, a
@@ -596,8 +620,11 @@ approving a baseline is a reviewed act of its own.
 ### Residuals — what is still only as strong as review
 
 Listed because a control whose limits are unstated is a control people
-over-trust. None of these is closed by this slice, and none should be described
-as if it were.
+over-trust. Each bullet says what holds **today**, in this tree, and names what
+does not. Where a bullet used to say "nothing catches this" and something now
+does, the bullet says exactly what that something is and exactly what it leaves
+open — a residual stated inaccurately is worse than one stated plainly, because
+it is trusted.
 
 - **`.github/CODEOWNERS` enforces nothing today.** It is committed, and
   `* @yegamble` covers every path, but GitHub applies it only once a ruleset on
@@ -610,53 +637,87 @@ as if it were.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
-- **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED is not guarded, and
-  nothing catches that today.** The guard attaches to the browser the fixture
-  receives and wraps that instance's `newContext` / `newPage` as **own**
-  properties. Anything that produces a context without going through those own
-  properties escapes. An independent verifier measured three such routes, each
-  from a spec in `e2e/specs/` importing only the harness `test`:
+- **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED — three import-free
+  routes reached one, and all three are now closed at RUNTIME.** This bullet
+  used to say "nothing catches these today"; that sentence is no longer true,
+  and what replaces it is stated route by route rather than as a claim about the
+  class. An independent verifier measured each of these from a spec in
+  `e2e/specs/` importing only the harness `test`, each passing the **complete**
+  gate on a page that 404s a sub-resource and throws on every load — lint green,
+  lane exit 0 with `20 passed, coverage floor: OK (10/9 10/9), harness stamp: OK
+  (20 verified)`, out-of-process check exit 0:
 
-  | Route | Result |
-  |---|---|
-  | `Object.getPrototypeOf(browser).newContext.call(browser)` | **unguarded** — the wrapper is an own property; the prototype method is still reachable |
-  | `browser.browserType().launch()` | **unguarded** |
-  | `playwright.chromium.launchPersistentContext(dir)` | **unguarded** |
-  | `Object.getPrototypeOf(browser).newPage.call(browser)` | guarded — the prototype's `newPage` calls `this.newContext`, which is the wrapper |
+  | Route | Now | How, and where it is demonstrated |
+  |---|---|---|
+  | `Object.getPrototypeOf(browser).newContext.call(browser)` | **guarded** | `Browser.prototype.newContext`/`newPage` are patched, so the context is REGISTERED with the guard the moment it exists — which also covers a context created and closed inside the body, where a teardown check would see nothing (**D13j**) |
+  | `browser.browserType().launch()` | **refused** | the call throws before launching anything (**D13k**) |
+  | `playwright.chromium.launchPersistentContext(dir)` | **refused** | as above (**D13l**) |
+  | `browserType().connect()` / `connectOverCDP()` | **refused** | the same patch; reachable without a server because the refusal precedes the call (**D13m**) |
+  | `browserType().launchServer()` | **refused** | the same patch — `launchServer` hands back a `wsEndpoint` that `connect` would turn into a Browser, so both ends are closed (unit-tested in `e2e/harness/creation-guard.test.ts`; no D13 half) |
+  | `_electron.launch()`, `_android.launchServer()` / `connect()` | **refused** | both reachable from the built-in `playwright` fixture with no import (unit-tested in `e2e/harness/creation-guard.test.ts`) |
+  | `Object.getPrototypeOf(browser).newPage.call(browser)` | guarded, as before | the prototype's `newPage` calls `this.newContext` |
 
-  Each of the three passed the **complete** gate on a page that 404s a
-  sub-resource and throws on every load: lint green, lane exit 0 with
-  `20 passed, coverage floor: OK (10/9 10/9), harness stamp: OK (20 verified)`,
-  and the out-of-process check exit 0.
+  Three layers, and it matters which is which. `e2e/harness/creation-guard.ts`
+  patches `BrowserType.prototype` **at module load** — while
+  `playwright.config.ts` is being evaluated, before any test file exists in the
+  worker — so a spec cannot capture an unwrapped original; and it patches
+  `Browser.prototype` inside that already-patched `launch`, before the Browser
+  is handed to anyone, so a spec cannot hold a Browser whose prototype is not
+  already patched either. Measured against the installed 1.63.0, not assumed:
+  none of those methods is an own property, `chromium`/`firefox`/`webkit`/
+  `browser.browserType()` share one prototype, and its own prototype
+  (`ChannelOwner`) has none of the names — there is no second hop to escape to.
+  A refusal is also RECORDED, so `try { … } catch {}` still fails the test
+  (**D13n**). Underneath both sits the catch-all the verifier proposed: a
+  teardown assertion that no live context on the harness's browser is one the
+  guard never registered, demonstrated on its own by cutting the registration
+  (**D13o**).
 
-  **This paragraph previously said the shape was "importing a Playwright
-  package and calling `chromium.launch()`" and named
-  `vizra/no-unguarded-playwright-import` as what catches it. That was false.**
-  `import { chromium } from "@playwright/test"` is indeed refused by the rule —
-  but none of the three routes above imports anything, so the rule never sees
-  them; `browserType` and `launchPersistentContext` appear nowhere in the rule,
-  the harness or the CI scripts. **Nothing catches these today**: not the rule,
-  not the runtime stamp (such a test still came from the harness `test`, so it
-  is still stamped), not the coverage floor, not the canary, not the workflow
-  parser. The only control is review, and the routes are at least conspicuous —
-  none has an innocent reading in a repository with one app and one browser.
+  The lint rule now refuses `browserType`, `launch`, `launchPersistentContext`,
+  `launchServer`, `connect` and `connectOverCDP` in `e2e/specs/**` and
+  `e2e/demos/**` — **as the early warning, not the control.** D13p shows both
+  halves: with the method ban switched off, a spec holding all three routes
+  passes ESLint, which is exactly the state the verifier measured.
 
-  **Queued as the next harness slice**, in the verifier's own shape: a teardown
-  assertion in `vizraHarnessGuard` that `browser.contexts()` holds no context
-  the guard never saw (which closes the prototype route and any future creation
-  path on a browser the harness holds, with no monkey-patching), plus
-  `.browserType(`, `.launch(` and `.launchPersistentContext(` added to the lint
-  rule for the specs. Not done here; do not read this bullet as if it were.
+  **Still open, and review is still the only control for these.** A file under
+  `e2e/harness/**` can edit the guard itself; that is the reviewed directory
+  `.github/CODEOWNERS` covers, and D12 makes neutering the listeners a named CI
+  failure. Playwright's private client internals — `playwright._connection`,
+  `BrowserType.prototype._connect`, `browser._innerNewContext` — are not
+  patched; reaching an underscore-prefixed channel is not a spelling of an
+  honest idiom, and nothing automated refuses it. And a spec can still write a
+  member access the rule cannot read (`browser[name]()`), which the runtime
+  guard catches but lint does not.
 - **The harness-owned-fixture ban is lint.** Replacing `vizraHarnessGuard` is
   refused by the rule and, at runtime, costs the spec its stamp — which both
   floor checks refuse. Replacing `page`, `context` or `browser` is legitimate,
-  is not refused, and is covered by the guard (D13, eight shapes).
-- **The flush window is finite.** The guard flushes every guarded page after the
-  test body returns and then asserts. A fault scheduled `0 ms` after the body
-  returns is caught; an independent verifier measured faults at **50 ms and
-  150 ms being missed**. That is inherent to asserting at a point in time rather
-  than a defect to redesign around, but a spec whose page misbehaves only after
-  it has finished is not covered, and this file should not imply otherwise.
+  is not refused, and is covered by the guard. D13 runs **fifteen runtime shapes
+  red** (`d13a`–`d13g`, `d13j`–`d13o`) plus two lint halves red, with the honest
+  overrides green; an independent verifier ran eleven shapes of its own against
+  the previous round, all red.
+- **The flush window is finite. It is now 250 ms wide, and that is a widening,
+  not a closing.** The guard settles for a fixed 250 ms after the test body
+  returns, then flushes every guarded page, then asserts. Before this slice the
+  window was "whatever the driver had already delivered": an independent
+  verifier measured `0 ms` caught and **50 ms and 150 ms missed**. Measured now,
+  with faults scheduled at 0 / 50 / 150 / 250 / 400 / 600 ms after the body
+  returns:
+
+  | Settle | Caught | Missed |
+  |---|---|---|
+  | 0 ms (before) | 0 | 50, 150, 250, 400, 600 |
+  | 100 ms | 0, 50 | 150, 250, 400, 600 |
+  | **250 ms (shipped)** | 0, 50, 150, 250 | **400, 600** |
+  | 400 ms | 0, 50, 150, 250, 400 | 600 |
+
+  The cost is 250 ms per test: the 18-test lane went `3.2 s → 4.4 s` at the
+  local worker count and `4.8 s → 6.9 s` at `--workers=2` (the CI shape, 9 tests
+  per worker), and ran **20 consecutive times with 18 passed, floor OK and 18
+  stamps every time**. Both ends of the boundary are pinned by **D14**: a fault
+  at 150 ms must fail the test, and a fault at 600 ms passes — that green half
+  is the documented limit, and it goes red if the number here ever stops
+  matching the code. A spec whose page misbehaves more than about a quarter of a
+  second after it has finished is still not covered.
 - **The `request` fixture is out of the guard's scope, by design.** The guard
   watches BROWSER signals — console, page errors, failed requests and HTTP >= 400
   *responses observed by a browser context*. A 404 from Playwright's
@@ -664,8 +725,11 @@ as if it were.
   of those and does not fail a test. That is correct — a spec using `request`
   asserts the status itself — but "any HTTP >= 400 response fails the test"
   above reads as if it were covered, so it is stated here: it is not.
-- **The canary covers three of the four guarded kinds.** `requestfailed` has no
-  fixture; see the canary section. Queued.
+- **The canary covers all four guarded kinds** — `requestfailed` gained its
+  fixture in this slice, and neutering any one of the four listeners is now red
+  by name. What the canary still does not cover is everything outside those four
+  signals: it proves the guard still fails a broken page, not that the guard
+  watches the right things.
 - **`e2e/harness/no-credentials-in-specs.test.ts` is a tripwire, not a proof.**
   It sweeps every `.ts` under `e2e/` except `e2e/harness/**` and matches a named
   list of patterns; it catches the accident, not the determined author. Measured

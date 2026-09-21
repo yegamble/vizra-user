@@ -39,6 +39,24 @@
  *    `test` from the shim is ban 2. Re-exporting from a guarded file
  *    (`export { test } from …`) is refused for the same reason.
  *
+ * 3. **A spec may not name the methods that produce a browser or a context the
+ *    harness was never handed** — `browserType`, `launch`,
+ *    `launchPersistentContext`, `launchServer`, `connect`, `connectOverCDP`.
+ *    An independent verifier reached an unguarded page with
+ *    `browser.browserType().launch()` and with
+ *    `playwright.chromium.launchPersistentContext(dir)`, from a spec importing
+ *    ONLY the harness `test`. Neither imports a Playwright package, so bans 1
+ *    and 2 never saw them: the objects arrive through the built-in `browser`
+ *    and `playwright` FIXTURES. These are method NAMES rather than module
+ *    specifiers, so the rule reads them as member accesses on the AST.
+ *
+ *    THIS IS THE EARLY WARNING, NOT THE CONTROL. The control is
+ *    `e2e/harness/creation-guard.ts`, which refuses those calls at runtime and
+ *    registers every context created through `Browser.prototype`. A spec can
+ *    still spell a member access the rule cannot read (`browser[name]()`); it
+ *    cannot get past the runtime guard. This ban's job is to fail in seconds in
+ *    `npm run ci` instead of in the browser lane.
+ *
  * SCOPE. Enabled in `eslint.config.mjs` for `e2e/specs/**` and `e2e/demos/**` —
  * every file Playwright can collect as a test. `e2e/harness/**` is deliberately
  * NOT guarded: it is the module that must import the real Playwright, and it is
@@ -67,6 +85,26 @@ import path from "node:path";
  */
 const PACKAGES = ["@playwright/test", "playwright/test", "playwright"];
 const GUARDED_NAMES = new Set(["test", "expect"]);
+
+/**
+ * Method names that produce a browser, or a context on one, that the harness
+ * was never handed. Reachable with NO import at all, through the built-in
+ * `browser` and `playwright` fixtures — which is exactly why they are listed as
+ * names rather than inferred from a module specifier.
+ *
+ * `browserType` is here even though it creates nothing itself: it is the only
+ * way a spec gets from the guarded browser to the factory that makes unguarded
+ * ones, and it has no other use in a repository with one application and one
+ * browser.
+ */
+const BANNED_METHODS = new Set([
+  "browserType",
+  "launch",
+  "launchPersistentContext",
+  "launchServer",
+  "connect",
+  "connectOverCDP",
+]);
 
 /** Does this specifier string name a banned package (or a subpath of one)? */
 function referencesPlaywright(value) {
@@ -162,6 +200,7 @@ const rule = {
           harnessEntry: { type: "string" },
           sealedModules: { type: "array", items: { type: "string" } },
           harnessFixtures: { type: "array", items: { type: "string" } },
+          bannedMethods: { type: "array", items: { type: "string" } },
         },
         additionalProperties: false,
       },
@@ -181,6 +220,8 @@ const rule = {
         "`test.extend` may not replace the harness's own fixture `{{name}}`. That fixture is where the browser-error guard and the runtime stamp both live; replacing it is how a spec would keep the stamp and lose the guard. Overriding `page`, `context` or `browser` is fine — the guard attaches at the browser and covers whatever those fixtures produce.",
       harnessFixtureUnreadable:
         "`test.extend` was given something this rule cannot read in full ({{what}}), so it cannot rule out an override of the harness's own fixtures ({{fixtures}}). Write the fixtures as literal properties at the call site. This fails closed on purpose: the guard and the runtime stamp live in one of those fixtures.",
+      unguardedCreation:
+        "`{{name}}` produces a browser, or a context on one, that the harness was never handed — nothing watches its console errors, uncaught exceptions, failed requests or HTTP >= 400 responses. It needs no import, so the package bans above cannot see it: the objects arrive through the built-in `browser` and `playwright` fixtures. If a slice genuinely needs its own browser, put an overridden `browser` fixture under e2e/harness/** (a reviewed path), where the harness guards whatever it produces. This rule is the early warning; e2e/harness/creation-guard.ts refuses the call at runtime.",
     },
   },
 
@@ -200,6 +241,9 @@ const rule = {
      * the control is that an unstamped pass is refused by two checks.
      */
     const harnessFixtures = new Set(context.options[0]?.harnessFixtures ?? []);
+    const bannedMethods = new Set(
+      context.options[0]?.bannedMethods ?? BANNED_METHODS,
+    );
     const filename = context.filename ?? context.getFilename();
 
     /**
@@ -336,6 +380,28 @@ const rule = {
               data: { name },
             });
           }
+        }
+      },
+
+      /**
+       * Ban 3: the creation methods, read as MEMBER ACCESSES rather than as
+       * calls. `browser.browserType().launch()` is caught twice over, and
+       * `const f = browser.browserType; f().launch()` is caught as well,
+       * because naming the member at all is the reportable act. The computed
+       * form with a literal key (`browser["launch"]()`) is read too; a computed
+       * form with a variable key is not, and the runtime guard is what covers
+       * that — see the header.
+       */
+      MemberExpression(node) {
+        if (bannedMethods.size === 0) return;
+        const property = node.property;
+        const name = node.computed
+          ? stringValueOf(property)
+          : property?.type === "Identifier"
+            ? property.name
+            : undefined;
+        if (name !== undefined && bannedMethods.has(name)) {
+          context.report({ node, messageId: "unguardedCreation", data: { name } });
         }
       },
 
