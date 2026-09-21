@@ -1169,5 +1169,143 @@ title="changing scripts.e2e:demos fails by name"
 harness_expect 1 'e2e:demos' package.json \
   's|"e2e:demos": "bash scripts/e2e/demonstrate.sh"|"e2e:demos": "true"|'
 
+# --- THE EFFECTIVE ENV VALUE (PR #8 review, FINDING 2 - BLOCKING) ----------
+# The first version required PLAYWRIGHT_NO_COPY_PROMPT: "1" in the JOB env and
+# separately EXEMPTED that key from the PLAYWRIGHT_* refusal, so a step-level
+# entry was neither required-to-be-"1" nor refused. A verifier added one line -
+# `PLAYWRIGHT_NO_COPY_PROMPT: ""` on the lane step - and the guard stayed at
+# exit 0 while the page snapshot came back carrying a page.fill value verbatim.
+# A step env OVERRIDES the job's, and Playwright gates on truthiness.
+title="PLAYWRIGHT_NO_COPY_PROMPT empty at STEP level fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          PLAYWRIGHT_NO_COPY_PROMPT: ""|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT at STEP level, even as \"1\", fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          PLAYWRIGHT_NO_COPY_PROMPT: "1"|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT at WORKFLOW level fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^permissions:$|env:\n  PLAYWRIGHT_NO_COPY_PROMPT: "1"\npermissions:|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT set to the empty string at job level fails by name"
+lane_expect 1 'must be\s+exactly' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: ""|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT set to 0 at job level fails by name"
+lane_expect 1 'must be\s+exactly' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "0"|'
+
+# ...and a `run:` line that clears it, in the four spellings someone would reach
+# for. A grep, and § Residuals says so - a script can compute the name.
+title="a run: step that unsets the variable fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: unset PLAYWRIGHT_NO_COPY_PROMPT; npm run e2e|'
+
+title="a run: step with an empty export fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: export PLAYWRIGHT_NO_COPY_PROMPT=; npm run e2e|'
+
+title="a run: step using env -u fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: env -u PLAYWRIGHT_NO_COPY_PROMPT npm run e2e|'
+
+title="a run: step with a VAR= command prefix fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: PLAYWRIGHT_NO_COPY_PROMPT= npm run e2e|'
+
+# --- ALL THREE ENV SCOPES (FINDING 3) --------------------------------------
+# job and step level were red; the WORKFLOW-level block was never read.
+title="DEBUG at WORKFLOW level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^permissions:$|env:\n  DEBUG: pw:api\npermissions:|'
+
+title="an npm_config_ override at WORKFLOW level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^permissions:$|env:\n  npm_config_script_shell: /bin/sh\npermissions:|'
+
+title="NODE_OPTIONS at job level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      NODE_OPTIONS: --require ./x.js|'
+
+# --- npm LIFECYCLE HOOKS (FINDING 10) --------------------------------------
+# `npm run e2e` is `pree2e && e2e && poste2e`. The guard pinned one third, and a
+# verifier confirmed empirically that a pree2e with `--trace on --output
+# test-results` runs and writes into the uploaded directory.
+title="a pree2e lifecycle hook fails by name"
+harness_expect 1 'scripts.pree2e' package.json \
+  's|"e2e": "playwright test"|"pree2e": "playwright test --trace on --output test-results",\n    "e2e": "playwright test"|'
+
+title="a poste2e lifecycle hook fails by name"
+harness_expect 1 'scripts.poste2e' package.json \
+  's|"e2e": "playwright test"|"poste2e": "playwright test --trace on",\n    "e2e": "playwright test"|'
+
+title="a pre-hook on e2e:demos fails by name"
+harness_expect 1 'scripts.pree2e:demos' package.json \
+  's|"e2e:demos": "bash scripts/e2e/demonstrate.sh"|"pree2e:demos": "echo x",\n    "e2e:demos": "bash scripts/e2e/demonstrate.sh"|'
+
+# --- THE UPLOAD ALLOWLIST HOLDS NOTHING SPECULATIVE ------------------------
+title="the upload allowlist names only paths a step produces today"
+cases=$((cases + 1))
+if grep -qE '^\s*"e2e-failure-summary/",' "$here/check-e2e-lane.mjs"; then
+  record 1 "ALLOWED_UPLOAD_PATHS still carries e2e-failure-summary/, which no step in this PR writes"
+else
+  record 0
+fi
+
+# --- SOURCE HYGIENE (PR #8 review, FINDING 6) ------------------------------
+# Two incidents, not hypotheticals. A tool's JSON encoding turned the \uXXXX
+# escapes in a regex character class into LITERAL control bytes in a committed
+# source, and every lane stayed green - tsc, ESLint and vitest all accept a raw
+# NUL inside a character class. And the digest ledger, whose whole value is that
+# a verifier can confirm the tree from the evidence alone, was read by nothing.
+hygiene_script=$here/check-source-hygiene.mjs
+[ -r "$hygiene_script" ] || { echo "require-checks_test: $hygiene_script is missing" >&2; exit 1; }
+
+# hygiene_expect WANT_RC PATTERN FILE PERL_PROGRAM  (empty program = unmutated)
+# Mutates the REAL tree, runs the check, and restores - so the case is about this
+# repository rather than a fixture that can drift away from it.
+hygiene_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 file=$3 program=$4 rc=0
+  local repo=$here/../..
+  local backup=$tmp/hygiene-$cases.bak
+  if [ -n "$program" ]; then
+    cp "$repo/$file" "$backup"
+    perl -0pi -e "$program" "$repo/$file"
+    if cmp -s "$repo/$file" "$backup"; then
+      cp "$backup" "$repo/$file"
+      record 1 "THE MUTATION DID NOT CHANGE $file - a demonstration that does not mutate proves nothing"
+      return
+    fi
+  fi
+  node "$hygiene_script" >"$tmp/hygiene-$cases.out" 2>&1 || rc=$?
+  [ -n "$program" ] && cp "$backup" "$repo/$file"
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/hygiene-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/hygiene-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/hygiene-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="the committed tree passes source hygiene (the inverse control)"
+hygiene_expect 0 'carry no literal control bytes' e2e/harness/redact.ts ''
+
+# `\x00` in the perl program writes a REAL NUL byte into the file - the exact
+# incident, reproduced rather than described.
+title="a literal NUL byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' e2e/harness/redact.ts \
+  's/export function redactUrl/\x00export function redactUrl/'
+
+title="a literal DEL byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' e2e/harness/redact.ts \
+  's/export function redactUrl/\x7Fexport function redactUrl/'
+
+title="a literal ESC byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' scripts/ci/check-e2e-lane.mjs \
+  's/const repoRoot/\x1Bconst repoRoot/'
+
+title="a stale BEFORE digest in the ledger fails by name"
+hygiene_expect 1 'describes a tree' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE  [0-9a-f]{8}/D12 browser-errors.ts BEFORE  deadbeef/m'
+
+title="a ledger line naming a file that does not exist fails by name"
+hygiene_expect 1 'does not exist in this tree' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's|e2e/harness/browser-errors\.ts|e2e/harness/no-such-file.ts|'
+
+title="a malformed ledger line fails by name"
+hygiene_expect 1 'is not "<label>' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE.*$/D12 browser-errors.ts BEFORE nodigest/m'
+
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]

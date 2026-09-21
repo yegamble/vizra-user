@@ -805,7 +805,11 @@ const ALLOWED_UPLOAD_PATHS = new Set([
   "test-results/",
   "playwright-report/results.json",
   "playwright-browsers.txt",
-  "e2e-failure-summary/",
+  // NOTHING IS ALLOWLISTED BEFORE IT EXISTS. An earlier draft carried
+  // `e2e-failure-summary/` here for the authenticated lane, which is a different
+  // pull request: an allowlist entry for a path no step produces is a hole held
+  // open for a future commit, and default-deny means the entry lands with the
+  // step that writes it.
 ]);
 
 /** Actions this workflow may use, at the exact SHA each is pinned to. */
@@ -986,8 +990,9 @@ const REQUIRED_SCRIPTS = {
 };
 try {
   const manifest = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const scripts = manifest?.scripts ?? {};
   for (const [name, expected] of Object.entries(REQUIRED_SCRIPTS)) {
-    const actual = manifest?.scripts?.[name];
+    const actual = scripts[name];
     if (actual !== expected) {
       add(
         `package.json's \`scripts.${name}\` is ${JSON.stringify(actual)}, and must be exactly ` +
@@ -998,73 +1003,195 @@ try {
       );
     }
   }
+
+  // AND `npm run e2e` IS NOT ONE SCRIPT. It is `pree2e && e2e && poste2e`, and
+  // the check above read one third of it. An independent verifier added
+  //
+  //     "pree2e": "playwright test --trace on --output test-results"
+  //
+  // and measured the guard at exit 0 while npm ran it — a second Playwright
+  // invocation with every recorder on, writing into `test-results/`, which IS
+  // uploaded. `poste2e` behaves the same. Pinning a script byte-for-byte while
+  // leaving its lifecycle hooks unenumerated pins the third that is easiest to
+  // read.
+  for (const name of Object.keys(REQUIRED_SCRIPTS)) {
+    for (const hook of [`pre${name}`, `post${name}`]) {
+      if (Object.prototype.hasOwnProperty.call(scripts, hook)) {
+        add(
+          `package.json declares \`scripts.${hook}\`, which npm runs as part of \`npm run ` +
+            `${name}\`. The pinned \`scripts.${name}\` is therefore only a third of what runs; a ` +
+            "hook is where `--trace on --output test-results` goes with every other check still " +
+            "green. Refused outright — nothing here needs a lifecycle hook.",
+        );
+      }
+    }
+  }
 } catch (error) {
   add(`package.json could not be read (${error instanceof Error ? error.message : String(error)}).`);
 }
 
-// ===========================================================================
-// THE JOB'S ENVIRONMENT — FINDINGS 9 and 10.
+// THE SHELL npm USES, and the limit of what is checked here.
 //
-// REFUSED: `DEBUG`, `PWDEBUG` and any other `PLAYWRIGHT_*` key outside the
-// allowlist. A single `DEBUG=pw:api` turns the lane's stdout into a full
-// protocol dump — headers, `fill` values and all — straight into the GitHub log,
-// which no post-hoc redactor can reach because the log is streamed as it is
-// written.
+// `.npmrc`'s `script-shell` changes the interpreter every `npm run` uses, and
+// the same setting can arrive as `npm_config_script_shell` in the environment.
+// The environment half is covered — `npm_config_*` is refused at every scope
+// alongside the Playwright keys below. The FILE half is checked only for this
+// one key, because a committed `.npmrc` is a reviewed file and enumerating
+// everything npm reads from it is a different job.
 //
-// REQUIRED: `PLAYWRIGHT_NO_COPY_PROMPT: "1"` at JOB level. Measured at
-// `playwright/lib/index.js:657-658`:
+// NOT covered, stated rather than implied: a user-level or global `.npmrc` on
+// the runner, `NPM_CONFIG_*` inherited from the runner image, and anything a
+// `run:` step writes into `.npmrc` before the lane. Those are the same
+// unclosable `run:` class AGENTS.md already names.
+try {
+  const npmrcPath = path.join(repoRoot, ".npmrc");
+  const npmrc = readFileSync(npmrcPath, "utf8");
+  for (const line of npmrc.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#") || trimmed.startsWith(";")) continue;
+    const key = trimmed.split("=")[0]?.trim().toLowerCase().replace(/_/g, "-");
+    if (key === "script-shell" || key === "ignore-scripts") {
+      add(
+        `.npmrc sets \`${key}\`, which changes how every \`npm run\` in this lane is executed. ` +
+          "The lane guard pins what the scripts SAY; this would change what running them means.",
+      );
+    }
+  }
+} catch {
+  // No `.npmrc` is the normal case and is not a failure.
+}
+
+// The EFFECTIVE value, computed across all three scopes — not "is it present
+// somewhere". An independent verifier walked through the first version with one
+// line (mutation F7):
 //
-//     async _takePageSnapshot(context) {
-//       if (process.env.PLAYWRIGHT_NO_COPY_PROMPT)
-//         return;
+//     - name: Browser lane (desktop 1440, mobile 390)
+//       env:
+//         E2E_BASE_URL: http://127.0.0.1:3000
+//         PLAYWRIGHT_NO_COPY_PROMPT: ""        # <- added
+//       run: npm run e2e
 //
-// `error-context.md` is written whenever a test has errors and NO Playwright
-// configuration option gates the file — but this variable does gate its
-// `# Page snapshot` section, which is an `ariaSnapshot({mode:"ai"})` of the live
-// page: every DOM text node and every input's CURRENT VALUE. In a probe it was
-// the channel that captured a typed password with `trace`, `screenshot` and
-// `video` all set to `"off"`. It is the single richest private-data channel in
-// what this lane uploads, and one variable removes it while leaving the error
-// details that make the file worth having.
+// `bash scripts/ci/check-e2e-lane.sh` -> exit 0. A STEP-level `env:` overrides
+// the job's in GitHub Actions, and Playwright gates on TRUTHINESS, not presence
+// (`playwright/lib/index.js:657-659`): `""` is falsy, so the page snapshot came
+// back — the verifier measured it returning with a `page.fill` value verbatim.
+// ("0" is truthy and would still suppress, which is exactly why "is it set" is
+// the wrong question.) The old check read `laneJob.env` alone and separately
+// EXEMPTED this key from the `PLAYWRIGHT_*` refusal, so a step-level entry was
+// neither required-to-be-"1" nor refused. AGENTS.md published "asserts it is
+// set"; for that edit it did not.
 //
-// It is set in CI only, never locally, so a developer debugging a failure still
-// gets the snapshot on their own machine.
-const REQUIRED_JOB_ENV = { PLAYWRIGHT_NO_COPY_PROMPT: "1" };
-const ALLOWED_PLAYWRIGHT_ENV = new Set(["PLAYWRIGHT_NO_COPY_PROMPT"]);
-const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG"]);
+// So: the key must appear EXACTLY ONCE, at job level, with the literal "1", and
+// nowhere else at any scope. That is simpler to state, simpler to test, and has
+// no shape where the guard is green and the variable is not "1".
+const PAGE_SNAPSHOT_KEY = "PLAYWRIGHT_NO_COPY_PROMPT";
+const PAGE_SNAPSHOT_VALUE = "1";
+/** Refused at EVERY scope: workflow, job and step. */
+const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG", "NODE_OPTIONS"]);
 
 const laneJob = workflow?.jobs?.e2e;
+const workflowEnv = workflow?.env ?? {};
 const jobEnv = laneJob?.env ?? {};
-for (const [key, expected] of Object.entries(REQUIRED_JOB_ENV)) {
-  const actual = jobEnv[key];
-  if (String(actual) !== expected) {
-    add(
-      `the \`e2e\` job does not set \`${key}: "${expected}"\` at job level (read: ` +
-        `${JSON.stringify(actual)}). Without it Playwright writes a \`# Page snapshot\` into ` +
-        "`test-results/**/error-context.md` — an aria snapshot of the live page carrying every " +
-        "DOM text node and every input's current value — and that file is written even with " +
-        "trace, screenshot and video all off.",
-    );
-  }
-}
+const laneSteps = Array.isArray(laneJob?.steps) ? laneJob.steps : [];
 
-const envScopes = [["the job", jobEnv]];
-for (const [index, step] of (Array.isArray(laneJob?.steps) ? laneJob.steps : []).entries()) {
-  if (step?.env && typeof step.env === "object") {
-    envScopes.push([`step ${index + 1}${step?.name ? ` (${step.name})` : ""}`, step.env]);
-  }
-}
+// All THREE scopes. The workflow-level block was unread, so `DEBUG: pw:api`
+// beside `permissions:` was green while the same key at job or step level was
+// red (the verifier's mutation F3) — one env rule with a hole in one third of
+// its surface.
+const envScopes = [
+  ["the workflow", workflowEnv],
+  ["the `e2e` job", jobEnv],
+  ...laneSteps.map((step, index) => [
+    `step ${index + 1}${step?.name ? ` (${step.name})` : ""}`,
+    step?.env && typeof step.env === "object" ? step.env : {},
+  ]),
+];
+
+const snapshotSightings = [];
 for (const [scope, env] of envScopes) {
-  for (const key of Object.keys(env)) {
-    if (REFUSED_ENV.has(key) || (key.startsWith("PLAYWRIGHT_") && !ALLOWED_PLAYWRIGHT_ENV.has(key))) {
+  for (const [key, value] of Object.entries(env)) {
+    if (key === PAGE_SNAPSHOT_KEY) {
+      snapshotSightings.push({ scope, value });
+      continue;
+    }
+    const lowered = key.toLowerCase();
+    if (
+      REFUSED_ENV.has(key) ||
+      key.startsWith("PLAYWRIGHT_") ||
+      key.startsWith("PW_") ||
+      lowered.startsWith("npm_config_")
+    ) {
       add(
-        `${scope} sets \`${key}\`, which is refused in this lane. Playwright's debug channels ` +
-          "write request headers, `fill` values and protocol frames to stdout, and stdout is the " +
-          "GitHub log — streamed as it is written, so nothing can redact it afterwards.",
+        `${scope} sets \`${key}\`, which is refused in this lane at every scope. Playwright's ` +
+          "debug channels write request headers, `fill` values and protocol frames to stdout, " +
+          "and stdout is the GitHub log — streamed as it is written, so nothing can redact it " +
+          `afterwards. The one permitted \`PLAYWRIGHT_*\` key is \`${PAGE_SNAPSHOT_KEY}\`, at ` +
+          "job level only.",
       );
     }
   }
 }
+
+if (snapshotSightings.length === 0) {
+  add(
+    `the \`e2e\` job does not set \`${PAGE_SNAPSHOT_KEY}: "${PAGE_SNAPSHOT_VALUE}"\` at job ` +
+      "level. Without it Playwright writes a `# Page snapshot` into " +
+      "`test-results/**/error-context.md` — an aria snapshot of the live page carrying every " +
+      "DOM text node and every input's current value — and that file is written even with " +
+      "trace, screenshot and video all off.",
+  );
+} else {
+  for (const { scope, value } of snapshotSightings) {
+    if (scope !== "the `e2e` job") {
+      add(
+        `${scope} also sets \`${PAGE_SNAPSHOT_KEY}\`. It may appear at JOB level and nowhere ` +
+          "else: a step-level `env:` OVERRIDES the job's, and Playwright gates on truthiness, " +
+          `so \`${PAGE_SNAPSHOT_KEY}: ""\` at step level silently restores the page snapshot ` +
+          "while this guard stays green. That is the exact shape an independent verifier " +
+          "walked through (FINDING 2 of the PR #8 review).",
+      );
+    } else if (String(value) !== PAGE_SNAPSHOT_VALUE) {
+      add(
+        `the \`e2e\` job sets \`${PAGE_SNAPSHOT_KEY}: ${JSON.stringify(value)}\`, and it must be ` +
+          `exactly "${PAGE_SNAPSHOT_VALUE}". Playwright gates on truthiness, so "" restores the ` +
+          'page snapshot; "0" happens to suppress it, which is precisely why "is it set" is not ' +
+          "the question this guard asks.",
+      );
+    }
+  }
+}
+
+// AND A `run:` SCRIPT CAN UNSET IT. The env maps above are the declarative half;
+// a shell line in the same job is the other half, and it is not closed by any of
+// them. These four spellings are refused by NAME — `unset`, an empty `export`,
+// `env -u`, and a per-command `VAR= cmd` prefix.
+//
+// This is a GREP over `run:` text, and that is all it is: a script can compute
+// the variable name, source another file, or write the value from a here-doc,
+// and none of that is refused. § Residuals says so. The point of the four is
+// that the spellings someone would actually reach for are named rather than
+// silent, not that the class is closed — the class cannot be closed by a parser,
+// which is the same sentence AGENTS.md already carries for `run:` exfiltration.
+const UNSET_SHAPES = [
+  [new RegExp(`\\bunset\\s+(-v\\s+)?${PAGE_SNAPSHOT_KEY}\\b`), "`unset`"],
+  [new RegExp(`\\bexport\\s+${PAGE_SNAPSHOT_KEY}\\s*=\\s*(?=$|[\\s;&|])`, "m"), "an empty `export`"],
+  [new RegExp(`\\benv\\s+(-[^\\s]*\\s+)*-u\\s+${PAGE_SNAPSHOT_KEY}\\b`), "`env -u`"],
+  [new RegExp(`(^|[;&|(]\\s*)${PAGE_SNAPSHOT_KEY}=\\s`, "m"), "a `VAR= cmd` prefix"],
+];
+laneSteps.forEach((step, index) => {
+  const runScript = typeof step?.run === "string" ? step.run : "";
+  if (runScript === "") return;
+  for (const [pattern, described] of UNSET_SHAPES) {
+    if (pattern.test(runScript)) {
+      add(
+        `step ${index + 1}${step?.name ? ` (${step.name})` : ""} removes \`${PAGE_SNAPSHOT_KEY}\`` +
+          ` from the environment with ${described}. The job-level value is the control that keeps` +
+          " the live page's aria snapshot out of `error-context.md`; a `run:` line that clears it" +
+          " is the same defect as a step-level empty value, one layer down.",
+      );
+    }
+  }
+});
 
 if (problems.length > 0) {
   console.error("::error::the e2e lane no longer tests what it claims to test:");
