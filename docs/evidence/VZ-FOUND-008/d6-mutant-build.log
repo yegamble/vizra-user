@@ -1,6 +1,9 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile.fixtures-mutant
+#1 DONE <time>
+
+#1 [internal] load build definition from Dockerfile.fixtures-mutant
 #1 transferring dockerfile: 378B done
 #1 DONE <time>
 
@@ -8,25 +11,25 @@
 #2 DONE <time>
 
 #3 [internal] load build context
-#3 transferring context: 205.14kB 0.0s done
+#3 transferring context: 216.72kB 0.0s done
 #3 DONE <time>
 
-#4 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:4d21cc056e8e4dfb1b691e37196ee3fc42defa1df3f8d0e40b342c1c2dbef998
-#4 resolve docker.io/library/vizra-user:demonstrate@sha256:4d21cc056e8e4dfb1b691e37196ee3fc42defa1df3f8d0e40b342c1c2dbef998 done
+#4 [1/2] FROM docker.io/library/vizra-user:demonstrate@sha256:13fe1907a275fcd56226bab0a6b635c9a5adba9ba26d1034cdbdd3e48048688c
+#4 resolve docker.io/library/vizra-user:demonstrate@sha256:13fe1907a275fcd56226bab0a6b635c9a5adba9ba26d1034cdbdd3e48048688c 0.0s done
 #4 DONE <time>
 
 #5 [2/2] COPY e2e ./e2e
 #5 DONE <time>
 
 #6 exporting to image
-#6 exporting layers 0.0s done
-#6 exporting manifest sha256:109df2a7377ce8e29491b6dc023b80cba8c86a64d911bd02fc051cda6f6f0ce3 done
-#6 exporting config sha256:8abaf6007892f54f782bb12b05039a357efe74272db5d75125a9b399c80c7443
-#6 exporting config sha256:8abaf6007892f54f782bb12b05039a357efe74272db5d75125a9b399c80c7443 done
-#6 exporting attestation manifest sha256:4b99b76d2197dd757890be730ed5f772916a714d2dd83fd9dc5ccaf59ae4e0f8 done
-#6 exporting manifest list sha256:6761a6dadb93e253e35ad1cdd6619e54be177982713db03c56e40bb6b7e65119 done
+#6 exporting layers 0.1s done
+#6 exporting manifest sha256:2c3ab5ca32179842a7364cba560f6095fc819b4945b536e5f40bfd42e2b3816e 0.0s done
+#6 exporting config sha256:35a8e151eae1264b2c06d6e97f845aba780168158089175a0eafcbf652812640 done
+#6 exporting attestation manifest sha256:b58a8585c2d0cd30c0bce21a9bb66b396e088b5064557f9650352b37a8e19be2
+#6 exporting attestation manifest sha256:b58a8585c2d0cd30c0bce21a9bb66b396e088b5064557f9650352b37a8e19be2 0.0s done
+#6 exporting manifest list sha256:ce2cfbdba18e4ef97d2b8055effbd5562f4dc0e557460c09867d9281fab1cb52 0.0s done
 #6 naming to docker.io/library/vizra-user:demonstrate-with-fixtures done
 #6 unpacking to docker.io/library/vizra-user:demonstrate-with-fixtures 0.0s done
 #6 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/lede8bcbu6j6c1jqnybcdoscn
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/q0zct6hwtky10fwcmgaxflhc5

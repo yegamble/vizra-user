@@ -5,10 +5,14 @@ $ npm run lint
 > eslint
 
 
+<repo>/e2e/harness/redact.ts
+  140:5  warning  Unused eslint-disable directive (no problems were reported from 'no-control-regex')
+
 <repo>/e2e/specs/__bypass.spec.ts
   2:1  error  This file must not reference `@playwright/test`. Playwright's own `test` is not guarded: a spec that uses it is exempt from the console/network/page-error checks in e2e/harness/test.ts, and passes while the page is broken. Import { test, expect } from the harness entry (e2e/harness/test) instead  vizra/no-unguarded-playwright-import
 
-✖ 1 problem (1 error, 0 warnings)
+✖ 2 problems (1 error, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
 
 
 [exit 1]

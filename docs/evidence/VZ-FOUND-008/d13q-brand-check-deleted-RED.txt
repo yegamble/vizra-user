@@ -1,7 +1,7 @@
 $ bash scripts/ci/check-e2e-lane.sh
 
 ::error::the e2e lane no longer tests what it claims to test:
-  e2e/harness/test.ts no longer CALLS `isGenuineWorkerHarness`, so a spec could replace the worker-scoped guard with a no-op, keep the per-test stamp and lose the listeners.
+  e2e/harness/test.ts no longer CALLS `isGenuineWorkerHarness`, so a spec could replace the worker-scoped guard with a no-op, keep the per-test stamp and lose the listeners. (it does not CALL `isGenuineWorkerHarness`.)
   These properties are invisible in a green run, which is why they are asserted here.
 
 [exit 1]

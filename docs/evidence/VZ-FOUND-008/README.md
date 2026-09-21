@@ -517,3 +517,54 @@ rewriting is verified rather than assumed.
   step can execute. `check-e2e-lane.mjs` closes uploader *actions*, including
   ones that are not `actions/upload-artifact`; it cannot close `run:`, and does
   not claim to.
+
+## CORRECTION (2026-09-21) — what the redaction measurements did NOT search
+
+Recorded here because a measurement whose blind spot is unstated is a
+measurement people over-trust, and this one was cited in `AGENTS.md` as
+end-to-end proof.
+
+Every redaction figure in this directory — the local "3 members -> 0" of D9, and
+the "239 `?<redacted>`, zero live queries" counted in the real uploaded CI
+artifact from run 35536837315 — was produced by a search that **could not read
+`playwright-report/index.html`'s base64-embedded archive.**
+
+`playwright/lib/runner/index.js:3704-3712` (`_writeReportData`) appends
+
+    <template id="playwrightReportBase64">data:application/zip;base64,...</template>
+
+to that file. The payload decodes (magic `504b0304`) to a ZIP of the whole report
+dataset; on a failing run its members carry the error messages, the step titles
+and subtitles, and the attachment bodies. `scripts/ci/redact-artifacts.sh` runs
+perl over `index.html` as TEXT — it rewrites the plaintext and cannot touch the
+payload — and it unpacks `*.zip` FILES only. `scripts/e2e/sweep-artifacts.sh`
+greped raw bytes of a copy with `.zip` files unpacked, and could not decode
+base64 either.
+
+Measured on a deliberately failing probe run (macOS arm64, `@playwright/test`
+1.63.0, markers minted at runtime by `crypto.randomBytes`, nothing committed):
+
+    decoded bytes: 2612   magic: 504b0304
+    markers surviving ONLY inside that payload:
+      the scheme-less signed URL, the typed password, the assertion's value
+    raw grep of index.html for those markers:  NOTHING FOUND
+    after `bash scripts/ci/redact-artifacts.sh test-results playwright-report`
+    (which reported OK: ... 23 file(s) and 2 archive(s)):
+      STILL LIVE: all three
+
+So those figures are **true of the channels that were searched and unproven for
+this one**. Nothing private existed in any of those runs — no spec authenticates
+and there is no vizra-core — so this is not a disclosure, it is a fifth URL shape
+after four rounds.
+
+Closed two ways, both in the `fix/m0-artifact-privacy-a` pull request:
+
+1. `playwright-report/` is no longer in the `e2e` workflow's upload paths, which
+   are now an allowlist enforced across every job of the file. `test-results/`
+   still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
+   `playwright-report/data/` was a byte-identical second copy of the same traces.
+2. `scripts/e2e/sweep-artifacts.sh` decodes every `;base64,` payload and recurses
+   into it when the magic says ZIP or gzip. Verified against the probe tree: the
+   old raw grep found the marker in 1 member; the new sweep finds it in 5,
+   including `.decoded-0.bin.unzipped/<sha>.json`, the member a raw grep cannot
+   see.

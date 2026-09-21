@@ -1,5 +1,5 @@
-branch:     fix/m0-harness-hardening
-head sha:   77305009a7ae5b20411134ce5497f88d824e68ce
+branch:     fix/m0-artifact-privacy-a
+head sha:   6bf0a0e6d7302a1e3c655dd10eae1f3f406d7196
 node:       v22.14.0
 playwright: Version 1.63.0
 project:    desktop-chromium-1440
