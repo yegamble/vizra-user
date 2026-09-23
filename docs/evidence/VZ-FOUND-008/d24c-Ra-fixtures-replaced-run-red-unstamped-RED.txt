@@ -1,0 +1,15 @@
+$ run_route e2e/specs/__ra.spec.ts
+
+
+Running 1 test using 1 worker
+
+  ✓ <n> [desktop-chromium-1440] › e2e/specs/__ra.spec.ts:10:1 › home renders (<time>)
+
+  1 passed (<time>)
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+
+::error::a test succeeded without going through the guarded browser harness (e2e/harness/test.ts):
+  e2e/specs/__ra.spec.ts:10 — "home renders" [desktop-chromium-1440, attempt 0] succeeded WITHOUT the harness stamp. It did not take `test` from e2e/harness/test, so the console / page-error / failed-request / HTTP>=400 guard never ran for it: it would pass on a page that 404s and throws.
+  Playwright reported "passed" — that answers "did anything fail", not "did every passing test actually run the guard".
+
+[exit 1]

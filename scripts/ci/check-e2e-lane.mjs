@@ -67,7 +67,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import {
+  configArgumentFindings,
   defaultExportDeclaresKey,
+  defaultExportLiteralAt,
   defaultExportProperty,
   hasGenuineCall,
   hasNonImportReference,
@@ -77,6 +79,7 @@ import {
   moduleSpecifierStartsWith,
   overridesFixtureWithFunction,
   parseTypeScript,
+  projectsSettingUseKeys,
   UNREADABLE,
 } from "./ts-source-facts.mjs";
 
@@ -705,6 +708,13 @@ const HARNESS_CALLS = [
   ],
   [
     "entry",
+    "recorderProblems",
+    "e2e/harness/test.ts no longer CALLS `recorderProblems`, so nothing checks the RESOLVED " +
+      "`screenshot`, `video` and `trace` options at runtime, and a spec's `test.use({ video: \"on\" })` " +
+      "records pixels into the public artifact with every static check green (PR #10 VERIFY, E6).",
+  ],
+  [
+    "entry",
     "unallowedRecords",
     "e2e/harness/test.ts no longer CALLS `unallowedRecords`, so nothing fails a test on an " +
       "unallowed browser error.",
@@ -1015,6 +1025,94 @@ try {
 }
 
 // ===========================================================================
+// LANE A RECORDS NO PIXELS (security seat, PR B plan review 2026-09-23: Q3, F14).
+//
+// The repositories are PUBLIC, so a red lane's artifact is world-readable. A
+// screenshot, a video or a trace screencast frame of a page is pixels: no
+// redactor rewrites it and no byte scan can read a rendered string out of it.
+// Measured on a failing demo under the old values: 2 PNGs, 2 WebMs, and 3 + 2
+// screencast frames inside the two traces; under these values, none.
+//
+// THIS IS THE EARLY WARNING, NOT THE CONTROL. It reads the configuration's
+// SOURCE: `arguments[0]` of the exported call and an identifier's initializer.
+// It cannot see a second `defineConfig` argument, an assignment to `config.use`
+// after the declaration, an `Object.assign` on an imported object, a mutated
+// `devices[…]` descriptor, or a spec's `test.use({ … })`. An independent
+// verifier turned every recorder back on through each of those with this block
+// green (PR #10 VERIFY, E1–E6). The CONTROL is the runtime check on the RESOLVED
+// values in `e2e/harness/test.ts` (`recorderProblems`, required as a genuine call
+// above), which refuses all of them. This block still refuses the literal edits
+// it can read, which is where most edits will be made.
+const PIXELS_OFF = [
+  [["use", "screenshot"], "off"],
+  [["use", "video"], "off"],
+  [["use", "trace"], { mode: "retain-on-failure", sources: false, screenshots: false }],
+];
+const RECORDER_KEYS = ["screenshot", "video", "trace"];
+try {
+  const tree = parseTypeScript(mainConfigPath, readFileSync(mainConfigPath, "utf8"));
+  for (const [keyPath, expected] of PIXELS_OFF) {
+    const actual = defaultExportLiteralAt(tree, keyPath);
+    if (canonical(actual) !== canonical(expected)) {
+      add(
+        `playwright.config.ts's \`${keyPath.join(".")}\` must be exactly ${JSON.stringify(expected)} ` +
+          `(read: ${actual === UNREADABLE ? "not a literal this guard can read" : JSON.stringify(actual)}). ` +
+          "Lane A records NO PIXELS: its red-lane artifact is public, and a screenshot, a video or a " +
+          "trace screencast frame is pixels that no redactor or scanner can read.",
+      );
+    }
+  }
+  for (const finding of projectsSettingUseKeys(tree, RECORDER_KEYS)) {
+    add(
+      `playwright.config.ts: ${finding}. A project's \`use\` overrides the top-level recorders, ` +
+        "so Lane A's no-pixels settings would not hold for it.",
+    );
+  }
+} catch {
+  add("playwright.config.ts could not be parsed for the recorder settings.");
+}
+// THE CANARY'S CONFIGURATION IS PINNED (PR #10 VERIFY, FINDING 3 / S6). The
+// canary's demos populate `test-results/` when the red-lane upload fires, and
+// which configuration they run under was decided by an unpinned argument in
+// `harness-canary.mjs`: pointing it at a second configuration with the recorders
+// on published pixels with the guard and the canary green. The argument is read
+// from the PARSED script: exactly one `--config` string literal, immediately
+// followed by the string literal `playwright.demos.config.ts` in the same array,
+// and no other configuration selector anywhere in the file. (The runtime check
+// would also refuse such a configuration's recorders; this pins WHICH
+// configuration runs, which the runtime check does not.)
+const CANARY_CONFIG = "playwright.demos.config.ts";
+try {
+  const canaryPath = path.join(repoRoot, "scripts", "ci", "harness-canary.mjs");
+  const canaryTree = parseTypeScript(canaryPath, readFileSync(canaryPath, "utf8"));
+  for (const finding of configArgumentFindings(canaryTree, CANARY_CONFIG)) {
+    add(
+      `scripts/ci/harness-canary.mjs: ${finding}. The canary must run the demos under exactly ` +
+        `\`--config ${CANARY_CONFIG}\`, the configuration that inherits Lane A's recorders.`,
+    );
+  }
+} catch {
+  add("scripts/ci/harness-canary.mjs is missing or could not be parsed, so its configuration cannot be pinned.");
+}
+
+try {
+  const demosPath = path.join(repoRoot, "playwright.demos.config.ts");
+  const demosTree = parseTypeScript(demosPath, readFileSync(demosPath, "utf8"));
+  for (const key of ["use", "projects"]) {
+    const verdict = defaultExportDeclaresKey(demosTree, key);
+    if (verdict.declared) {
+      add(
+        `playwright.demos.config.ts declares \`${key}\` (via ${verdict.via}). It must inherit ` +
+          "the lane configuration's recorders and projects, so that the no-pixels settings hold " +
+          "for the demonstrations too.",
+      );
+    }
+  }
+} catch {
+  add("playwright.demos.config.ts could not be parsed for the recorder settings.");
+}
+
+// ===========================================================================
 // UPLOAD SCOPE IS DEFAULT-DENY, ACROSS THE WHOLE WORKFLOW FILE.
 //
 // The `vizra-security` seat's FINDING 8: deriving the scope of what leaves the
@@ -1059,7 +1157,8 @@ try {
 //
 // Re-encoding it would be a fifth URL-shape prediction after four rounds. It is
 // dropped from the upload instead. Nothing diagnostic is lost: `test-results/`
-// still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
+// still holds `trace.zip` and `error-context.md` (no screenshot or video since the
+// no-pixels change above), and
 // `npx playwright show-trace test-results/<test>/trace.zip` opens the trace
 // without the HTML report at all. `playwright-report/data/` was a second,
 // byte-identical copy of the same traces, so dropping it removes a duplicate

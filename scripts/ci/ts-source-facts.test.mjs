@@ -14,7 +14,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  configArgumentFindings,
   defaultExportDeclaresKey,
+  defaultExportLiteralAt,
   defaultExportProperty,
   hasGenuineCall,
   hasNonImportReference,
@@ -22,6 +24,7 @@ import {
   importsModule,
   moduleSpecifierStartsWith,
   parseTypeScript,
+  projectsSettingUseKeys,
   UNREADABLE,
 } from "./ts-source-facts.mjs";
 
@@ -244,5 +247,103 @@ describe("importsModule / moduleSpecifierStartsWith", () => {
   it("a reporter named only in a comment is not found", () => {
     const cfg = parse('export default { reporter: [["list"]] }; // ./e2e/harness/stamp-reporter.ts');
     expect(moduleSpecifierStartsWith(cfg, "./e2e/harness/stamp-reporter")).toBe(false);
+  });
+});
+
+describe("defaultExportLiteralAt: a nested configuration value, read or refused", () => {
+  const cfg = (use) =>
+    parse(`import { defineConfig } from "@playwright/test";\nexport default defineConfig({ use: ${use} });`);
+
+  it("reads a string, and an object of literals", () => {
+    const tree = cfg(`{ baseURL, screenshot: "off", trace: { mode: "retain-on-failure", sources: false, screenshots: false } }`);
+    expect(defaultExportLiteralAt(tree, ["use", "screenshot"])).toBe("off");
+    expect(defaultExportLiteralAt(tree, ["use", "trace"])).toEqual({
+      mode: "retain-on-failure",
+      sources: false,
+      screenshots: false,
+    });
+  });
+
+  it("answers undefined for an absent key", () => {
+    expect(defaultExportLiteralAt(cfg(`{ video: "off" }`), ["use", "screenshot"])).toBeUndefined();
+  });
+
+  it("is UNREADABLE when a spread could supply the key", () => {
+    expect(defaultExportLiteralAt(cfg(`{ ...other, screenshot: "off" }`), ["use", "screenshot"])).toBe(UNREADABLE);
+  });
+
+  it("is UNREADABLE for a computed key or a non-literal value", () => {
+    expect(defaultExportLiteralAt(cfg(`{ [k]: "on", screenshot: "off" }`), ["use", "screenshot"])).toBe(UNREADABLE);
+    expect(defaultExportLiteralAt(cfg(`{ screenshot: mode }`), ["use", "screenshot"])).toBe(UNREADABLE);
+    expect(defaultExportLiteralAt(cfg(`{ trace: { mode: m, sources: false } }`), ["use", "trace"])).toBe(UNREADABLE);
+  });
+
+  it("reads the LAST of two duplicate keys, as JavaScript does", () => {
+    expect(defaultExportLiteralAt(cfg(`{ screenshot: "off", screenshot: "on" }`), ["use", "screenshot"])).toBe("on");
+  });
+});
+
+describe("projectsSettingUseKeys: no project re-enables a recorder", () => {
+  const keys = ["screenshot", "video", "trace"];
+  const cfg = (projects) =>
+    parse(
+      `import { defineConfig, devices } from "@playwright/test";\n` +
+        `export default defineConfig({ projects: ${projects} });`,
+    );
+
+  it("accepts a project whose use spreads a device descriptor (the inverse control)", () => {
+    expect(projectsSettingUseKeys(cfg(`[{ name: "d", use: { ...devices["Desktop Chrome"], viewport: v } }]`), keys)).toEqual([]);
+  });
+
+  it("refuses a project that sets a recorder in use", () => {
+    expect(projectsSettingUseKeys(cfg(`[{ name: "d", use: { screenshot: "on" } }]`), keys)).toEqual([
+      "project #1's `use` sets `screenshot`",
+    ]);
+  });
+
+  it("refuses a spread that is not a devices descriptor, and a devices spread with a computed name", () => {
+    expect(projectsSettingUseKeys(cfg(`[{ name: "d", use: { ...extra } }]`), keys)).toHaveLength(1);
+    expect(projectsSettingUseKeys(cfg(`[{ name: "d", use: { ...devices[name] } }]`), keys)).toHaveLength(1);
+  });
+
+  it("refuses a devices spread when devices is NOT the @playwright/test import", () => {
+    const tree = parse(
+      `import { defineConfig } from "@playwright/test";\nconst devices = { x: { video: "on" } };\n` +
+        `export default defineConfig({ projects: [{ name: "d", use: { ...devices["x"] } }] });`,
+    );
+    expect(projectsSettingUseKeys(tree, keys)).toHaveLength(1);
+  });
+
+  it("refuses projects it cannot read in full", () => {
+    expect(projectsSettingUseKeys(cfg(`makeProjects()`), keys)).toHaveLength(1);
+    expect(projectsSettingUseKeys(cfg(`[base]`), keys)).toHaveLength(1);
+    expect(projectsSettingUseKeys(cfg(`[{ ...base }]`), keys)).toHaveLength(1);
+  });
+});
+
+describe("configArgumentFindings: the canary's --config is pinned (PR #10 VERIFY, S6)", () => {
+  const script = (args) => parse(`const args = [${args}];\nspawnSync("npx", args);`);
+  const want = "playwright.demos.config.ts";
+
+  it("accepts exactly one --config followed by the expected literal (inverse control)", () => {
+    expect(configArgumentFindings(script(`"playwright", "test", "--config", "${want}", "--grep", "RED:"`), want)).toEqual([]);
+  });
+
+  it("refuses a different configuration (the verifier's S6)", () => {
+    expect(configArgumentFindings(script(`"--config", "playwright.canary.config.ts"`), want).join(" ")).toMatch(
+      /second configuration|selects/,
+    );
+  });
+
+  it("refuses a non-literal value, a -c, a --config=, and a second selector", () => {
+    expect(configArgumentFindings(script(`"--config", cfg`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"-c", "${want}"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"--config=${want}"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"--config", "${want}", "--config", "${want}"`), want)).toHaveLength(1);
+  });
+
+  it("refuses a missing selector, and a template literal that builds one", () => {
+    expect(configArgumentFindings(script(`"playwright", "test"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script("`--config=${name}`"), want).length).toBeGreaterThan(0);
   });
 });

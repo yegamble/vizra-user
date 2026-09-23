@@ -42,17 +42,9 @@ Running 20 tests using 2 workers
       18 |
         at <repo>/e2e/specs/__envwrite.spec.ts:16:52
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
     Error Context: test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip
     Usage:
 
@@ -77,17 +69,9 @@ Running 20 tests using 2 workers
       18 |
         at <repo>/e2e/specs/__envwrite.spec.ts:16:52
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
     Error Context: test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/trace.zip
     Usage:
 
@@ -112,17 +96,9 @@ Running 20 tests using 2 workers
       18 |
         at <repo>/e2e/specs/__envwrite.spec.ts:16:52
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
     Error Context: test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/trace.zip
     Usage:
 
@@ -147,17 +123,9 @@ Running 20 tests using 2 workers
       18 |
         at <repo>/e2e/specs/__envwrite.spec.ts:16:52
 
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
     Error Context: test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/trace.zip
     Usage:
 

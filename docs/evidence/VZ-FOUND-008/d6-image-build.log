@@ -1,14 +1,14 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 6.23kB 0.0s done
+#1 transferring dockerfile: 6.23kB done
 #1 DONE <time>
 
 #2 resolve image config for docker-image://docker.io/docker/dockerfile:1
 #2 DONE <time>
 
 #3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 done
 #3 CACHED
 
 #4 [internal] load metadata for docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
@@ -18,17 +18,13 @@
 #5 transferring context: 598B done
 #5 DONE <time>
 
-#6 [internal] load build context
+#6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
+#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
 #6 DONE <time>
 
-#7 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
+#7 [internal] load build context
+#7 transferring context: 1.78MB 0.1s done
 #7 DONE <time>
-
-#6 [internal] load build context
-#6 transferring context: 1.75MB 0.1s done
-#6 DONE <time>
 
 #8 [deps 3/4] COPY package.json package-lock.json ./
 #8 CACHED
@@ -46,36 +42,36 @@
 #12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 0.888 
-#13 0.888 > vizra-user@0.0.0 build
-#13 0.888 > next build
-#13 0.888 
-#13 1.510 ▲ Next.js 16.3.5 (Turbopack)
-#13 1.570 ✓ Running next.config.ts took <time>
-#13 1.589 
-#13 1.637   Creating an optimized production build ...
-#13 8.088 ✓ Compiled successfully in <time>
-#13 8.098   Running TypeScript ...
-#13 11.19   Finished TypeScript in 3.1s ...
-#13 11.19   Collecting page data using 5 workers ...
-#13 11.98   Generating static pages using 5 workers (0/3) ...
-#13 12.63 ✓ Generating static pages using 5 workers (3/3) in <time>
-#13 12.63   Finalizing page optimization ...
-#13 13.01 
-#13 13.02 Route (app)
-#13 13.02 ┌ ○ /
-#13 13.02 ├ ○ /_not-found
-#13 13.02 └ ƒ /health
-#13 13.02 
-#13 13.02 
-#13 13.02 ○  (Static)   prerendered as static content
-#13 13.02 ƒ  (Dynamic)  server-rendered on demand
-#13 13.02 
-#13 13.05 npm notice
-#13 13.05 npm notice New major version of npm available! 10.9.2 -> 12.1.0
-#13 13.05 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
-#13 13.05 npm notice To update run: npm install -g npm@12.1.0
-#13 13.05 npm notice
+#13 1.104 
+#13 1.104 > vizra-user@0.0.0 build
+#13 1.104 > next build
+#13 1.104 
+#13 1.729 ▲ Next.js 16.3.5 (Turbopack)
+#13 1.978 ✓ Running next.config.ts took <time>
+#13 1.986 
+#13 2.028   Creating an optimized production build ...
+#13 8.297 ✓ Compiled successfully in <time>
+#13 8.299   Running TypeScript ...
+#13 10.40   Finished TypeScript in 2.1s ...
+#13 10.40   Collecting page data using 5 workers ...
+#13 10.82   Generating static pages using 5 workers (0/3) ...
+#13 11.16 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 11.17   Finalizing page optimization ...
+#13 11.44 
+#13 11.44 Route (app)
+#13 11.44 ┌ ○ /
+#13 11.44 ├ ○ /_not-found
+#13 11.44 └ ƒ /health
+#13 11.44 
+#13 11.44 
+#13 11.44 ○  (Static)   prerendered as static content
+#13 11.44 ƒ  (Dynamic)  server-rendered on demand
+#13 11.44 
+#13 11.46 npm notice
+#13 11.46 npm notice New major version of npm available! 10.9.2 -> 12.1.0
+#13 11.46 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#13 11.46 npm notice To update run: npm install -g npm@12.1.0
+#13 11.46 npm notice
 #13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
@@ -92,14 +88,14 @@
 
 #18 exporting to image
 #18 exporting layers
-#18 exporting layers 2.4s done
-#18 exporting manifest sha256:1d8c64129057edc565d970843c0bd3cac14da0cce1ede4b5206650a379614bbc done
-#18 exporting config sha256:9f86d0e45c13bd3068c4789bf2eb5b2149a8b9e0f5f710cc17ae9b6ec58fa8e2 done
-#18 exporting attestation manifest sha256:15c26b943766d1c5877cd1b437b77110de017c9209f1d35364c4da8e17930d77 done
-#18 exporting manifest list sha256:833bdbe024e278fc06f394b8c63140c3d7a7a3aad4183d34eb82c2925d43da28 done
-#18 naming to docker.io/library/pr8close-a7x:demonstrate done
-#18 unpacking to docker.io/library/pr8close-a7x:demonstrate
-#18 unpacking to docker.io/library/pr8close-a7x:demonstrate 0.6s done
+#18 exporting layers 1.6s done
+#18 exporting manifest sha256:a21a5a7265948ea706ed259dd11d289d3215f96aa5028b5c017eb79006662405 done
+#18 exporting config sha256:44cc2af04fb0bd61c2d29fbca6da375090c33a6524c1b5536f18e5e117509628 done
+#18 exporting attestation manifest sha256:2ddc3b70d8e50299bfde9cbe437cb7453ee8ec9186717de48c66037d5883223e done
+#18 exporting manifest list sha256:ec450f4063ee05920ffc2ae4a3d50e1eead8732436d1dee00e378d4c9e386126 done
+#18 naming to docker.io/library/pr10close-user:demonstrate done
+#18 unpacking to docker.io/library/pr10close-user:demonstrate
+#18 unpacking to docker.io/library/pr10close-user:demonstrate 0.4s done
 #18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/nh00j2ll5afwsyc1fxk9dfp6j
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/6pc48uteud0cc9kvzqraiez0w

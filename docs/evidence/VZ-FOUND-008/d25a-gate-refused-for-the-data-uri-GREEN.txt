@@ -1,0 +1,5 @@
+$ grep -F encoded as a data: URI <repo>/docs/evidence/VZ-FOUND-008/d25a-gate-refuses-nothing-uploaded-GREEN.txt
+
+::error::redact-artifacts: IMAGE OR VIDEO bytes are present in test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip, encoded as a data: URI - an image a page inlined, which the trace keeps in its DOM snapshot and response bodies. Nothing will be uploaded.
+
+[exit 0]

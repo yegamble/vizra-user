@@ -1,6 +1,6 @@
-$ bash scripts/e2e/sweep-artifacts.sh vzesc03cfbc17a651ca16 /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.U08a0ZlySJ host.example
+$ bash scripts/e2e/sweep-artifacts.sh vzescdcdc980d9804f505 /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.8jGCQF9vvR host.example
 
-searched:  22 file(s), 1 archive(s) unpacked, 0 base64 payload(s) decoded, under /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.U08a0ZlySJ
+searched:  15 file(s), 1 archive(s) unpacked, 0 base64 payload(s) decoded, under /var/folders/f0/7491x4mn6r90h50q54n7bs440000gn/T/tmp.8jGCQF9vvR
 members containing the sentinel: 2
 members (names only — the value itself is never printed):
 <artifacts>/results.json

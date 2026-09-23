@@ -1,7 +1,7 @@
 $ bash -c echo "\$ bash -e -c \"$1\""; bash -e -c "$1"; rc=$?; echo "[exit $rc]"; exit "$rc" _ bash scripts/ci/redact-artifacts.sh test-results playwright-report || true
 
 $ bash -e -c "bash scripts/ci/redact-artifacts.sh test-results playwright-report || true"
-OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 21 file(s) and 8 archive(s), and no page snapshot is present, across: test-results playwright-report
+OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 21 file(s) and 8 archive(s), and no page snapshot is present, and no image or video is present in the shapes this gate reads (named or signed files and first-level .zip members, data:image/ and data:video/ URIs), and no link or unopened archive is present, across: test-results playwright-report
 [exit 0]
 
 [exit 0]

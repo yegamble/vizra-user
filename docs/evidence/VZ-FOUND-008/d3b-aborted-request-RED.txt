@@ -13,27 +13,19 @@ Running 2 tests using 2 workers
     AGENTS.md: console and network errors are failures, not noise.
 
     2 DURING THE TEST:
-      [console] console.error: Failed to load resource: net::ERR_CONNECTION_REFUSED (http://127.0.0.1:3211/__vizra_e2e_fixture__/aborted-on-purpose.bin:0:0)
-          at: http://127.0.0.1:3211/
-      [requestfailed] requestfailed: GET http://127.0.0.1:3211/__vizra_e2e_fixture__/aborted-on-purpose.bin — net::ERR_CONNECTION_REFUSED
-          at: http://127.0.0.1:3211/
+      [console] console.error: Failed to load resource: net::ERR_CONNECTION_REFUSED (http://127.0.0.1:3941/__vizra_e2e_fixture__/aborted-on-purpose.bin:0:0)
+          at: http://127.0.0.1:3941/
+      [requestfailed] requestfailed: GET http://127.0.0.1:3941/__vizra_e2e_fixture__/aborted-on-purpose.bin — net::ERR_CONNECTION_REFUSED
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: Failed to load resource: net::ERR_CONNECTION_REFUSED (http://127.0.0.1:3211/__vizra_e2e_fixture__/aborted-on-purpose.bin:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+        at   [console] console.error: Failed to load resource: net::ERR_CONNECTION_REFUSED (http://127.0.0.1:3941/__vizra_e2e_fixture__/aborted-on-purpose.bin:0:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/trace.zip
     Usage:
 

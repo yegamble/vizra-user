@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr10close-user:demonstrate-with-fixtures
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
@@ -20,6 +20,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
   app/e2e/harness/creation-guard.ts
   app/e2e/harness/no-credentials-in-specs.test.ts
   app/e2e/harness/production-build.ts
+  app/e2e/harness/recorders.test.ts
+  app/e2e/harness/recorders.ts
   app/e2e/harness/redact.test.ts
   app/e2e/harness/redact.ts
   app/e2e/harness/redaction-corpus.json
@@ -31,6 +33,7 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
   app/e2e/harness/stamp.test.ts
   app/e2e/harness/stamp.ts
   app/e2e/harness/test.ts
+  app/e2e/harness/upload-gate-pixels.test.ts
   app/e2e/harness/worker-guard.test.ts
   app/e2e/harness/worker-guard.ts
   app/e2e/specs/

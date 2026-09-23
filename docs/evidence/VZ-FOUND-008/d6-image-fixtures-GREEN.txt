@@ -1,5 +1,5 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:demonstrate
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr10close-user:demonstrate
 
-OK: 'pr8close-a7x:demonstrate' contains no browser-harness path and no fixture token.
+OK: 'pr10close-user:demonstrate' contains no browser-harness path and no fixture token.
 
 [exit 0]

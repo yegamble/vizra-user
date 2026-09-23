@@ -736,7 +736,8 @@ fi
 harness_tree() {
   local root=$1
   mkdir -p "$root/scripts/ci" "$root/e2e/harness"
-  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" "$root/scripts/ci/"
+  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" \
+    "$here/harness-canary.mjs" "$root/scripts/ci/"
   cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" \
     "$here/../../e2e/harness/stamp-reporter.ts" "$root/e2e/harness/"
   cp "$here/../../playwright.config.ts" "$here/../../playwright.demos.config.ts" \
@@ -873,6 +874,63 @@ harness_expect 1 'no longer imports' playwright.config.ts \
 title="testDir widened to ./e2e fails by name"
 harness_expect 1 'restricts .testDir' playwright.config.ts \
   's|  testDir: "\./e2e/specs",|  testDir: "./e2e",|'
+
+# --- LANE A RECORDS NO PIXELS ------------------------------------------------
+# Security seat, PR B plan review (2026-09-23), Q3 and F14: the repositories are
+# public, and a screenshot, a video or a trace screencast frame is pixels no
+# redactor or scanner can read. Each value is a literal the guard reads from the
+# parsed configuration; each case flips one back (or hides it) and must be RED.
+title="no pixels: screenshot flipped back to only-on-failure fails by name"
+harness_expect 1 'use\.screenshot. must be exactly "off"' playwright.config.ts \
+  's|    screenshot: "off",|    screenshot: "only-on-failure",|'
+
+title="no pixels: video flipped back to retain-on-failure fails by name"
+harness_expect 1 'use\.video. must be exactly "off"' playwright.config.ts \
+  's|    video: "off",|    video: "retain-on-failure",|'
+
+title="no pixels: trace screencast switched back on fails by name"
+harness_expect 1 'use\.trace. must be exactly' playwright.config.ts \
+  's|sources: false, screenshots: false \},|sources: false, screenshots: true },|'
+
+title="no pixels: trace restored to its old value (screenshots key absent) fails by name"
+harness_expect 1 'use\.trace. must be exactly' playwright.config.ts \
+  's|    trace: \{ mode: "retain-on-failure", sources: false, screenshots: false \},|    trace: { mode: "retain-on-failure", sources: false },|'
+
+title="no pixels: a recorder hidden behind a spread in use fails CLOSED"
+harness_expect 1 'not a literal this guard can read' playwright.config.ts \
+  's|  use: \{\n    baseURL,|  use: {\n    ...pixelOptions,\n    baseURL,|'
+
+title="no pixels: a PROJECT that sets screenshot fails by name"
+harness_expect 1 'project #1.s .use. sets .screenshot.' playwright.config.ts \
+  's|use: \{ \.\.\.devices\["Desktop Chrome"\], viewport: DESKTOP_VIEWPORT \}|use: { ...devices["Desktop Chrome"], viewport: DESKTOP_VIEWPORT, screenshot: "on" }|'
+
+title="no pixels: a project use spreading something other than a device descriptor fails CLOSED"
+harness_expect 1 'spreads something other than a device descriptor' playwright.config.ts \
+  's|use: \{ \.\.\.devices\["Desktop Chrome"\], viewport: DESKTOP_VIEWPORT \}|use: { ...devices["Desktop Chrome"], ...extraUse, viewport: DESKTOP_VIEWPORT }|'
+
+title="no pixels: the DEMOS config overriding use fails by name"
+harness_expect 1 'playwright.demos.config.ts declares .use.' playwright.demos.config.ts \
+  's|  testDir: "\./e2e/demos",|  use: { video: "on" },\n  testDir: "./e2e/demos",|'
+
+title="no pixels, RUNTIME: the harness entry's call to recorderProblems removed fails by name"
+harness_expect 1 'no longer CALLS .recorderProblems' e2e/harness/test.ts \
+  's|      const pixelOptions = recorderProblems\(\{ screenshot, video, trace \}\);\n      if \(pixelOptions.length > 0\) \{\n        throw new Error\(recorderMessage\(pixelOptions, "in this worker"\)\);\n      \}\n||; s|      const pixelOptions = recorderProblems\(\{ screenshot, video, trace \}\);\n      if \(pixelOptions.length > 0\) \{\n        throw new Error\(recorderMessage\(pixelOptions, "for this test"\)\);\n      \}||'
+
+title="S6: the canary pointed at a second configuration fails by name"
+harness_expect 1 'harness-canary.mjs: .*playwright.canary.config.ts' scripts/ci/harness-canary.mjs \
+  's|    "playwright.demos.config.ts",|    "playwright.canary.config.ts",|'
+
+title="S6: the canary's configuration made non-literal fails CLOSED"
+harness_expect 1 'harness-canary.mjs: the element after .--config. is not a string literal' scripts/ci/harness-canary.mjs \
+  's|    "playwright.demos.config.ts",|    canaryConfig,|'
+
+title="S6: a second --config appended to the canary's arguments fails by name"
+harness_expect 1 'harness-canary.mjs: it has 2 configuration selector' scripts/ci/harness-canary.mjs \
+  's|    "--grep",\n    "RED:",|    "--grep",\n    "RED:",\n    "--config",\n    "playwright.demos.config.ts",|'
+
+title="no pixels: a recorder value named only in a COMMENT does not trip the check (inverse control)"
+harness_expect 0 'still drives the built image' playwright.config.ts \
+  's|    screenshot: "off",|    // was: screenshot: "only-on-failure"\n    screenshot: "off",|'
 
 # --- EVERY upload step, not the first one ----------------------------------
 # The parser located the upload with `steps.find(...)` and asserted the gate on

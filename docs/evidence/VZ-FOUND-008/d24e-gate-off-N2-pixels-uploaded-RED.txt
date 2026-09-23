@@ -1,0 +1,8 @@
+$ gate_then_upload
+
+OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 21 file(s) and 2 archive(s), and no page snapshot is present, and no image or video is present in the shapes this gate reads (named or signed files and first-level .zip members, data:image/ and data:video/ URIs), and no link or unopened archive is present, across: test-results playwright-report
+gate exit: 0
+uploaded: yes
+pixel files: png=1 webm=1 screencast-frames=3
+
+[exit 1]

@@ -1,0 +1,37 @@
+$ run_route e2e/specs/__n1.spec.ts
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__n1.spec.ts:10:5 › home renders (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/specs/__n1.spec.ts:10:5 › home renders ──────────────────────────
+
+    Error: Lane A records NO PIXELS, but in this worker the resolved recorder option(s) `screenshot`, `video`, `trace` are not exactly what playwright.config.ts sets (`screenshot` must be "off"; `video` must be "off"; `trace` must be { mode: "retain-on-failure", sources: false, screenshots: false }, as a plain object). A `test.use({ … })`, a configuration edit, a CLI flag or a mutated device descriptor changed them, or supplied a value that is not a plain literal (a getter, a `toJSON`, a Proxy or a class instance is refused whatever it reports). The repositories are public, and a screenshot, a video or a trace screencast frame is pixels no redactor or scanner can read. See AGENTS.md § Artifact privacy.
+
+       at ../harness/test.ts:154
+
+      152 |       const pixelOptions = recorderProblems({ screenshot, video, trace });
+      153 |       if (pixelOptions.length > 0) {
+    > 154 |         throw new Error(recorderMessage(pixelOptions, "in this worker"));
+          |               ^
+      155 |       }
+      156 |       // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variables, in the
+      157 |       // process that takes the snapshot. Two checks. The values CAPTURED when the
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:154:15)
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/__n1-home-renders-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/__n1-home-renders-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/specs/__n1.spec.ts:10:5 › home renders ───────────────────────────
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]

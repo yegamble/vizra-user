@@ -1,3 +1,5 @@
+HISTORICAL, pre-#10: recorded before vizra-user PR #10 turned Lane A's screenshot, video and trace screencast recorders off. The screenshot (image/png) and video (video/webm) attachments below are not produced by the current configuration. scripts/e2e/demonstrate.sh does not rewrite this file.
+
 $ npx playwright test  +  check-coverage-floor-ran.mjs  +  harness-canary.mjs
 round 6 — harness hardening; branch fix/m0-harness-hardening, base 90896beb9669a3b305269a298d507fd7a9e27aa4
 node v22.14.0, playwright Version 1.63.0, Darwin arm64

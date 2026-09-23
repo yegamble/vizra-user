@@ -21,9 +21,22 @@
  * coverage is labelled as such; Safari not claimed", and nothing here claims
  * WebKit or Firefox.
  *
- * ARTIFACTS. Trace, screenshot and video are retained on failure and published
- * by the workflow, together with the HTML report. They are what makes a red
- * lane diagnosable from the run page alone.
+ * ARTIFACTS. A failing test keeps its TRACE (network, DOM snapshots, console,
+ * step log) and `error-context.md`; the workflow publishes them, redacted, on a
+ * red lane. NO PIXELS are recorded: `screenshot` and `video` are "off", and the
+ * trace records no screencast (`screenshots: false`). The repositories are
+ * PUBLIC, and a screenshot of a page is pixels no redactor or scanner can read
+ * (security seat, PR B plan review, Q3 and F14). Two controls. The one that does
+ * not depend on how pixels were produced is the UPLOAD GATE:
+ * `scripts/ci/redact-artifacts.sh` refuses the upload for an image or video in
+ * the shapes it knows (AGENTS.md, "What the gate refuses, exactly"). The EARLY
+ * one is at runtime: `e2e/harness/recorders.ts`, called by both harness fixtures,
+ * refuses a RESOLVED value that is not exactly one of these three as a plain value
+ * (a second `defineConfig` argument, a later assignment, a mutated device
+ * descriptor, a spec's `test.use`, a getter or a `toJSON`), but code a spec runs
+ * can still get around it. `check-e2e-lane.mjs` reads the literals below as an
+ * early warning only. The demos configuration inherits them. See AGENTS.md
+ * § Artifact privacy.
  */
 
 import { defineConfig, devices } from "@playwright/test";
@@ -113,9 +126,16 @@ export default defineConfig({
     // demonstration found the sentinel signature value surviving into
     // `src/<sha>.ts` inside trace.zip for exactly that reason — the redactor
     // rewrites URLs, and a bare constant in a spec is not a URL.
-    trace: { mode: "retain-on-failure", sources: false },
-    screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    //
+    // NO PIXELS. `screenshots: false` stops the trace's screencast frames;
+    // `screenshot` and `video` "off" stop the per-test PNG and WebM. Measured on
+    // a failing demo before this change: 2 PNGs, 2 WebMs, and 3 + 2 screencast
+    // frames inside the two traces; after it, none of the three. The upload gate
+    // refuses the image and video shapes it knows; the harness refuses any other RESOLVED value
+    // at runtime; the lane guard warns early on another literal here.
+    trace: { mode: "retain-on-failure", sources: false, screenshots: false },
+    screenshot: "off",
+    video: "off",
     // Bound every action, so a wedged page fails the lane instead of burning
     // the job's whole timeout.
     actionTimeout: 10_000,
