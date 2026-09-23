@@ -8,11 +8,11 @@
 #2 DONE <time>
 
 #3 [internal] load build context
-#3 transferring context: 313.55kB 0.0s done
+#3 transferring context: 313.93kB 0.0s done
 #3 DONE <time>
 
-#4 [1/2] FROM docker.io/library/pr10close-user:demonstrate@sha256:b2356dbe71402029139b8a91c146da896ca509bf3f73a2b5f2af1498e8944813
-#4 resolve docker.io/library/pr10close-user:demonstrate@sha256:b2356dbe71402029139b8a91c146da896ca509bf3f73a2b5f2af1498e8944813 0.0s done
+#4 [1/2] FROM docker.io/library/pr10close-user:demonstrate@sha256:ec450f4063ee05920ffc2ae4a3d50e1eead8732436d1dee00e378d4c9e386126
+#4 resolve docker.io/library/pr10close-user:demonstrate@sha256:ec450f4063ee05920ffc2ae4a3d50e1eead8732436d1dee00e378d4c9e386126 0.0s done
 #4 DONE <time>
 
 #5 [2/2] COPY e2e ./e2e
@@ -20,12 +20,13 @@
 
 #6 exporting to image
 #6 exporting layers 0.0s done
-#6 exporting manifest sha256:910eee2fdd37db58e617ddeb972ff37903468626860d3e8b1cd0bee66ebb5318 done
-#6 exporting config sha256:3272e0f618faa05b395a1aa4a22c4d0bb7652ddadf0ce7f5f735296b9df5c2a2 done
-#6 exporting attestation manifest sha256:40f0653aa01e6a0ecabd79767588cc863e44ca8b8d701eff28434a677b08dc9b done
-#6 exporting manifest list sha256:dc41df944385b37dc145c449c0435860fc26594bbce699f3417a516f0aaf9c5d done
+#6 exporting manifest sha256:2b578785ef5491a2f6c7ae26a904a4f22fd49884969e242995cda5befd3991bf done
+#6 exporting config sha256:3146e718cec1fb83be8f09bdc9bfe1c31a32f7027efccc8888551a1844af2641
+#6 exporting config sha256:3146e718cec1fb83be8f09bdc9bfe1c31a32f7027efccc8888551a1844af2641 done
+#6 exporting attestation manifest sha256:cf83b5ff5de5459dbb168b8841525356a7d970be9d5816244df73cbd68d53f8c done
+#6 exporting manifest list sha256:9f1f0d2bfe423599fa4b490512715556d47fcc8692552c8152813f90c42aefa5 done
 #6 naming to docker.io/library/pr10close-user:demonstrate-with-fixtures done
 #6 unpacking to docker.io/library/pr10close-user:demonstrate-with-fixtures 0.0s done
 #6 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/ptddutxg4ia8dw03ar044pjap
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/kytrvy4xdfevy46ziks9i0lxd

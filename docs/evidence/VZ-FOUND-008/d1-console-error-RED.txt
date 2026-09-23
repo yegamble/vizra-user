@@ -18,16 +18,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:385
+       at ../harness/test.ts:386
 
-      383 |         );
-      384 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 385 |           throw new Error(
+      384 |         );
+      385 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 386 |           throw new Error(
           |                 ^
-      386 |             formatPhasedFailure(
-      387 |               unallowedBefore,
-      388 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
+      387 |             formatPhasedFailure(
+      388 |               unallowedBefore,
+      389 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/error-context.md
 

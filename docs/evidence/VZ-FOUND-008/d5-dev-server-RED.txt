@@ -87,7 +87,7 @@ Running 4 tests using 4 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3942/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3942/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/error-context.md
 
@@ -176,7 +176,7 @@ Running 4 tests using 4 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3942/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3942/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/error-context.md
 
@@ -266,7 +266,7 @@ Running 4 tests using 4 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3942/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3942/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/error-context.md
 
@@ -355,7 +355,7 @@ Running 4 tests using 4 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3942/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3942/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:386:17)
 
     Error Context: test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/error-context.md
 

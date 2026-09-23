@@ -10,16 +10,16 @@ Running 1 test using 1 worker
 
     Error: Lane A records NO PIXELS, but in this worker the resolved recorder option(s) `screenshot`, `video`, `trace` are not exactly what playwright.config.ts sets (`screenshot` must be "off"; `video` must be "off"; `trace` must be { mode: "retain-on-failure", sources: false, screenshots: false }, as a plain object). A `test.use({ … })`, a configuration edit, a CLI flag or a mutated device descriptor changed them, or supplied a value that is not a plain literal (a getter, a `toJSON`, a Proxy or a class instance is refused whatever it reports). The repositories are public, and a screenshot, a video or a trace screencast frame is pixels no redactor or scanner can read. See AGENTS.md § Artifact privacy.
 
-       at ../harness/test.ts:153
+       at ../harness/test.ts:154
 
-      151 |       const pixelOptions = recorderProblems({ screenshot, video, trace });
-      152 |       if (pixelOptions.length > 0) {
-    > 153 |         throw new Error(recorderMessage(pixelOptions, "in this worker"));
+      152 |       const pixelOptions = recorderProblems({ screenshot, video, trace });
+      153 |       if (pixelOptions.length > 0) {
+    > 154 |         throw new Error(recorderMessage(pixelOptions, "in this worker"));
           |               ^
-      154 |       }
-      155 |       // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variables, in the
-      156 |       // process that takes the snapshot. Two checks. The values CAPTURED when the
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:153:15)
+      155 |       }
+      156 |       // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variables, in the
+      157 |       // process that takes the snapshot. Two checks. The values CAPTURED when the
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:154:15)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__pixels-E6-one-test-use-line-turns-the-recorders-back-on-desktop-chromium-1440/trace.zip

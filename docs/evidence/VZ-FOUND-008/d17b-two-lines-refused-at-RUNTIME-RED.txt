@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3941 VZ_DEMO_TYPED=vzenv9b0aa5ded0b06d57 npx playwright test
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3941 VZ_DEMO_TYPED=vzenva4ddfa0fc5fe9004 npx playwright test
 
 
 Running 20 tests using 2 workers
@@ -42,7 +42,7 @@ Running 20 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:165:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip
@@ -65,7 +65,7 @@ Running 20 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:165:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/trace.zip
@@ -88,7 +88,7 @@ Running 20 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:165:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/trace.zip
@@ -111,7 +111,7 @@ Running 20 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:165:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/trace.zip

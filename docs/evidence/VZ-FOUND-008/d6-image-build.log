@@ -8,7 +8,7 @@
 #2 DONE <time>
 
 #3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 done
 #3 CACHED
 
 #4 [internal] load metadata for docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
@@ -19,11 +19,11 @@
 #5 DONE <time>
 
 #6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 done
+#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
 #6 DONE <time>
 
 #7 [internal] load build context
-#7 transferring context: 1.76MB 0.1s done
+#7 transferring context: 1.78MB 0.1s done
 #7 DONE <time>
 
 #8 [deps 3/4] COPY package.json package-lock.json ./
@@ -42,36 +42,36 @@
 #12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 0.666 
-#13 0.666 > vizra-user@0.0.0 build
-#13 0.666 > next build
-#13 0.666 
-#13 1.140 ▲ Next.js 16.3.5 (Turbopack)
-#13 1.176 ✓ Running next.config.ts took <time>
-#13 1.183 
-#13 1.207   Creating an optimized production build ...
-#13 5.392 ✓ Compiled successfully in <time>
-#13 5.405   Running TypeScript ...
-#13 7.391   Finished TypeScript in 1986ms ...
-#13 7.394   Collecting page data using 5 workers ...
-#13 7.757   Generating static pages using 5 workers (0/3) ...
-#13 8.051 ✓ Generating static pages using 5 workers (3/3) in <time>
-#13 8.054   Finalizing page optimization ...
-#13 8.308 
-#13 8.310 Route (app)
-#13 8.310 ┌ ○ /
-#13 8.310 ├ ○ /_not-found
-#13 8.310 └ ƒ /health
-#13 8.310 
-#13 8.310 
-#13 8.310 ○  (Static)   prerendered as static content
-#13 8.310 ƒ  (Dynamic)  server-rendered on demand
-#13 8.310 
-#13 8.349 npm notice
-#13 8.349 npm notice New major version of npm available! 10.9.2 -> 12.1.0
-#13 8.349 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
-#13 8.349 npm notice To update run: npm install -g npm@12.1.0
-#13 8.349 npm notice
+#13 1.104 
+#13 1.104 > vizra-user@0.0.0 build
+#13 1.104 > next build
+#13 1.104 
+#13 1.729 ▲ Next.js 16.3.5 (Turbopack)
+#13 1.978 ✓ Running next.config.ts took <time>
+#13 1.986 
+#13 2.028   Creating an optimized production build ...
+#13 8.297 ✓ Compiled successfully in <time>
+#13 8.299   Running TypeScript ...
+#13 10.40   Finished TypeScript in 2.1s ...
+#13 10.40   Collecting page data using 5 workers ...
+#13 10.82   Generating static pages using 5 workers (0/3) ...
+#13 11.16 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 11.17   Finalizing page optimization ...
+#13 11.44 
+#13 11.44 Route (app)
+#13 11.44 ┌ ○ /
+#13 11.44 ├ ○ /_not-found
+#13 11.44 └ ƒ /health
+#13 11.44 
+#13 11.44 
+#13 11.44 ○  (Static)   prerendered as static content
+#13 11.44 ƒ  (Dynamic)  server-rendered on demand
+#13 11.44 
+#13 11.46 npm notice
+#13 11.46 npm notice New major version of npm available! 10.9.2 -> 12.1.0
+#13 11.46 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#13 11.46 npm notice To update run: npm install -g npm@12.1.0
+#13 11.46 npm notice
 #13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
@@ -89,13 +89,13 @@
 #18 exporting to image
 #18 exporting layers
 #18 exporting layers 1.6s done
-#18 exporting manifest sha256:1c517afeaf293bca0e03a784dfc68cf1beb23409bea32c4831d9639d0e2c6566 done
-#18 exporting config sha256:118e96d047c2339bb9d1962020ef877ebec0a1c76262749cec33c4c280be1764 done
-#18 exporting attestation manifest sha256:1245bd59b216d730322a16b598b419e1db41f4926dbb081f52f2dc205ff6fd8c done
-#18 exporting manifest list sha256:b2356dbe71402029139b8a91c146da896ca509bf3f73a2b5f2af1498e8944813 done
+#18 exporting manifest sha256:a21a5a7265948ea706ed259dd11d289d3215f96aa5028b5c017eb79006662405 done
+#18 exporting config sha256:44cc2af04fb0bd61c2d29fbca6da375090c33a6524c1b5536f18e5e117509628 done
+#18 exporting attestation manifest sha256:2ddc3b70d8e50299bfde9cbe437cb7453ee8ec9186717de48c66037d5883223e done
+#18 exporting manifest list sha256:ec450f4063ee05920ffc2ae4a3d50e1eead8732436d1dee00e378d4c9e386126 done
 #18 naming to docker.io/library/pr10close-user:demonstrate done
 #18 unpacking to docker.io/library/pr10close-user:demonstrate
 #18 unpacking to docker.io/library/pr10close-user:demonstrate 0.4s done
 #18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/mrsq11npvi7kq2f1zbg57hmh5
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/6pc48uteud0cc9kvzqraiez0w

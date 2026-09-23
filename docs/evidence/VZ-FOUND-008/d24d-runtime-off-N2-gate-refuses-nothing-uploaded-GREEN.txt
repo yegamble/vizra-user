@@ -1,10 +1,10 @@
 $ gate_then_upload
 
 ::error::redact-artifacts: IMAGE OR VIDEO bytes are present in test-results/__n2-home-renders-desktop-chromium-1440/trace.zip - Lane A records no pixels, and a screenshot, a video or a screencast frame is pixels no redactor can read. Nothing will be uploaded.
-  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@09e90c6c1f12156f47158f1035c2d8b9-1790200913481.jpeg
-  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@09e90c6c1f12156f47158f1035c2d8b9-1790200913379.jpeg
+  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@717084b52d6e75e2ac37a1c114310616-1790202371903.jpeg
+  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@717084b52d6e75e2ac37a1c114310616-1790202371791.jpeg
+  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/attachments/c559fcec9bb7667807ad21eabf67d49bc4154d99
   <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/attachments/3162247b86d366195b1be0a1a3087349017f8535
-  <test-results/__n2-home-renders-desktop-chromium-1440/trace.zip>/attachments/188bbbe6d6bec280a0b21de81fa978d16d28db8f
   See AGENTS.md § Artifact privacy, "Lane A records NO PIXELS".
 gate exit: 4
 uploaded: nothing (the upload step is gated on this step's success)

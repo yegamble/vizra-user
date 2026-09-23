@@ -1,9 +1,10 @@
 $ gate_then_upload
 
 ::error::redact-artifacts: IMAGE OR VIDEO bytes are present in test-results/__ra-home-renders-desktop-chromium-1440/trace.zip - Lane A records no pixels, and a screenshot, a video or a screencast frame is pixels no redactor can read. Nothing will be uploaded.
-  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@684777ce7f6ea0dce56727e30a2e1a5f-1790200904703.jpeg
-  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@684777ce7f6ea0dce56727e30a2e1a5f-1790200904582.jpeg
-  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/attachments/f01dab01da57bb8b814f202bf43d4cecbf2cd9a1
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@bc18b457c417d1aef70e53d00ddc5c58-1790202358044.jpeg
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@bc18b457c417d1aef70e53d00ddc5c58-1790202358232.jpeg
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@bc18b457c417d1aef70e53d00ddc5c58-1790202358120.jpeg
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/attachments/2993e00bbfd9abb76eef33d730b5f75022e65e4e
   <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/attachments/3162247b86d366195b1be0a1a3087349017f8535
   See AGENTS.md § Artifact privacy, "Lane A records NO PIXELS".
 gate exit: 4

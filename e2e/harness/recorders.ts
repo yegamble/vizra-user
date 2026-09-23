@@ -40,9 +40,12 @@
  * intrinsics it uses are captured when this module loads, which in a worker is
  * while `playwright.config.ts` is loaded, before any spec. Code a spec runs can
  * still subvert the runtime this check runs in (that is residual R-1's class,
- * stated in AGENTS.md), which is why the control that holds regardless is the
- * upload gate: `scripts/ci/redact-artifacts.sh` refuses any image or video in
- * what would be uploaded.
+ * stated in AGENTS.md), which is why the control that does not depend on how the
+ * pixels were produced is the upload gate: `scripts/ci/redact-artifacts.sh`
+ * refuses the upload when what would be uploaded holds an image or video in the
+ * shapes it knows. It is a check on known shapes, not a detector of every image;
+ * AGENTS.md § Artifact privacy, "What the gate refuses, exactly", lists those
+ * shapes and what it does not detect.
  */
 
 import { types as nodeUtilTypes } from "node:util";

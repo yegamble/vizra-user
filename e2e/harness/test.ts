@@ -145,9 +145,10 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
       // on, and a check that serialised the value was fooled by `toJSON` and
       // getters; this accepts only plain values. It lives in this BRANDED
       // fixture, so replacing the fixture costs the stamp, but a spec that does
-      // so still records, and the run is red. The control that holds regardless
-      // is the upload gate (scripts/ci/redact-artifacts.sh refuses any image or
-      // video).
+      // so still records, and the run is red. The control that does not depend
+      // on how the pixels were produced is the upload gate
+      // (scripts/ci/redact-artifacts.sh refuses an image or video in the shapes
+      // it knows; AGENTS.md § Artifact privacy, "What the gate refuses, exactly").
       const pixelOptions = recorderProblems({ screenshot, video, trace });
       if (pixelOptions.length > 0) {
         throw new Error(recorderMessage(pixelOptions, "in this worker"));

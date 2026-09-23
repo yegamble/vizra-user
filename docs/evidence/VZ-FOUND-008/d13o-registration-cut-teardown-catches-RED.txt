@@ -35,16 +35,16 @@ Running 1 test using 1 worker
 
     See e2e/harness/creation-guard.ts.
 
-       at ../harness/test.ts:362
+       at ../harness/test.ts:363
 
-      360 |         }
-      361 |         if (strays.length > 0) {
-    > 362 |           throw new Error(
+      361 |         }
+      362 |         if (strays.length > 0) {
+    > 363 |           throw new Error(
           |                 ^
-      363 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
-      364 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
-      365 |               "guard, over every context it created.\n\n" +
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:362:17)
+      364 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
+      365 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
+      366 |               "guard, over every context it created.\n\n" +
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:363:17)
 
     Error Context: test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/error-context.md
 
