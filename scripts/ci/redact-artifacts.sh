@@ -61,84 +61,45 @@ for tool in perl unzip zip; do
   }
 done
 
-# The substitution, applied to raw bytes. `$1` below is PERL's capture group,
-# not a shell parameter, which is why the program is single-quoted and why
-# SC2016 is suppressed on the line rather than "fixed" by switching to double
-# quotes — double quotes would make the shell expand `$1` to this script's
-# first argument and silently delete the host and path from every URL.
-# (A comment line here may not begin with the linter's own name, or the linter
-# reads the prose as a malformed directive.)
+# THE URL PROGRAMS ARE SHARED WITH e2e/harness/redact.ts, NOT COPIED.
 #
-#   ((?:https?|wss?|ftp)://[^\s"'<>\\)\]]*?)   scheme, host and path, non-greedy
-#   [?#][^\s"'<>\\)\]]*                        the query and/or fragment
+# This script used to carry its own four perl programs, and AGENTS.md said they
+# were "the same four programs" as the harness redactor. An independent verifier
+# showed otherwise (PR #8, R2-FINDING C): a fully slash-escaped
+# `https:\/\/host\/p?sig=...` was redacted by the harness and SURVIVED here, and
+# the double-escaped form Playwright writes when a spec prints a slash-escaped URL
+# survived both - into `results.json` and `trace.zip::test.trace`, both uploaded,
+# after this script reported OK.
 #
-# The terminator class includes the characters that end a URL inside JSON, HTML
-# and log prose, so a match stops at the URL rather than running to end of line.
-# shellcheck disable=SC2016
-ABSOLUTE_PROGRAM='s{((?:https?|wss?|ftp):(?:\\?/){2}[^\s"'"'"'<>\\)\]]*?)[?\#][^\s"'"'"'<>\\)\]]*}{$1?<redacted>}gi'
+# So both redactors read `e2e/harness/redaction-patterns.json`, and
+# `e2e/harness/redaction-corpus.test.ts` runs THIS script and the harness over one
+# corpus and checks every output byte for byte. Each pattern has exactly one
+# capture group - the kept prefix (boundary, scheme, authority, path) - and what
+# it matches after that is replaced with `?<redacted>`. The history of how each
+# shape was found - relative URLs (D9), the scheme-less step subtitle (PR #3
+# F13), protocol-relative / IPv6 / uppercase / escaped (PR #8 F4), fully and
+# double escaped and `&` (PR #8 R2-C) - is in AGENTS.md § Artifact privacy.
+patterns=$(cd "$(dirname "$0")/../.." && pwd)/e2e/harness/redaction-patterns.json
+[ -r "$patterns" ] || {
+  echo "::error::redact-artifacts: $patterns is missing; there is nothing to redact WITH. BLOCKED, not a pass." >&2
+  exit 2
+}
+perl -MJSON::PP -e 1 2> /dev/null || {
+  echo "::error::redact-artifacts: perl's core JSON::PP module is not available; BLOCKED, not a pass." >&2
+  exit 2
+}
+export VZ_REDACTION_PATTERNS=$patterns
 
-# RELATIVE URLs need the same treatment, and the first version of this script
-# missed them. The demonstration caught it: the trace recorded
-# `/__vizra_e2e_fixture__/media/photo.jpg?X-Amz-Signature=...` as the ARGUMENT
-# of a page call, with no scheme and no host, so the absolute pattern above did
-# not match and the sentinel survived into `1-trace.network` and
-# `1-trace.trace`. A Next application emits relative URLs everywhere — this is
-# the common case, not the exotic one.
-#
-#   (^|[\s"'(\[=,>])      a boundary, so ordinary prose is not rewritten
-#   (/[A-Za-z0-9._~%/+-]*)  a URL PATH and nothing else
-#   [?#]…                   the query and/or fragment
+# One perl process per file: load the shared programs, apply them in order, then
+# the HAR program below. `$1` is PERL's capture group - hence single quotes.
 # shellcheck disable=SC2016
-RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(/[A-Za-z0-9._~%/+-]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2?<redacted>}g'
-
-# AND THE SCHEME-LESS FORM, WHICH IS HOW PLAYWRIGHT WRITES A STEP SUBTITLE.
-#
-# An independent verifier reduced the gap to three lines against this script
-# (PR #3 re-verification, FINDING 13):
-#
-#   "url":"http://host/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"     -> ?<redacted>  OK
-#   "path":"/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"               -> ?<redacted>  OK
-#   "subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"  -> UNCHANGED    LEAK
-#
-# The absolute program requires `scheme://` and the relative program requires
-# the match to begin at `/`; `host:port/path?query` satisfies neither. Playwright
-# DROPS THE SCHEME when it writes a `test.trace` step subtitle, so any
-# `page.goto(signedUrl)` produces one — measured in a probe as
-# `"title":"Navigate","subtitle":"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=…"`
-# beside a `params.url` the absolute program does catch. The verifier measured a
-# sentinel going 3 members -> 1 after redaction, surviving in `test.trace`.
-#
-# D9 never exercised this: its fixture injects the signed URL as a SUB-RESOURCE
-# (`img.src = url`) and navigates to `/`, and a sub-resource never becomes a step
-# subtitle. The demonstration was sound for what it covered and blind to this.
-#
-#   (^|[\s"'(\[=,>])              a boundary, so prose is not rewritten
-#   ((?:[\w-]+\.)+[\w-]+(?::\d+)?  a DOTTED host (or IPv4), optional port
-#    |[\w-]+:\d{1,5}              or ANY label with an explicit :port
-#    |localhost)                  or bare localhost
-#   (/[^\s"'<>\\)\]?\#]*)          a path, which MUST start at `/`
-#   [?#]…                        the query and/or fragment
-#
-# The bare-label alternative is what makes the verifier's own reduction line
-# redact: `host:3219/m.jpg?…` has an undotted hostname, which a dotted-only
-# pattern misses, and a dotted-only pattern was the first version of this. The
-# price is deliberate OVER-redaction: `1:23/foo?x=y` in prose would be rewritten
-# too. That costs a little diagnostic text and leaks nothing, which is the right
-# way round — `see step 3/4?` has no authority and no path and is untouched.
-# `e2e/harness/redact.ts` carries the same shape for the harness's own output.
-# shellcheck disable=SC2016
-AUTHORITY_PROGRAM='s{(^|[\s"'"'"'(\[=,>])((?:[\w-]+\.)+[\w-]+(?::\d+)?|\[[0-9A-Fa-f:.]+\](?::\d{1,5})?|[\w-]+:\d{1,5}|localhost)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
-
-# AND THE PROTOCOL-RELATIVE FORM `//host[:port]/path?query`.
-#
-# It STARTS AT `/`, which is exactly what AGENTS.md named as covered - and it
-# matched none of the three programs: the authority program wants a path
-# directly after the host, and the relative program's character class excludes
-# `:`. Reported by an independent verifier (PR #8 review, FINDING 4) together
-# with a bracketed IPv6 authority, an uppercase scheme and JSON-escaped slashes,
-# all four now handled here and in `e2e/harness/redact.ts`.
-# shellcheck disable=SC2016
-PROTOCOL_RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(//(?:[\w-]+\.)*[\w-]+(?::\d{1,5})?|//\[[0-9A-Fa-f:.]+\](?::\d{1,5})?)(/[^\s"'"'"'<>\\)\]?\#]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2$3?<redacted>}g'
+URL_PROGRAMS='BEGIN {
+  open(my $fh, "<", $ENV{VZ_REDACTION_PATTERNS}) or die "redaction patterns: $!";
+  local $/; my $doc = JSON::PP::decode_json(<$fh>);
+  @VZ_PROGRAMS = map { ($_->{flags} // "") =~ /i/ ? qr/$_->{pattern}/i : qr/$_->{pattern}/ } @{ $doc->{programs} };
+  die "redaction patterns: no programs" unless @VZ_PROGRAMS;
+}
+for my $re (@VZ_PROGRAMS) { s/$re/$1?<redacted>/g }'
 
 # AND THE STRUCTURED COPY. A trace's `*.network` member is HAR-shaped, and HAR
 # stores the query a SECOND time, parsed into fields:
@@ -164,14 +125,40 @@ redact_tree() {
   shift
   local count=0 file
   while IFS= read -r -d '' file; do
-    perl -0777 -pi -e "$ABSOLUTE_PROGRAM" "$file"
-    perl -0777 -pi -e "$RELATIVE_PROGRAM" "$file"
-    perl -0777 -pi -e "$AUTHORITY_PROGRAM" "$file"
-    perl -0777 -pi -e "$PROTOCOL_RELATIVE_PROGRAM" "$file"
+    perl -MJSON::PP -0777 -pi -e "$URL_PROGRAMS" "$file"
     perl -0777 -pi -e "$HAR_QUERY_PROGRAM" "$file"
     count=$((count + 1))
   done < <(find "$root" -type f ! \( "${BINARY_PRUNE[@]}" \) "$@" -print0)
   printf '%s' "$count"
+}
+
+# THE UPLOAD GATE FOR THE PAGE SNAPSHOT.
+#
+# `error-context.md`'s `# Page snapshot` section is an aria snapshot of the LIVE
+# page - every DOM text node and every input's current value. The `e2e` job sets
+# PLAYWRIGHT_NO_COPY_PROMPT=1 so Playwright never writes it, the lane guard
+# refuses every route to change that it can read, and the harness asserts the
+# value inside the Playwright worker. An independent verifier still turned the
+# snapshot back on twice, by routes the static guard could not see (a step-level
+# `env:`, then a committed `.npmrc`).
+#
+# So the last gate before upload does not ask HOW the variable was changed. If
+# any file - or any member of any archive - carries that section heading, this
+# script exits non-zero, and the upload step, which is gated on this step having
+# SUCCEEDED, publishes nothing. The heading is Playwright's literal
+# (`playwright/lib/errorContext.js`); `e2e/harness/redaction-corpus.test.ts` pins
+# that it still is, so a Playwright bump that renames it is a red unit test
+# rather than a silently blind gate.
+PAGE_SNAPSHOT_HEADING='# Page snapshot'
+refuse_page_snapshots() {
+  local root=$1 label=$2 hits
+  hits=$(grep -rlxF -- "$PAGE_SNAPSHOT_HEADING" "$root" 2> /dev/null || true)
+  [ -z "$hits" ] && return 0
+  echo "::error::redact-artifacts: a PAGE SNAPSHOT is present in $label - an aria snapshot of the" \
+    "live page, carrying every DOM text node and input value. Nothing will be uploaded." >&2
+  printf '%s\n' "$hits" | sed "s|^$root|  <$label>|" >&2
+  echo "  PLAYWRIGHT_NO_COPY_PROMPT was not \"1\" in the Playwright process; see AGENTS.md § Artifact privacy." >&2
+  exit 1
 }
 
 total_files=0
@@ -196,6 +183,7 @@ for dir in "${dirs[@]}"; do
       continue
     fi
     redact_tree "$work" > /dev/null
+    refuse_page_snapshots "$work" "$archive"
     rm -f "$absolute"
     # Repack from inside the tree so member paths stay relative, as Playwright
     # expects. `-X` drops extra file attributes; `-r` recurses; `-q` is quiet.
@@ -212,6 +200,7 @@ for dir in "${dirs[@]}"; do
   #    stdout/stderr captures, the recorded browser revision.
   n=$(redact_tree "$dir" ! -name '*.zip')
   total_files=$((total_files + n))
+  refuse_page_snapshots "$dir" "$dir"
 done
 
-echo "OK: redacted URL query strings (absolute, relative and authority-relative) in ${total_files} file(s) and ${total_zips} archive(s) across: ${dirs[*]}"
+echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, across: ${dirs[*]}"

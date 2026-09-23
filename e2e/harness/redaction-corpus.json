@@ -1,0 +1,260 @@
+{
+  "about": [
+    "THE SHARED REDACTION CORPUS. Both redactors - e2e/harness/redact.ts and the SHIPPED",
+    "scripts/ci/redact-artifacts.sh - are run over every input by redaction-corpus.test.ts, and",
+    "each output is checked BYTE FOR BYTE against `harness` and `shell` below. They read the",
+    "same programs (redaction-patterns.json), so the only difference is the replacement text.",
+    "The marker is a plain word, never credential-shaped: GitGuardian scans every commit.",
+    "Every non-`unchanged` entry must also lose the marker and keep every `keep` string, and",
+    "every `json` entry must still parse after redaction - a redactor that breaks a JSON",
+    "document breaks the trace viewer that reads it.",
+    "To add a shape: add the input, run the test, REVIEW the two outputs by eye, then pin them.",
+    "A shape that cannot be covered goes in AGENTS.md \"NOT covered\", not here."
+  ],
+  "marker": "CORPUSMARKER",
+  "entries": [
+    {
+      "name": "absolute",
+      "input": "\"url\":\"http://host/m.jpg?X-Amz-Sig=CORPUSMARKER&e=60\"",
+      "keep": [
+        "http://host/m.jpg"
+      ],
+      "harness": "\"url\":\"http://host/m.jpg?<redacted: 2 parameter(s)>\"",
+      "shell": "\"url\":\"http://host/m.jpg?<redacted>\""
+    },
+    {
+      "name": "path-relative",
+      "input": "\"path\":\"/m.jpg?X-Amz-Sig=CORPUSMARKER&e=60\"",
+      "keep": [
+        "/m.jpg"
+      ],
+      "harness": "\"path\":\"/m.jpg?<redacted: 2 parameter(s)>\"",
+      "shell": "\"path\":\"/m.jpg?<redacted>\""
+    },
+    {
+      "name": "authority-relative, undotted host (PR #3 F13 verbatim)",
+      "input": "\"subtitle\":\"host:3219/m.jpg?X-Amz-Sig=CORPUSMARKER&e=60\"",
+      "keep": [
+        "host:3219/m.jpg"
+      ],
+      "harness": "\"subtitle\":\"host:3219/m.jpg?<redacted: 2 parameter(s)>\"",
+      "shell": "\"subtitle\":\"host:3219/m.jpg?<redacted>\""
+    },
+    {
+      "name": "authority-relative, IPv4 (the real step-subtitle shape)",
+      "input": "\"subtitle\":\"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=CORPUSMARKER&X-Amz-Expires=60\"",
+      "keep": [
+        "127.0.0.1:3987/media/p.jpg"
+      ],
+      "harness": "\"subtitle\":\"127.0.0.1:3987/media/p.jpg?<redacted: 2 parameter(s)>\"",
+      "shell": "\"subtitle\":\"127.0.0.1:3987/media/p.jpg?<redacted>\""
+    },
+    {
+      "name": "protocol-relative with port",
+      "input": "\"u\":\"//host.example:8443/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "//host.example:8443/p"
+      ],
+      "harness": "\"u\":\"//host.example:8443/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"//host.example:8443/p?<redacted>\""
+    },
+    {
+      "name": "bracketed IPv6 with port",
+      "input": "\"u\":\"[::1]:3000/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "[::1]:3000/p"
+      ],
+      "harness": "\"u\":\"[::1]:3000/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"[::1]:3000/p?<redacted>\""
+    },
+    {
+      "name": "bracketed IPv6 without port",
+      "input": "\"u\":\"[2001:db8::1]/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "[2001:db8::1]/p"
+      ],
+      "harness": "\"u\":\"[2001:db8::1]/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"[2001:db8::1]/p?<redacted>\""
+    },
+    {
+      "name": "uppercase scheme",
+      "input": "\"u\":\"HTTPS://host.example/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "HTTPS://host.example/p"
+      ],
+      "harness": "\"u\":\"HTTPS://host.example/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"HTTPS://host.example/p?<redacted>\""
+    },
+    {
+      "name": "WSS and ftp schemes",
+      "input": "\"u\":\"WSS://h/s?t=CORPUSMARKER\" and ftp://h/f?k=CORPUSMARKER",
+      "keep": [
+        "WSS://h/s",
+        "ftp://h/f"
+      ],
+      "harness": "\"u\":\"WSS://h/s?<redacted: 1 parameter(s)>\" and ftp://h/f?<redacted: 1 parameter(s)>",
+      "shell": "\"u\":\"WSS://h/s?<redacted>\" and ftp://h/f?<redacted>"
+    },
+    {
+      "name": "fragment only",
+      "input": "\"u\":\"/p#token=CORPUSMARKER\"",
+      "keep": [
+        "/p"
+      ],
+      "harness": "\"u\":\"/p#<redacted>\"",
+      "shell": "\"u\":\"/p?<redacted>\""
+    },
+    {
+      "name": "HALF-escaped (scheme slashes only) - the only form pinned before",
+      "input": "{\"u\":\"https:\\/\\/h/p?sig=CORPUSMARKER\"}",
+      "keep": [
+        "h/p"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"https:\\/\\/h/p?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"https:\\/\\/h/p?<redacted>\"}"
+    },
+    {
+      "name": "FULLY escaped, every slash - what PHP json_encode emits",
+      "input": "{\"u\":\"https:\\/\\/host.example\\/media\\/p.jpg?X-Amz-Signature=CORPUSMARKER\"}",
+      "keep": [
+        "host.example"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"https:\\/\\/host.example\\/media\\/p.jpg?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"https:\\/\\/host.example\\/media\\/p.jpg?<redacted>\"}"
+    },
+    {
+      "name": "DOUBLE-escaped - what Playwright writes into results.json when a spec prints a slash-escaped URL (measured through the real lane)",
+      "input": "\"text\": \"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/media\\\\/p.jpg?X-Amz-Signature=CORPUSMARKER\\\"}\"",
+      "keep": [
+        "host.example"
+      ],
+      "harness": "\"text\": \"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/media\\\\/p.jpg?<redacted: 1 parameter(s)>\\\"}\"",
+      "shell": "\"text\": \"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/media\\\\/p.jpg?<redacted>\\\"}\""
+    },
+    {
+      "name": "DOUBLE-escaped inside a real JSON document stays valid JSON",
+      "input": "{\"text\":\"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/p.jpg?sig=CORPUSMARKER\\\"}\"}",
+      "keep": [
+        "host.example"
+      ],
+      "json": true,
+      "harness": "{\"text\":\"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/p.jpg?<redacted: 1 parameter(s)>\\\"}\"}",
+      "shell": "{\"text\":\"{\\\"u\\\":\\\"https:\\\\/\\\\/host.example\\\\/p.jpg?<redacted>\\\"}\"}"
+    },
+    {
+      "name": "TRIPLE-escaped (PHP-escaped, then JSON-encoded)",
+      "input": "\"https:\\\\\\/\\\\\\/h\\\\\\/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "h"
+      ],
+      "harness": "\"https:\\\\\\/\\\\\\/h\\\\\\/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"https:\\\\\\/\\\\\\/h\\\\\\/p?<redacted>\""
+    },
+    {
+      "name": "escaped protocol-relative",
+      "input": "{\"u\":\"\\/\\/host.example\\/p?sig=CORPUSMARKER\"}",
+      "keep": [
+        "host.example"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"\\/\\/host.example\\/p?<redacted: 0 parameter(s)><redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"\\/\\/host.example\\/p?<redacted><redacted>\"}"
+    },
+    {
+      "name": "escaped path-relative",
+      "input": "{\"u\":\"\\/media\\/p.jpg?sig=CORPUSMARKER\"}",
+      "keep": [
+        "media"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"\\/media\\/p.jpg?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"\\/media\\/p.jpg?<redacted>\"}"
+    },
+    {
+      "name": "Go-escaped & (\\u0026) inside the query",
+      "input": "{\"url\":\"https://h/p?a=1\\u0026X-Amz-Signature=CORPUSMARKER\"}",
+      "keep": [
+        "https://h/p"
+      ],
+      "json": true,
+      "harness": "{\"url\":\"https://h/p?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"url\":\"https://h/p?<redacted>\"}"
+    },
+    {
+      "name": "double-escaped \\u0026",
+      "input": "\"text\":\"{\\\"url\\\":\\\"https://h/p?a=1\\\\u0026sig=CORPUSMARKER\\\"}\"",
+      "keep": [
+        "https://h/p"
+      ],
+      "harness": "\"text\":\"{\\\"url\\\":\\\"https://h/p?<redacted: 1 parameter(s)>\\\"}\"",
+      "shell": "\"text\":\"{\\\"url\\\":\\\"https://h/p?<redacted>\\\"}\""
+    },
+    {
+      "name": "IPv6 zone id, URL-encoded (%25)",
+      "input": "\"u\":\"[fe80::1%25eth0]:3000/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "[fe80::1%25eth0]:3000/p"
+      ],
+      "harness": "\"u\":\"[fe80::1%25eth0]:3000/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"[fe80::1%25eth0]:3000/p?<redacted>\""
+    },
+    {
+      "name": "IPv6 zone id, bare (%)",
+      "input": "\"u\":\"[fe80::1%eth0]:3000/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "[fe80::1%eth0]:3000/p"
+      ],
+      "harness": "\"u\":\"[fe80::1%eth0]:3000/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"[fe80::1%eth0]:3000/p?<redacted>\""
+    },
+    {
+      "name": "absolute with a bracketed IPv6 host",
+      "input": "\"u\":\"http://[::1]:3000/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "http://[::1]:3000/p"
+      ],
+      "harness": "\"u\":\"http://[::1]:3000/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"http://[::1]:3000/p?<redacted>\""
+    },
+    {
+      "name": "absolute with an IPv6 zone id",
+      "input": "\"u\":\"http://[fe80::1%25eth0]:3000/p?sig=CORPUSMARKER\"",
+      "keep": [
+        "http://[fe80::1%25eth0]:3000/p"
+      ],
+      "harness": "\"u\":\"http://[fe80::1%25eth0]:3000/p?<redacted: 1 parameter(s)>\"",
+      "shell": "\"u\":\"http://[fe80::1%25eth0]:3000/p?<redacted>\""
+    },
+    {
+      "name": "prose is untouched",
+      "input": "see step 3/4? and a 1:23/foo timestamp and http 404 at 12:30 and a//b?c",
+      "unchanged": true,
+      "harness": "see step 3/4? and a 1:23/foo timestamp and http 404 at 12:30 and a//b?c",
+      "shell": "see step 3/4? and a 1:23/foo timestamp and http 404 at 12:30 and a//b?c"
+    },
+    {
+      "name": "a C++ scope in an error message is untouched",
+      "input": "TypeError: Foo::bar is not a function",
+      "unchanged": true,
+      "harness": "TypeError: Foo::bar is not a function",
+      "shell": "TypeError: Foo::bar is not a function"
+    },
+    {
+      "name": "a plain URL with no query is untouched",
+      "input": "\"url\":\"http://127.0.0.1:3000/health\"",
+      "unchanged": true,
+      "harness": "\"url\":\"http://127.0.0.1:3000/health\"",
+      "shell": "\"url\":\"http://127.0.0.1:3000/health\""
+    },
+    {
+      "name": "an escaped quote after a clean URL is untouched",
+      "input": "{\"u\":\"https:\\/\\/h\\/p\"}",
+      "json": true,
+      "unchanged": true,
+      "harness": "{\"u\":\"https:\\/\\/h\\/p\"}",
+      "shell": "{\"u\":\"https:\\/\\/h\\/p\"}"
+    }
+  ]
+}

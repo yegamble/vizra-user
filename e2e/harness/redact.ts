@@ -47,6 +47,31 @@ export function redactUrl(raw: string): string {
   return hadFragment ? `${redacted}#<redacted>` : redacted;
 }
 
+import sharedPrograms from "./redaction-patterns.json";
+
+/**
+ * THE PROGRAMS ARE SHARED, NOT COPIED.
+ *
+ * This module and `scripts/ci/redact-artifacts.sh` used to carry their own
+ * copies of the URL programs, and AGENTS.md said they were "the same four
+ * programs". An independent verifier showed they were not (PR #8, R2-FINDING C):
+ * a fully slash-escaped `https:\/\/host\/p?sig=…` was redacted here and SURVIVED
+ * the shell redactor — the one that touches uploaded bytes — and the
+ * double-escaped form Playwright writes when a spec prints a slash-escaped URL
+ * survived both, into `results.json` and `trace.zip::test.trace`, after the
+ * redactor reported OK.
+ *
+ * So both now read `./redaction-patterns.json`, and
+ * `./redaction-corpus.test.ts` runs BOTH over one corpus and checks every output
+ * byte for byte. Each pattern has exactly one capture group — the part that is
+ * kept — and what it matches after that (the query and/or fragment) is replaced.
+ * Here the replacement says how many parameters were dropped; the shell writes
+ * `?<redacted>`. That is the only difference, and the corpus pins both.
+ */
+const PROGRAMS: readonly RegExp[] = sharedPrograms.programs.map(
+  (program: { pattern: string; flags: string }) => new RegExp(program.pattern, program.flags),
+);
+
 /**
  * Redact every URL-looking substring inside a free-text message.
  *
@@ -57,63 +82,11 @@ export function redactUrl(raw: string): string {
  */
 export function redactUrlsInText(text: string): string {
   if (typeof text !== "string" || text === "") return text;
-  // Stop at whitespace and at the quote/bracket characters that commonly
-  // terminate a URL inside a sentence.
-  // Case-INSENSITIVE, and tolerant of JSON-escaped slashes. `HTTPS://h/p?q`
-  // carries a scheme and was not matched; `{"u":"https:\/\/h\/p?sig=..."}` is
-  // how a JSON document spells the same URL, and the escape made it fall out of
-  // every program. Both were named as covered by AGENTS.md and were not.
-  const absolute = text.replace(
-    /\b(?:https?|wss?|ftp):(?:\\?\/){2}[^\s'"<>()[\]]+/gi,
-    (match) => redactUrl(match),
-  );
-
-  // AND THE SCHEME-LESS FORM, which is how Playwright writes a step subtitle.
-  //
-  // An independent verifier reduced the gap to three lines against the artifact
-  // redactor (PR #3 re-verification, FINDING 13):
-  //
-  //   "url":"http://host/m.jpg?X-Amz-Sig=SENTINEL&e=60"     -> ?<redacted>   OK
-  //   "path":"/m.jpg?X-Amz-Sig=SENTINEL&e=60"               -> ?<redacted>   OK
-  //   "subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINEL&e=60"  -> UNCHANGED     LEAK
-  //
-  // Playwright drops the scheme when it records a `test.trace` step subtitle, so
-  // ANY `page.goto(signedUrl)` produces one. The absolute program above requires
-  // `scheme://`; this one accepts an authority (`host` or `host:port`) directly
-  // in front of a path, and a path that starts at `/`.
-  //
-  // The authority is either DOTTED (a hostname or IPv4 literal, port optional)
-  // or any label carrying an explicit `:port` — the second alternative is what
-  // makes the verifier's own reduction line redact, since `host:3219` has no
-  // dot — and a path starting at `/` must follow immediately. Prose such as
-  // "see step 3/4?" has no authority and is untouched. The price is deliberate
-  // OVER-redaction of a `1:23/foo?x=y`-shaped string, which costs a little
-  // diagnostic text and leaks nothing. `scripts/ci/redact-artifacts.sh` carries
-  // the same shape for bytes the driver wrote before any harness code saw them.
-  const authorityRelative = absolute.replace(
-    /(^|[\s'"(<[=,])((?:[A-Za-z0-9-]+\.)+[A-Za-z0-9-]+(?::\d{1,5})?|\[[0-9A-Fa-f:.]+\](?::\d{1,5})?|[A-Za-z0-9-]+:\d{1,5}|localhost)(\/[^\s'"<>()[\]?#]*[?#][^\s'"<>()[\]]*)/g,
-    (_match, boundary: string, authority: string, rest: string) => `${boundary}${authority}${redactUrl(rest)}`,
-  );
-
-  // AND THE PROTOCOL-RELATIVE FORM `//host[:port]/path?query`, which STARTS AT
-  // `/` and so was named as covered by AGENTS.md while matching none of the
-  // three programs: the authority program needs a path directly after the host,
-  // and the path-relative program's character class excludes `:`.
-  const protocolRelative = authorityRelative.replace(
-    /(^|[\s'"(<[=,])(\/\/(?:[A-Za-z0-9-]+\.)*[A-Za-z0-9-]+(?::\d{1,5})?|\/\/\[[0-9A-Fa-f:.]+\](?::\d{1,5})?)(\/[^\s'"<>()[\]?#]*[?#][^\s'"<>()[\]]*)/g,
-    (_match, boundary, authority, rest) => `${boundary}${authority}${redactUrl(rest)}`,
-  );
-
-  // AND THE PATH-RELATIVE FORM. `scripts/ci/redact-artifacts.sh` has carried a
-  // relative program since D9 caught it — a Next application emits relative URLs
-  // everywhere, and the trace recorded one as a page call's ARGUMENT with no
-  // scheme and no host. This module did not, so the two redactors covered
-  // different sets and only one of them was written down. They now carry the
-  // same three programs: absolute, authority-relative, path-relative.
-  return protocolRelative.replace(
-    /(^|[\s'"(<[=,])(\/[A-Za-z0-9._~%/+-]*[?#][^\s'"<>()[\]]*)/g,
-    (_match, boundary: string, rest: string) => `${boundary}${redactUrl(rest)}`,
-  );
+  let out = text;
+  for (const program of PROGRAMS) {
+    out = out.replace(program, (match: string, keep: string) => `${keep}${redactUrl(match.slice(keep.length))}`);
+  }
+  return out;
 }
 
 /**
@@ -153,7 +126,6 @@ export function sanitiseExternalText(text: string): string {
     // a line, which is what makes a workflow command a workflow command.
     .replace(/\r\n|\r|\n/g, "\u23CE")
     // Other C0 controls (a bare ESC can rewrite a terminal transcript).
-    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "\uFFFD");
 
   // A leading `::` is the workflow-command marker. Break it rather than drop
