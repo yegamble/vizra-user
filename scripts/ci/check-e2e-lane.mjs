@@ -682,6 +682,7 @@ for (const [jobId, jobNode] of Object.entries(isObject(workflow?.jobs) ? workflo
 const HARNESS_FILES = {
   entry: path.join(repoRoot, "e2e", "harness", "test.ts"),
   worker: path.join(repoRoot, "e2e", "harness", "worker-guard.ts"),
+  reporter: path.join(repoRoot, "e2e", "harness", "stamp-reporter.ts"),
 };
 /** Each entry: [file key, exported symbol that must be CALLED, message]. */
 const HARNESS_CALLS = [
@@ -730,6 +731,27 @@ const HARNESS_CALLS = [
       "PLAYWRIGHT_NO_COPY_PROMPT in the Playwright WORKER — the only place that sees the value " +
       "the recorder reads. The static checks read what the workflow DECLARES; a committed " +
       "`.npmrc` blanked the variable with every declaration still reading \"1\".",
+  ],
+  [
+    "entry",
+    "assertEnvironmentUnchanged",
+    "e2e/harness/test.ts no longer CALLS `assertEnvironmentUnchanged`, so a change to CI or " +
+      "PLAYWRIGHT_NO_COPY_PROMPT made in `beforeAll`, or late in the previous test, is not restored " +
+      "before the next test opens a page (R3-FINDING J).",
+  ],
+  [
+    "entry",
+    "takeEnvironmentChange",
+    "e2e/harness/test.ts no longer CALLS `takeEnvironmentChange`, so a change to the page-snapshot " +
+      "environment made while the guard flushed a page, or after the last test, is neither restored " +
+      "nor named (R3-FINDING J).",
+  ],
+  [
+    "reporter",
+    "takeEnvironmentChange",
+    "e2e/harness/stamp-reporter.ts no longer CALLS `takeEnvironmentChange`, so a spec whose MODULE " +
+      "SCOPE changes the page-snapshot environment during collection — in the main process, before " +
+      "any worker exists — hands that environment to every worker it forks (R3-FINDING J).",
   ],
   [
     "entry",

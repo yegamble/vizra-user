@@ -662,6 +662,12 @@ describe("specs use the guarded test", () => {
         Array.isArray(severity) ? severity[0] : severity,
         `${path.relative(repoRoot, file)} must resolve the guarded-import rule to severity 2`,
       ).toBe(2);
+      // R3-FINDING J: a spec may READ `process.env.NAME` and nothing else.
+      const envWrite = config.rules?.["vizra/no-process-env-write"];
+      expect(
+        Array.isArray(envWrite) ? envWrite[0] : envWrite,
+        `${path.relative(repoRoot, file)} must resolve vizra/no-process-env-write to severity 2`,
+      ).toBe(2);
       expect(
         config.linterOptions?.noInlineConfig,
         `${path.relative(repoRoot, file)} must resolve linterOptions.noInlineConfig === true`,
@@ -682,6 +688,8 @@ describe("specs use the guarded test", () => {
     };
     const severity = config.rules?.["vizra/no-unguarded-playwright-import"];
     expect(Array.isArray(severity) ? severity[0] : severity).toBe(2);
+    const envWrite = config.rules?.["vizra/no-process-env-write"];
+    expect(Array.isArray(envWrite) ? envWrite[0] : envWrite).toBe(2);
     expect(config.linterOptions?.noInlineConfig).toBe(true);
   });
 

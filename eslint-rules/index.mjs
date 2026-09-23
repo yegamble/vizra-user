@@ -4,6 +4,7 @@
  */
 
 import noIdentityHeadersInCachedFetch from "./no-identity-headers-in-cached-fetch.mjs";
+import noProcessEnvWrite from "./no-process-env-write.mjs";
 import noRawFetch from "./no-raw-fetch.mjs";
 import noUnguardedPlaywrightImport from "./no-unguarded-playwright-import.mjs";
 
@@ -12,6 +13,7 @@ const plugin = {
   meta: { name: "vizra", version: "1.0.0" },
   rules: {
     "no-identity-headers-in-cached-fetch": noIdentityHeadersInCachedFetch,
+    "no-process-env-write": noProcessEnvWrite,
     "no-raw-fetch": noRawFetch,
     "no-unguarded-playwright-import": noUnguardedPlaywrightImport,
   },

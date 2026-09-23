@@ -737,7 +737,8 @@ harness_tree() {
   local root=$1
   mkdir -p "$root/scripts/ci" "$root/e2e/harness"
   cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" "$root/scripts/ci/"
-  cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" "$root/e2e/harness/"
+  cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" \
+    "$here/../../e2e/harness/stamp-reporter.ts" "$root/e2e/harness/"
   cp "$here/../../playwright.config.ts" "$here/../../playwright.demos.config.ts" \
     "$here/../../package.json" "$root/"
   ln -s "$here/../../node_modules" "$root/node_modules"
@@ -1575,6 +1576,21 @@ lane_expect 1 'could not parse' 's|^    timeout-minutes: 30$|    timeout-minutes
 title="assertPageSnapshotSuppressed removed from the harness fails by name"
 harness_expect 1 'no longer CALLS .assertPageSnapshotSuppressed' e2e/harness/test.ts \
   's/assertPageSnapshotSuppressed\("at worker start, before any hook or test"\);//; s/assertPageSnapshotSuppressed\("after the test body, before its context closes"\);//'
+
+# R3-FINDING J: the capture-and-compare calls. String-level early warning like
+# the one above; the control is the runtime check, demonstrated in D17.
+title="R3-J: assertEnvironmentUnchanged removed from the harness entry fails by name"
+harness_expect 1 'no longer CALLS .assertEnvironmentUnchanged' e2e/harness/test.ts \
+  's/assertEnvironmentUnchanged\("before this test, since the previous check"\);/void 0;/'
+
+title="R3-J: takeEnvironmentChange removed from the harness entry fails by name"
+harness_expect 1 'no longer CALLS .takeEnvironmentChange' e2e/harness/test.ts \
+  's/takeEnvironmentChange\(/NOT_CALLED(/g'
+
+title="R3-J: the main-process check removed from the stamp reporter fails by name"
+harness_expect 1 'stamp-reporter.ts no longer CALLS .takeEnvironmentChange' e2e/harness/stamp-reporter.ts \
+  's/const change = takeEnvironmentChange\(/const change = NOT_CALLED(/'
+
 
 # R2-FINDING D: the ledger must be COMPLETE, not merely consistent.
 title="an EMPTIED digest ledger fails by name"
