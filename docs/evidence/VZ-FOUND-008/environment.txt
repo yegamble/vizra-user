@@ -1,5 +1,5 @@
-branch:     fix/lane-a-pixels-off
-head sha:   96dd3ff553e1e230c62ad0e48d2d0b6a1261a5ed
+branch:     close/pr10-work
+head sha:   b68294b027965b6df57e3705d3b15631bafd4873
 node:       v22.14.0
 playwright: Version 1.63.0
 project:    desktop-chromium-1440

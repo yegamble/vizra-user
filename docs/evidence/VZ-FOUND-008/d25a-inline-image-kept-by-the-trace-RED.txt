@@ -1,0 +1,7 @@
+$ datauri_count <repo>/test-results
+
+  __datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip::resources/13db2c9ab5bd211f706a0f31d5dce38b632be359.html
+  __datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip::1-trace.trace
+data-URI images: files=0 archive-members=2
+
+[exit 1]

@@ -1,5 +1,5 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r2:demonstrate
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr10close-user:demonstrate
 
-OK: 'vzb-pr10r2:demonstrate' contains no browser-harness path and no fixture token.
+OK: 'pr10close-user:demonstrate' contains no browser-harness path and no fixture token.
 
 [exit 0]

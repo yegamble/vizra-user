@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3391 npm run e2e
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3941 npm run e2e
 
 
 > vizra-user@0.0.0 e2e

@@ -1,0 +1,13 @@
+$ npx vitest run e2e/harness/upload-gate-pixels.test.ts e2e/harness/redaction-corpus.test.ts
+
+
+ RUN  v5.0.1 <repo>
+
+
+ Test Files  2 passed (2)
+      Tests  162 passed (162)
+   Start at <time>
+   Duration <time>
+
+
+[exit 0]

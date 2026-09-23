@@ -1,0 +1,12 @@
+$ gate_then_upload_datauris
+
+::error::redact-artifacts: IMAGE OR VIDEO bytes are present in test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip, encoded as a data: URI - an image a page inlined, which the trace keeps in its DOM snapshot and response bodies. Nothing will be uploaded.
+  <test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip>/resources/13db2c9ab5bd211f706a0f31d5dce38b632be359.html (a data:image/ or data:video/ URI)
+  <test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip>/1-trace.trace (a data:image/ or data:video/ URI)
+  See AGENTS.md § Artifact privacy, "Lane A records NO PIXELS".
+gate exit: 4
+uploaded: nothing (the upload step is gated on this step's success)
+pixel files: png=0 webm=0 screencast-frames=0
+data-URI images: files=0 archive-members=0
+
+[exit 0]

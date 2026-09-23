@@ -1,4 +1,4 @@
-$ env E2E_BASE_URL=http://127.0.0.1:3391 node scripts/ci/harness-canary.mjs
+$ env E2E_BASE_URL=http://127.0.0.1:3941 node scripts/ci/harness-canary.mjs
 
 
 --- e2e/demos/console-error.demo.ts (a console.error on the page) ---
@@ -23,8 +23,8 @@ Running 1 test using 1 worker
     AGENTS.md: console and network errors are failures, not noise.
 
     1 DURING THE TEST:
-      [response] http 404: GET http://127.0.0.1:3391/__vizra_e2e_fixture__/missing-on-purpose.png
-          at: http://127.0.0.1:3391/
+      [response] http 404: GET http://127.0.0.1:3941/__vizra_e2e_fixture__/missing-on-purpose.png
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
@@ -68,7 +68,7 @@ Running 1 test using 1 worker
 
     1 DURING THE TEST:
       [pageerror] pageerror: __vizra_e2e_fixture__ uncaught exception demonstration (D3)
-          at: http://127.0.0.1:3391/
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
@@ -111,8 +111,8 @@ Running 1 test using 1 worker
     AGENTS.md: console and network errors are failures, not noise.
 
     1 DURING THE TEST:
-      [requestfailed] requestfailed: GET http://127.0.0.1:3391/__vizra_e2e_fixture__/aborted-on-purpose.bin — net::ERR_CONNECTION_REFUSED
-          at: http://127.0.0.1:3391/
+      [requestfailed] requestfailed: GET http://127.0.0.1:3941/__vizra_e2e_fixture__/aborted-on-purpose.bin — net::ERR_CONNECTION_REFUSED
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.

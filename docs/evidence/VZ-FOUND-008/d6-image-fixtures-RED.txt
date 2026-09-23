@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r2:demonstrate-mutant
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr10close-user:demonstrate-with-fixtures
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/

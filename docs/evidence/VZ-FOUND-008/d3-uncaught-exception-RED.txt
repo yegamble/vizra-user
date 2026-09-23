@@ -14,7 +14,7 @@ Running 2 tests using 2 workers
 
     1 DURING THE TEST:
       [pageerror] pageerror: __vizra_e2e_fixture__ uncaught exception demonstration (D3)
-          at: http://127.0.0.1:3391/
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.

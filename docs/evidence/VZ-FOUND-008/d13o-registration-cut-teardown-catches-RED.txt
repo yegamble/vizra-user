@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3941 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
@@ -31,7 +31,7 @@ Running 1 test using 1 worker
     Error: 1 context(s) the harness was never handed are open on this browser at the end of the test.
     AGENTS.md: a test that passes must have run under the guard, over every context it created.
 
-      an unguarded context, 1 page(s): http://127.0.0.1:3391/
+      an unguarded context, 1 page(s): http://127.0.0.1:3941/
 
     See e2e/harness/creation-guard.ts.
 

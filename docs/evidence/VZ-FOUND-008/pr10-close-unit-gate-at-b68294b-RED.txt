@@ -1,0 +1,209 @@
+$ # scripts/ci/redact-artifacts.sh replaced by its b68294b bytes (sha256 97627fe1...), then:
+$ npx vitest run e2e/harness/upload-gate-pixels.test.ts
+
+
+ RUN  v5.0.1 <repo>
+
+ ❯ e2e/harness/upload-gate-pixels.test.ts (16 tests | 9 failed) <time>
+   ❯ the upload gate refuses an image or video encoded as a data: URI (exit 4) (4)
+     × in a trace's DOM snapshot and in the HTML response the trace stores <time>
+     × in a plain file: error-context.md, results.json stdout, an SVG with an embedded raster <time>
+     × the HTML reporter's own viewer is the ONLY exemption, and only under playwright-report/ <time>
+     × whatever the case of the scheme and type, slash-escaped as JSON may write it, and for video <time>
+   ❯ the upload gate refuses what it cannot inspect (exit 5) (5)
+     × a symbolic link to a file outside the tree (the pinned upload action follows links) <time>
+     × a symbolic link to a directory, and a named directory that is itself a link <time>
+     × a symbolic link stored inside a trace archive (repacking would store its target's bytes) <time>
+     × an archive inside an archive, whatever its name or kind, is refused rather than opened <time>
+     × an archive the gate does not open: a zip under another name, gzip, tar <time>
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses an image or video encoded as a data: URI (exit 4) > in a trace's DOM snapshot and in the HTML response the trace stores
+AssertionError: expected +0 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 0
+
+ ❯ expectDataUriRefused e2e/harness/upload-gate-pixels.test.ts:171:40
+    169| function expectDataUriRefused(dir: string, pathFragment: string) {
+    170|   const result = gate(dir);
+    171|   expect(result.status, result.stderr).toBe(4);
+       |                                        ^
+    172|   expect(result.stderr).toContain("encoded as a data: URI");
+    173|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:192:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses an image or video encoded as a data: URI (exit 4) > in a plain file: error-context.md, results.json stdout, an SVG with an embedded raster
+AssertionError: expected +0 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 0
+
+ ❯ expectDataUriRefused e2e/harness/upload-gate-pixels.test.ts:171:40
+    169| function expectDataUriRefused(dir: string, pathFragment: string) {
+    170|   const result = gate(dir);
+    171|   expect(result.status, result.stderr).toBe(4);
+       |                                        ^
+    172|   expect(result.stderr).toContain("encoded as a data: URI");
+    173|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:199:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses an image or video encoded as a data: URI (exit 4) > the HTML reporter's own viewer is the ONLY exemption, and only under playwright-report/
+AssertionError: expected +0 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 0
+
+ ❯ expectDataUriRefused e2e/harness/upload-gate-pixels.test.ts:171:40
+    169| function expectDataUriRefused(dir: string, pathFragment: string) {
+    170|   const result = gate(dir);
+    171|   expect(result.status, result.stderr).toBe(4);
+       |                                        ^
+    172|   expect(result.stderr).toContain("encoded as a data: URI");
+    173|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:220:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses an image or video encoded as a data: URI (exit 4) > whatever the case of the scheme and type, slash-escaped as JSON may write it, and for video
+AssertionError: expected +0 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 0
+
+ ❯ expectDataUriRefused e2e/harness/upload-gate-pixels.test.ts:171:40
+    169| function expectDataUriRefused(dir: string, pathFragment: string) {
+    170|   const result = gate(dir);
+    171|   expect(result.status, result.stderr).toBe(4);
+       |                                        ^
+    172|   expect(result.stderr).toContain("encoded as a data: URI");
+    173|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:228:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses what it cannot inspect (exit 5) > a symbolic link to a file outside the tree (the pinned upload action follows links)
+AssertionError: expected +0 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ expectUninspectable e2e/harness/upload-gate-pixels.test.ts:180:40
+    178| function expectUninspectable(dir: string, pathFragment: string) {
+    179|   const result = gate(dir);
+    180|   expect(result.status, result.stderr).toBe(5);
+       |                                        ^
+    181|   expect(result.stderr).toContain("the gate CANNOT INSPECT");
+    182|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:240:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses what it cannot inspect (exit 5) > a symbolic link to a directory, and a named directory that is itself a link
+AssertionError: expected +0 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ expectUninspectable e2e/harness/upload-gate-pixels.test.ts:180:40
+    178| function expectUninspectable(dir: string, pathFragment: string) {
+    179|   const result = gate(dir);
+    180|   expect(result.status, result.stderr).toBe(5);
+       |                                        ^
+    181|   expect(result.stderr).toContain("the gate CANNOT INSPECT");
+    182|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:247:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses what it cannot inspect (exit 5) > a symbolic link stored inside a trace archive (repacking would store its target's bytes)
+AssertionError: expected +0 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ expectUninspectable e2e/harness/upload-gate-pixels.test.ts:180:40
+    178| function expectUninspectable(dir: string, pathFragment: string) {
+    179|   const result = gate(dir);
+    180|   expect(result.status, result.stderr).toBe(5);
+       |                                        ^
+    181|   expect(result.stderr).toContain("the gate CANNOT INSPECT");
+    182|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:258:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses what it cannot inspect (exit 5) > an archive inside an archive, whatever its name or kind, is refused rather than opened
+AssertionError: expected +0 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ expectUninspectable e2e/harness/upload-gate-pixels.test.ts:180:40
+    178| function expectUninspectable(dir: string, pathFragment: string) {
+    179|   const result = gate(dir);
+    180|   expect(result.status, result.stderr).toBe(5);
+       |                                        ^
+    181|   expect(result.stderr).toContain("the gate CANNOT INSPECT");
+    182|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:264:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  e2e/harness/upload-gate-pixels.test.ts > the upload gate refuses what it cannot inspect (exit 5) > an archive the gate does not open: a zip under another name, gzip, tar
+AssertionError: expected +0 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ expectUninspectable e2e/harness/upload-gate-pixels.test.ts:180:40
+    178| function expectUninspectable(dir: string, pathFragment: string) {
+    179|   const result = gate(dir);
+    180|   expect(result.status, result.stderr).toBe(5);
+       |                                        ^
+    181|   expect(result.stderr).toContain("the gate CANNOT INSPECT");
+    182|   expect(result.stderr).toContain(pathFragment);
+ ❯ e2e/harness/upload-gate-pixels.test.ts:277:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 7 passed (16)
+   Start at <time>
+   Duration <time>
+
+
+[exit 1]

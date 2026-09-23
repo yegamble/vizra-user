@@ -209,9 +209,14 @@ refuse_page_snapshots() {
 # upload fires, so a red signal alone would have PUBLISHED those pixels.
 #
 # So, like the page-snapshot gate above, this does not ask HOW the pixels were
-# produced. If any file under the named directories, or any member of any archive
-# in them, is an image or a video, this script exits 4, and the upload step,
-# gated on this step having SUCCEEDED, publishes nothing. It identifies them:
+# produced. If a regular file under the named directories, or a member of a
+# `.zip` among them, is an image or a video IN ONE OF THE SHAPES BELOW, this
+# script exits 4, and the upload step, gated on this step having SUCCEEDED,
+# publishes nothing. That covers what Playwright's recorders and capture APIs
+# write. It is not a detector of every image: BMP, TIFF, ICO or JPEG XL bytes
+# under another name, and a signature not at byte 0, are not recognised. Images
+# inlined as `data:` URIs, links and archives this script does not open are
+# refused by the two gates after this one. It identifies them:
 #
 #   - by NAME: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.avif`, `.bmp`,
 #     `.webm`, `.mp4`, `.mov` (case-insensitive), and any archive member whose
@@ -277,6 +282,144 @@ refuse_pixels() {
   exit 4
 }
 
+# THE UPLOAD GATE FOR IMAGES ENCODED AS TEXT (PR #10 close, FINDING 9).
+#
+# The pixel gate above reads NAMES and FIRST BYTES. An image a page inlines -
+# `<img src="data:image/png;base64,...">`, a blur placeholder, an SVG
+# `<image href="data:...">` - is neither: an independent verifier served one from
+# a failing spec and recovered the whole PNG, as base64, from
+# `trace.zip::1-trace.trace` (the DOM snapshot) and `resources/<sha1>.html` (the
+# response body) after this script had printed OK. So any file, and any member of
+# an opened archive, that contains `data:image/` or `data:video/` - any case, and
+# with the slash written `\/` as JSON may write it - is refused, exit 4.
+#
+# ONE EXCEPTION, BY EXACT PATH, AND WHY. Playwright's HTML reporter writes its own
+# viewer into `playwright-report/`: `index.html` inlines `report.js`, and
+# `trace/assets/codeMirrorModule-*.js` is the trace viewer, and both carry
+# `data:image/` literals in Playwright's OWN code (measured on a red run of
+# 1.63.0: those two files and nothing else). Neither is uploaded - the upload is
+# an allowlist of `test-results/`, `playwright-report/results.json` and
+# `playwright-browsers.txt`, which `check-e2e-lane.mjs` enforces - so, under a
+# directory named `playwright-report`, this scan skips `index.html` at its root
+# and its `trace/` subtree, and nothing else. Every other gate still reads them.
+#
+# It does NOT decode anything: an image in base64 with no `data:` prefix, a hex
+# dump, or any other encoding is not detected. AGENTS.md § Artifact privacy
+# states that scope.
+DATA_URI_RE='data:(image|video)\\*/'
+refuse_data_uris() {
+  local root=$1 label=$2 file relative rc hits="" report=""
+  [ "$(basename "$root")" = "playwright-report" ] && report=1
+  while IFS= read -r -d '' file; do
+    relative=${file#"$root"/}
+    if [ -n "$report" ]; then
+      case "$relative" in index.html | trace/*) continue ;; esac
+    fi
+    rc=0
+    LC_ALL=C grep -qaiE -- "$DATA_URI_RE" "$file" || rc=$?
+    case "$rc" in
+      0) hits="${hits}  <${label}>/${relative} (a data:image/ or data:video/ URI)
+" ;;
+      1) ;;
+      *)
+        echo "::error::redact-artifacts: could not read <${label}>/${relative} to look for an inlined image;" \
+          "a file this gate cannot read is not a clean file. Nothing will be uploaded." >&2
+        exit 2
+        ;;
+    esac
+  done < <(find "$root" -type f -print0)
+  [ -z "$hits" ] && return 0
+  echo "::error::redact-artifacts: IMAGE OR VIDEO bytes are present in $label, encoded as a data: URI -" \
+    "an image a page inlined, which the trace keeps in its DOM snapshot and response bodies." \
+    "Nothing will be uploaded." >&2
+  printf '%s' "$hits" >&2
+  echo "  See AGENTS.md § Artifact privacy, \"Lane A records NO PIXELS\"." >&2
+  exit 4
+}
+
+# THE UPLOAD GATE FOR WHAT THIS SCRIPT CANNOT INSPECT (PR #10 close, FINDING 9).
+#
+# Every check above reads regular files, and opens `.zip` archives one level
+# deep. Three shapes went around that, each measured by an independent verifier:
+#
+#   - a SYMBOLIC LINK. `find -type f` skips it, and the pinned
+#     `actions/upload-artifact` (v4.6.2) follows links by default, so a link to a
+#     PNG outside the tree uploaded the PNG's bytes. A named directory that is
+#     itself a link was skipped whole. And inside an opened archive a link is
+#     worse: `zip -r` follows it when this script repacks, so the link's TARGET
+#     would be stored in the re-packed trace. So anything under the named
+#     directories, or inside an opened archive, that is neither a regular file
+#     nor a directory - a link, a FIFO, a socket, a device - is refused;
+#   - an ARCHIVE INSIDE AN ARCHIVE (a zip in a trace, a gzip or tar stream stored
+#     as a resource) - refused rather than recursed into, by name or by
+#     signature, whatever it is called;
+#   - an archive this script does not open: at the top level only files NAMED
+#     `*.zip` are opened, so a zip called `a.dat` or `trace.zip.bak`, a `.gz`, or
+#     a tar was never looked inside. Any archive not named `*.zip` is refused.
+#
+# Exit 5, naming the path, never the content. Archives are recognised by name
+# (`.zip .jar .gz .tgz .tar .bz2 .tbz .tbz2 .xz .txz .zst .7z .rar`, any case) and
+# by signature: zip, gzip, bzip2, xz, zstd, 7z, rar at byte 0, and `ustar` at
+# byte 257. An old-style (pre-POSIX) tar with no name and no `ustar` magic is not
+# recognised.
+ARCHIVE_NAME_RE='\.(zip|jar|gz|tgz|tar|bz2|tbz2?|xz|txz|zst|7z|rar)$'
+archive_magic() {
+  # archive_magic FILE -> exit 0 when the file carries an archive or compressed-stream signature
+  local head tar
+  head=$(head -c 8 "$1" 2> /dev/null | od -An -tx1 | tr -d ' \n')
+  case "$head" in
+    504b0304* | 504b0506* | 504b0708*) return 0 ;; # zip
+    1f8b*) return 0 ;;                              # gzip
+    425a68*) return 0 ;;                            # bzip2
+    fd377a585a00*) return 0 ;;                      # xz
+    28b52ffd*) return 0 ;;                          # zstd
+    377abcaf271c*) return 0 ;;                      # 7z
+    526172211a07*) return 0 ;;                      # rar
+  esac
+  tar=$(dd if="$1" bs=1 skip=257 count=5 2> /dev/null | od -An -tx1 | tr -d ' \n')
+  [ "$tar" = "7573746172" ] # "ustar"
+}
+# refuse_uninspectable ROOT LABEL top|member
+#   top:    ROOT is a directory named to this script; `*.zip` files are opened later
+#   member: ROOT is an opened archive; any archive inside it is refused
+refuse_uninspectable() {
+  local root=$1 label=$2 mode=$3 file relative hits=""
+  while IFS= read -r -d '' file; do
+    relative=${file#"$root"/}
+    [ "$file" = "$root" ] && relative="."
+    hits="${hits}  <${label}>/${relative} (a symbolic link or other non-regular file)
+"
+  done < <(find "$root" ! -type f ! -type d -print0)
+  while IFS= read -r -d '' file; do
+    relative=${file#"$root"/}
+    if [ "$mode" = "top" ]; then
+      case "$relative" in *.zip) continue ;; esac
+    fi
+    if printf '%s' "$relative" | grep -Eiq -- "$ARCHIVE_NAME_RE" || archive_magic "$file"; then
+      if [ "$mode" = "top" ]; then
+        hits="${hits}  <${label}>/${relative} (an archive not named .zip, which this gate does not open)
+"
+      else
+        hits="${hits}  <${label}>/${relative} (an archive inside an archive, which this gate does not open)
+"
+      fi
+    fi
+  done < <(find "$root" -type f -print0)
+  [ -z "$hits" ] && return 0
+  echo "::error::redact-artifacts: content the gate CANNOT INSPECT is present in $label - a symbolic" \
+    "link (the upload action follows it), or an archive this script does not open. Nothing will be" \
+    "uploaded." >&2
+  printf '%s' "$hits" >&2
+  echo "  See AGENTS.md § Artifact privacy, \"Lane A records NO PIXELS\"." >&2
+  exit 5
+}
+
+# Before anything is unpacked or rewritten: a link or an unopened archive
+# anywhere in what would be uploaded refuses the whole set.
+for dir in "${dirs[@]}"; do
+  refuse_uninspectable "$dir" "$dir" top
+done
+
 total_files=0
 total_zips=0
 
@@ -293,9 +436,11 @@ for dir in "${dirs[@]}"; do
       rm -f "$absolute"
       continue
     fi
+    refuse_uninspectable "$work" "$archive" member
     redact_tree "$work" > /dev/null
     refuse_page_snapshots "$work" "$archive"
     refuse_pixels "$work" "$archive"
+    refuse_data_uris "$work" "$archive"
     rm -f "$absolute"
     # Repack from inside the tree so member paths stay relative, as Playwright
     # expects. `-X` drops extra file attributes; `-r` recurses; `-q` is quiet.
@@ -314,6 +459,7 @@ for dir in "${dirs[@]}"; do
   total_files=$((total_files + n))
   refuse_page_snapshots "$dir" "$dir"
   refuse_pixels "$dir" "$dir"
+  refuse_data_uris "$dir" "$dir"
 done
 
-echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, and no image or video is present, across: ${dirs[*]}"
+echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, and no image or video is present in the shapes this gate reads (named or signed files and first-level .zip members, data:image/ and data:video/ URIs), and no link or unopened archive is present, across: ${dirs[*]}"

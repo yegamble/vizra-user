@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3941 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 2 tests using 1 worker
@@ -13,16 +13,16 @@ Running 2 tests using 1 worker
     AGENTS.md: console and network errors are failures, not noise.
 
     3 BEFORE THE TEST BODY — a hook (beforeAll/beforeEach) or a page shared with an earlier test produced these, and the page was already in this state when the test started:
-      [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3391/VERIFIER_F6_MISSING.png:0:0)
-          at: http://127.0.0.1:3391/
+      [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3941/VERIFIER_F6_MISSING.png:0:0)
+          at: http://127.0.0.1:3941/
       [pageerror] pageerror: VERIFIER_F6_UNCAUGHT
-          at: http://127.0.0.1:3391/
-      [response] http 404: GET http://127.0.0.1:3391/VERIFIER_F6_MISSING.png
-          at: http://127.0.0.1:3391/
+          at: http://127.0.0.1:3941/
+      [response] http 404: GET http://127.0.0.1:3941/VERIFIER_F6_MISSING.png
+          at: http://127.0.0.1:3941/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3391/VERIFIER_F6_MISSING.png:0:0)
+        at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3941/VERIFIER_F6_MISSING.png:0:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:385:17)
 
     Error Context: test-results/__guard-a-journey-sharing-one-page-step-one-desktop-chromium-1440/error-context.md

@@ -1,4 +1,4 @@
-$ env -u PLAYWRIGHT_NO_COPY_PROMPT CI=1 E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test
+$ env -u PLAYWRIGHT_NO_COPY_PROMPT CI=1 E2E_BASE_URL=http://127.0.0.1:3941 npx playwright test
 
 
 Running 18 tests using 2 workers

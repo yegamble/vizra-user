@@ -26,9 +26,10 @@
  * red lane. NO PIXELS are recorded: `screenshot` and `video` are "off", and the
  * trace records no screencast (`screenshots: false`). The repositories are
  * PUBLIC, and a screenshot of a page is pixels no redactor or scanner can read
- * (security seat, PR B plan review, Q3 and F14). Two controls. The one that
- * holds regardless is the UPLOAD GATE: `scripts/ci/redact-artifacts.sh` refuses
- * the upload if any image or video is present, whatever produced it. The EARLY
+ * (security seat, PR B plan review, Q3 and F14). Two controls. The one that does
+ * not depend on how pixels were produced is the UPLOAD GATE:
+ * `scripts/ci/redact-artifacts.sh` refuses the upload for an image or video in
+ * the shapes it knows (AGENTS.md, "What the gate refuses, exactly"). The EARLY
  * one is at runtime: `e2e/harness/recorders.ts`, called by both harness fixtures,
  * refuses a RESOLVED value that is not exactly one of these three as a plain value
  * (a second `defineConfig` argument, a later assignment, a mutated device
@@ -130,7 +131,7 @@ export default defineConfig({
     // `screenshot` and `video` "off" stop the per-test PNG and WebM. Measured on
     // a failing demo before this change: 2 PNGs, 2 WebMs, and 3 + 2 screencast
     // frames inside the two traces; after it, none of the three. The upload gate
-    // refuses any image or video; the harness refuses any other RESOLVED value
+    // refuses the image and video shapes it knows; the harness refuses any other RESOLVED value
     // at runtime; the lane guard warns early on another literal here.
     trace: { mode: "retain-on-failure", sources: false, screenshots: false },
     screenshot: "off",

@@ -1,6 +1,11 @@
-$ bash -c ls test-results/*/error-context.md > /dev/null && echo "error-context.md written: yes" && bash scripts/ci/redact-artifacts.sh test-results playwright-report
+$ gate_then_upload_datauris
 
-error-context.md written: yes
 OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 23 file(s) and 2 archive(s), and no page snapshot is present, and no image or video is present in the shapes this gate reads (named or signed files and first-level .zip members, data:image/ and data:video/ URIs), and no link or unopened archive is present, across: test-results playwright-report
+gate exit: 0
+uploaded: yes
+pixel files: png=0 webm=0 screencast-frames=0
+  test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip::resources/13db2c9ab5bd211f706a0f31d5dce38b632be359.html
+  test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip::1-trace.trace
+data-URI images: files=0 archive-members=2
 
-[exit 0]
+[exit 1]

@@ -1,0 +1,46 @@
+$ run_route_ci e2e/specs/__datauri.spec.ts
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__datauri.spec.ts:7:5 › an inline image, then a failure (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/specs/__datauri.spec.ts:7:5 › an inline image, then a failure ───
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'never present', level: 1 })
+    Expected: visible
+    Timeout: <time>
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('heading', { name: 'never present', level: 1 }) with timeout <time>
+      - waiting for getByRole('heading', { name: 'never present', level: 1 })
+
+
+       9 |     route.fulfill({ contentType: "text/html", body: `<!doctype html><title>inline</title><h1>inline</h1><img alt="" src="${src}">` }));
+      10 |   await page.goto("/__vizra_inline_image");
+    > 11 |   await expect(page.getByRole("heading", { level: 1, name: "never present" })).toBeVisible({ timeout: 1000 });
+         |                                                                                ^
+      12 | });
+      13 |
+        at <repo>/e2e/specs/__datauri.spec.ts:11:80
+
+    Error Context: test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/__datauri-an-inline-image-then-a-failure-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/specs/__datauri.spec.ts:7:5 › an inline image, then a failure ────
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]
