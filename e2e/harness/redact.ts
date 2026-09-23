@@ -68,9 +68,41 @@ import sharedPrograms from "./redaction-patterns.json";
  * Here the replacement says how many parameters were dropped; the shell writes
  * `?<redacted>`. That is the only difference, and the corpus pins both.
  */
-const PROGRAMS: readonly RegExp[] = sharedPrograms.programs.map(
-  (program: { pattern: string; flags: string }) => new RegExp(program.pattern, program.flags),
+/**
+ * `<<NAME>>` in a pattern is the fragment of that name, which may use fragments
+ * declared above it. `redact-artifacts.sh` expands them the same way; an unknown
+ * name throws rather than expanding to nothing.
+ */
+export function expandFragments(pattern: string, fragments: ReadonlyMap<string, string>): string {
+  const expanded = pattern.replace(/<<([A-Za-z0-9_]+)>>/g, (_whole, name: string) => {
+    const fragment = fragments.get(name);
+    if (fragment === undefined) throw new Error(`redaction-patterns.json: unknown fragment <<${name}>>`);
+    return fragment;
+  });
+  // A placeholder the name pattern did not recognise would otherwise survive as
+  // literal regex text and match nothing, silently.
+  if (expanded.includes("<<")) throw new Error(`redaction-patterns.json: unexpanded placeholder in ${pattern}`);
+  return expanded;
+}
+
+const FRAGMENTS: ReadonlyMap<string, string> = sharedPrograms.fragments.reduce(
+  (declared: Map<string, string>, fragment: { name: string; pattern: string }) =>
+    declared.set(fragment.name, expandFragments(fragment.pattern, declared)),
+  new Map<string, string>(),
 );
+
+const PROGRAMS: readonly RegExp[] = sharedPrograms.programs.map(
+  (program: { pattern: string; flags: string }) =>
+    new RegExp(expandFragments(program.pattern, FRAGMENTS), program.flags),
+);
+
+/**
+ * An ENCODED query separator at the start of what a program matched — `\u003f`,
+ * `\x3F`, `%3F` (R3-FINDING I). `redactUrl` splits on a literal `?`, so the
+ * separator is normalised to one first; without this the harness would match the
+ * URL and then hand the query back unchanged.
+ */
+const ENCODED_QUERY_SEPARATOR = new RegExp(`^${FRAGMENTS.get("QSEP_ENCODED") ?? "(?!)"}`);
 
 /**
  * Redact every URL-looking substring inside a free-text message.
@@ -84,7 +116,11 @@ export function redactUrlsInText(text: string): string {
   if (typeof text !== "string" || text === "") return text;
   let out = text;
   for (const program of PROGRAMS) {
-    out = out.replace(program, (match: string, keep: string) => `${keep}${redactUrl(match.slice(keep.length))}`);
+    out = out.replace(program, (match: string, keep: string) => {
+      const rest = match.slice(keep.length);
+      const encoded = ENCODED_QUERY_SEPARATOR.exec(rest);
+      return `${keep}${redactUrl(encoded ? `?${rest.slice(encoded[0].length)}` : rest)}`;
+    });
   }
   return out;
 }

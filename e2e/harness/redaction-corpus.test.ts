@@ -74,6 +74,34 @@ describe("the corpus itself", () => {
       expect(names).toContain(shape);
     }
   });
+
+  it("covers every R3-FINDING I shape, each by name", () => {
+    const names = entries.map((entry) => entry.name).join("\n");
+    for (const shape of [
+      "\\u003f in place of the ?",
+      "\\u002f slashes after the scheme",
+      "%2F slashes after the scheme",
+      "a fully percent-encoded URL standing alone",
+      "\\x2F slashes",
+      "&#47; slashes",
+      "&#x2F; slashes",
+      "&sol; slashes",
+      "a scheme-less URL after a colon",
+      "a relative URL after a colon",
+      "a relative URL after a semicolon",
+    ]) {
+      expect(names).toContain(`R3-I: ${shape}`);
+    }
+  });
+
+  it("the programs stay LINEAR on a long path of entity slashes with no query (no quadratic rescan)", () => {
+    // A `;` that ends `&#47;` or `&sol;` used to be a boundary, so every entity
+    // in a long path started a fresh scan to its end.
+    const text = ` /${"&#47;/".repeat(20_000)} ${"x;&sol;".repeat(20_000)} `;
+    const started = performance.now();
+    expect(redactUrlsInText(text)).toBe(text);
+    expect(performance.now() - started).toBeLessThan(5_000);
+  });
 });
 
 describe.each(entries.map((entry, index) => [entry.name, entry, index] as const))(

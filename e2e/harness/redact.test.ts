@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { redactExternalText, redactUrl, redactUrlsInText, sanitiseExternalText } from "./redact";
+import { expandFragments, redactExternalText, redactUrl, redactUrlsInText, sanitiseExternalText } from "./redact";
 
 describe("redactUrl", () => {
   it("keeps a URL with no query untouched", () => {
@@ -238,5 +238,24 @@ describe("sanitiseExternalText — leading whitespace before :: (FINDING 5)", ()
     expect(sanitiseExternalText("TypeError: Foo::bar is not a function")).toBe(
       "TypeError: Foo::bar is not a function",
     );
+  });
+});
+
+describe("expandFragments — the shared programs' placeholders (R3-FINDING I)", () => {
+  const fragments = new Map([
+    ["SLASH", "/"],
+    ["IPV6", "\\[::1\\]"],
+  ]);
+
+  it("expands every placeholder, including a name with a digit", () => {
+    expect(expandFragments("a<<SLASH>>b<<IPV6>>", fragments)).toBe("a/b\\[::1\\]");
+  });
+
+  it("REFUSES an unknown name rather than expanding it to nothing", () => {
+    expect(() => expandFragments("<<NOPE>>", fragments)).toThrow(/unknown fragment <<NOPE>>/);
+  });
+
+  it("REFUSES a placeholder it could not read, rather than leaving it as literal regex text", () => {
+    expect(() => expandFragments("<<NOT-A-NAME>>", fragments)).toThrow(/unexpanded placeholder/);
   });
 });

@@ -159,8 +159,8 @@
         "host.example"
       ],
       "json": true,
-      "harness": "{\"u\":\"\\/\\/host.example\\/p?<redacted: 0 parameter(s)><redacted: 1 parameter(s)>\"}",
-      "shell": "{\"u\":\"\\/\\/host.example\\/p?<redacted><redacted>\"}"
+      "harness": "{\"u\":\"\\/\\/host.example\\/p?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"\\/\\/host.example\\/p?<redacted>\"}"
     },
     {
       "name": "escaped path-relative",
@@ -255,6 +255,141 @@
       "unchanged": true,
       "harness": "{\"u\":\"https:\\/\\/h\\/p\"}",
       "shell": "{\"u\":\"https:\\/\\/h\\/p\"}"
+    },
+    {
+      "name": "R3-I: \\u003f in place of the ? (JSON unicode escape)",
+      "input": "{\"u\":\"https://h.example/p\\u003fsig=CORPUSMARKER\"}",
+      "keep": [
+        "https://h.example/p"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"https://h.example/p?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"https://h.example/p?<redacted>\"}"
+    },
+    {
+      "name": "R3-I: \\u003f double-escaped",
+      "input": "\"text\":\"{\\\"u\\\":\\\"https://h.example/p\\\\u003fsig=CORPUSMARKER\\\"}\"",
+      "keep": [
+        "https://h.example/p"
+      ],
+      "harness": "\"text\":\"{\\\"u\\\":\\\"https://h.example/p?<redacted: 1 parameter(s)>\\\"}\"",
+      "shell": "\"text\":\"{\\\"u\\\":\\\"https://h.example/p?<redacted>\\\"}\""
+    },
+    {
+      "name": "R3-I: \\u002f slashes after the scheme (JSON unicode escape)",
+      "input": "{\"u\":\"https:\\u002f\\u002fh.example\\u002fp?sig=CORPUSMARKER\"}",
+      "keep": [
+        "h.example"
+      ],
+      "json": true,
+      "harness": "{\"u\":\"https:\\u002f\\u002fh.example\\u002fp?<redacted: 1 parameter(s)>\"}",
+      "shell": "{\"u\":\"https:\\u002f\\u002fh.example\\u002fp?<redacted>\"}"
+    },
+    {
+      "name": "R3-I: %2F slashes after the scheme",
+      "input": "https:%2F%2Fh.example%2Fp?sig=CORPUSMARKER",
+      "keep": [
+        "h.example%2Fp"
+      ],
+      "harness": "https:%2F%2Fh.example%2Fp?<redacted: 1 parameter(s)>",
+      "shell": "https:%2F%2Fh.example%2Fp?<redacted>"
+    },
+    {
+      "name": "R3-I: a fully percent-encoded URL standing alone (%3A %2F %3F)",
+      "input": "next=https%3A%2F%2Fh.example%2Fp%3Fsig%3DCORPUSMARKER",
+      "keep": [
+        "https%3A%2F%2Fh.example%2Fp"
+      ],
+      "harness": "next=https%3A%2F%2Fh.example%2Fp?<redacted: 1 parameter(s)>",
+      "shell": "next=https%3A%2F%2Fh.example%2Fp?<redacted>"
+    },
+    {
+      "name": "R3-I: \\x2F slashes (JS or Python string escape)",
+      "input": "https:\\x2F\\x2Fh.example\\x2Fp?sig=CORPUSMARKER",
+      "keep": [
+        "h.example"
+      ],
+      "harness": "https:\\x2F\\x2Fh.example\\x2Fp?<redacted: 1 parameter(s)>",
+      "shell": "https:\\x2F\\x2Fh.example\\x2Fp?<redacted>"
+    },
+    {
+      "name": "R3-I: \\x3F in place of the ?",
+      "input": "https://h.example/p\\x3Fsig=CORPUSMARKER",
+      "keep": [
+        "https://h.example/p"
+      ],
+      "harness": "https://h.example/p?<redacted: 1 parameter(s)>",
+      "shell": "https://h.example/p?<redacted>"
+    },
+    {
+      "name": "R3-I: &#47; slashes (HTML decimal entity)",
+      "input": "https:&#47;&#47;h.example&#47;p?sig=CORPUSMARKER",
+      "keep": [
+        "h.example&#47;p"
+      ],
+      "harness": "https:&#47;&#47;h.example&#47;p?<redacted: 1 parameter(s)>",
+      "shell": "https:&#47;&#47;h.example&#47;p?<redacted>"
+    },
+    {
+      "name": "R3-I: &#x2F; slashes (HTML hex entity)",
+      "input": "https:&#x2F;&#x2F;h.example&#x2F;p?sig=CORPUSMARKER",
+      "keep": [
+        "h.example&#x2F;p"
+      ],
+      "harness": "https:&#x2F;&#x2F;h.example&#x2F;p?<redacted: 1 parameter(s)>",
+      "shell": "https:&#x2F;&#x2F;h.example&#x2F;p?<redacted>"
+    },
+    {
+      "name": "R3-I: &sol; slashes (HTML named entity)",
+      "input": "https:&sol;&sol;h.example&sol;p?sig=CORPUSMARKER",
+      "keep": [
+        "h.example&sol;p"
+      ],
+      "harness": "https:&sol;&sol;h.example&sol;p?<redacted: 1 parameter(s)>",
+      "shell": "https:&sol;&sol;h.example&sol;p?<redacted>"
+    },
+    {
+      "name": "R3-I: a scheme-less URL after a colon",
+      "input": "url:h.example:3000/p?sig=CORPUSMARKER",
+      "keep": [
+        "h.example:3000/p"
+      ],
+      "harness": "url:h.example:3000/p?<redacted: 1 parameter(s)>",
+      "shell": "url:h.example:3000/p?<redacted>"
+    },
+    {
+      "name": "R3-I: a relative URL after a colon",
+      "input": "GET:/p?sig=CORPUSMARKER",
+      "keep": [
+        "GET:/p"
+      ],
+      "harness": "GET:/p?<redacted: 1 parameter(s)>",
+      "shell": "GET:/p?<redacted>"
+    },
+    {
+      "name": "R3-I: a relative URL after a semicolon",
+      "input": "a;/p?sig=CORPUSMARKER",
+      "keep": [
+        "a;/p"
+      ],
+      "harness": "a;/p?<redacted: 1 parameter(s)>",
+      "shell": "a;/p?<redacted>"
+    },
+    {
+      "name": "an unlisted scheme is caught by the protocol-relative program after its colon",
+      "input": "s3://bucket.example/k?sig=CORPUSMARKER",
+      "keep": [
+        "s3://bucket.example/k"
+      ],
+      "harness": "s3://bucket.example/k?<redacted: 1 parameter(s)>",
+      "shell": "s3://bucket.example/k?<redacted>"
+    },
+    {
+      "name": "an already-redacted URL is not redacted again by a later program",
+      "input": "\"u\":\"https://h.example/p?<redacted>\" and GET:/p?<redacted>",
+      "unchanged": true,
+      "harness": "\"u\":\"https://h.example/p?<redacted>\" and GET:/p?<redacted>",
+      "shell": "\"u\":\"https://h.example/p?<redacted>\" and GET:/p?<redacted>"
     }
   ]
 }

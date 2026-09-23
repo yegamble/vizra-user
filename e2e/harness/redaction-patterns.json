@@ -9,27 +9,87 @@
     "`#fragment` - is replaced. Applied in this order. Valid in JavaScript and Perl alike;",
     "e2e/harness/redaction-corpus.test.ts runs both redactors over the same corpus and checks",
     "every output byte for byte.",
+    "FRAGMENTS: `<<NAME>>` in a pattern is replaced by the fragment of that name, which may",
+    "itself use fragments declared ABOVE it. Both redactors expand them the same way, once,",
+    "before compiling, and an unknown name is an error rather than an empty string. They exist",
+    "so the separator spellings (R3-FINDING I: `\\u002f`, `\\x2F`, `%2F`, `&#47;`, `&#x2F;`,",
+    "`&sol;` for a slash; `\\u003f`, `\\x3F`, `%3F` for the `?`) are written ONCE.",
+    "The alternatives inside a repeated group are kept DISJOINT (`%2F` is a SLASH and never",
+    "three PATH characters; `\\` never starts a BODY character), because an ambiguous `(a|a)*`",
+    "backtracks exponentially on input that does not match. And the HTML-entity slashes come",
+    "FIRST in BODY: `&` is also a BODY character, and an alternation tries its branches in order.",
+    "A `;` is a BOUNDARY only when it does not end an HTML-entity slash (`&#47;`, `&sol;`,",
+    "`&#x2F;`) - otherwise every entity inside a long path would start a fresh scan to the end",
+    "of it, which is quadratic. Fixed-length lookbehinds, because Perl's must be.",
+    "`(?!<redacted)` after the separator makes the programs idempotent: a URL an earlier",
+    "program already redacted is not matched again by a later one.",
     "Do not edit by hand without re-running that test; do not widen without a corpus case."
+  ],
+  "fragments": [
+    {
+      "name": "SLASH",
+      "pattern": "(?:\\\\{0,3}/|\\\\{1,3}u002[fF]|\\\\{1,3}x2[fF]|%2[fF]|&#0*47;|&#[xX]0*2[fF];|&sol;)"
+    },
+    {
+      "name": "QSEP_ENCODED",
+      "pattern": "(?:\\\\{1,3}u003[fF]|\\\\{1,3}x3[fF]|%3[fF])"
+    },
+    {
+      "name": "QSEP",
+      "pattern": "(?:[?#]|<<QSEP_ENCODED>>)(?!<redacted)"
+    },
+    {
+      "name": "COLON",
+      "pattern": "(?::|%3[aA]|\\\\{1,3}u003[aA])"
+    },
+    {
+      "name": "ESC",
+      "pattern": "\\\\{1,3}(?:u(?!003[fF])[0-9A-Fa-f]{4}|x(?!3[fF])[0-9A-Fa-f]{2}|/)"
+    },
+    {
+      "name": "BODY",
+      "pattern": "(?:&#0*47;|&#[xX]0*2[fF];|(?!%3[fF])[^\\s\"'<>()[\\]\\\\?#]|<<ESC>>)*"
+    },
+    {
+      "name": "PATH",
+      "pattern": "(?:(?!%[23][fF])[A-Za-z0-9._~%+-]|<<SLASH>>|\\\\{1,3}u(?!00[23][fF])[0-9A-Fa-f]{4})*"
+    },
+    {
+      "name": "QUERY",
+      "pattern": "(?:[^\\s\"'<>()[\\]\\\\]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|/))*"
+    },
+    {
+      "name": "BOUND",
+      "pattern": "(?:^|[\\s\"'(<\\[=,>:]|(?<!47)(?<!sol)(?<!2[fF]);)"
+    },
+    {
+      "name": "IPV6",
+      "pattern": "\\[[0-9A-Fa-f:.]+(?:%(?:25)?[A-Za-z0-9._~-]+)?\\](?::\\d{1,5})?"
+    },
+    {
+      "name": "HOST",
+      "pattern": "(?:(?:[A-Za-z0-9-]+\\.)+[A-Za-z0-9-]+(?::\\d{1,5})?|<<IPV6>>|[A-Za-z0-9-]+:\\d{1,5}|localhost(?::\\d{1,5})?)"
+    }
   ],
   "programs": [
     {
       "name": "absolute",
-      "pattern": "(\\b(?:https?|wss?|ftp):\\\\{0,3}/\\\\{0,3}/(?:\\[[0-9A-Fa-f:.]+(?:%(?:25)?[A-Za-z0-9._~-]+)?\\](?::\\d{1,5})?)?(?:[^\\s\"'<>()[\\]\\\\?#]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*)[?#](?:[^\\s\"'<>()[\\]\\\\]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*",
+      "pattern": "(\\b(?:https?|wss?|ftp)<<COLON>><<SLASH>><<SLASH>>(?:<<IPV6>>)?<<BODY>>)<<QSEP>><<QUERY>>",
       "flags": "gi"
     },
     {
       "name": "protocol-relative",
-      "pattern": "((?:^|[\\s\"'(<\\[=,>])\\\\{0,3}/\\\\{0,3}/(?:(?:[A-Za-z0-9-]+\\.)+[A-Za-z0-9-]+(?::\\d{1,5})?|\\[[0-9A-Fa-f:.]+(?:%(?:25)?[A-Za-z0-9._~-]+)?\\](?::\\d{1,5})?|[A-Za-z0-9-]+:\\d{1,5}|localhost(?::\\d{1,5})?)\\\\{0,3}/(?:[^\\s\"'<>()[\\]\\\\?#]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*)[?#](?:[^\\s\"'<>()[\\]\\\\]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*",
+      "pattern": "(<<BOUND>><<SLASH>><<SLASH>><<HOST>><<SLASH>><<BODY>>)<<QSEP>><<QUERY>>",
       "flags": "g"
     },
     {
       "name": "authority-relative",
-      "pattern": "((?:^|[\\s\"'(<\\[=,>])(?:(?:[A-Za-z0-9-]+\\.)+[A-Za-z0-9-]+(?::\\d{1,5})?|\\[[0-9A-Fa-f:.]+(?:%(?:25)?[A-Za-z0-9._~-]+)?\\](?::\\d{1,5})?|[A-Za-z0-9-]+:\\d{1,5}|localhost(?::\\d{1,5})?)\\\\{0,3}/(?:[^\\s\"'<>()[\\]\\\\?#]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*)[?#](?:[^\\s\"'<>()[\\]\\\\]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*",
+      "pattern": "(<<BOUND>><<HOST>><<SLASH>><<BODY>>)<<QSEP>><<QUERY>>",
       "flags": "g"
     },
     {
       "name": "path-relative",
-      "pattern": "((?:^|[\\s\"'(<\\[=,>])\\\\{0,3}/(?:[A-Za-z0-9._~%+-]|\\\\{0,3}/|\\\\{1,3}u[0-9A-Fa-f]{4})*)[?#](?:[^\\s\"'<>()[\\]\\\\]|\\\\{1,3}(?:u[0-9A-Fa-f]{4}|/))*",
+      "pattern": "(<<BOUND>><<SLASH>><<PATH>>)<<QSEP>><<QUERY>>",
       "flags": "g"
     }
   ]

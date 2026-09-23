@@ -121,7 +121,17 @@ export VZ_REDACTION_PATTERNS=$patterns
 URL_PROGRAMS='BEGIN {
   open(my $fh, "<", $ENV{VZ_REDACTION_PATTERNS}) or die "redaction patterns: $!";
   local $/; my $doc = JSON::PP::decode_json(<$fh>);
-  @VZ_PROGRAMS = map { ($_->{flags} // "") =~ /i/ ? qr/$_->{pattern}/i : qr/$_->{pattern}/ } @{ $doc->{programs} };
+  # `<<NAME>>` is the fragment of that name, declared above its first use;
+  # e2e/harness/redact.ts expands them the same way. Unknown names die.
+  my %frag;
+  my $expand = sub {
+    my $p = shift;
+    $p =~ s/<<([A-Za-z0-9_]+)>>/exists $frag{$1} ? $frag{$1} : die "redaction patterns: unknown fragment $1\n"/ge;
+    die "redaction patterns: unexpanded placeholder in $p\n" if index($p, "<<") >= 0;
+    $p;
+  };
+  $frag{ $_->{name} } = $expand->($_->{pattern}) for @{ $doc->{fragments} // [] };
+  @VZ_PROGRAMS = map { my $p = $expand->($_->{pattern}); ($_->{flags} // "") =~ /i/ ? qr/$p/i : qr/$p/ } @{ $doc->{programs} };
   die "redaction patterns: no programs" unless @VZ_PROGRAMS;
 }
 for my $re (@VZ_PROGRAMS) { s/$re/$1?<redacted>/g }'
