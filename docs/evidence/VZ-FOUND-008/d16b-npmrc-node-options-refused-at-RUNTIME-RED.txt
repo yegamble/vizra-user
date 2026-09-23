@@ -58,7 +58,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-desktop-chromium-1440/trace.zip
@@ -81,7 +81,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-desktop-chromium-1440-retry1/trace.zip
@@ -104,7 +104,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-desktop-chromium-1440/trace.zip
@@ -127,7 +127,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-desktop-chromium-1440-retry1/trace.zip
@@ -150,7 +150,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-desktop-chromium-1440/trace.zip
@@ -173,7 +173,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-desktop-chromium-1440-retry1/trace.zip
@@ -196,7 +196,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-desktop-chromium-1440/trace.zip
@@ -219,7 +219,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-desktop-chromium-1440-retry1/trace.zip
@@ -242,7 +242,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-desktop-chromium-1440/trace.zip
@@ -265,7 +265,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-desktop-chromium-1440-retry1/trace.zip
@@ -288,7 +288,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-desktop-chromium-1440/trace.zip
@@ -311,7 +311,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-desktop-chromium-1440-retry1/trace.zip
@@ -334,7 +334,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-desktop-chromium-1440/trace.zip
@@ -357,7 +357,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-desktop-chromium-1440-retry1/trace.zip
@@ -380,7 +380,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/trace.zip
@@ -403,7 +403,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440-retry1/trace.zip
@@ -426,7 +426,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/trace.zip
@@ -449,7 +449,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440-retry1/trace.zip
@@ -472,7 +472,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-mobile-chromium-390/trace.zip
@@ -495,7 +495,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-mobile-chromium-390-retry1/trace.zip
@@ -518,7 +518,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-mobile-chromium-390/trace.zip
@@ -541,7 +541,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-mobile-chromium-390-retry1/trace.zip
@@ -564,7 +564,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-mobile-chromium-390/trace.zip
@@ -587,7 +587,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-mobile-chromium-390-retry1/trace.zip
@@ -610,7 +610,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-mobile-chromium-390/trace.zip
@@ -633,7 +633,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-mobile-chromium-390-retry1/trace.zip
@@ -656,7 +656,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-mobile-chromium-390/trace.zip
@@ -679,7 +679,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-mobile-chromium-390-retry1/trace.zip
@@ -702,7 +702,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-mobile-chromium-390/trace.zip
@@ -725,7 +725,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-mobile-chromium-390-retry1/trace.zip
@@ -748,7 +748,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-mobile-chromium-390/trace.zip
@@ -771,7 +771,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-mobile-chromium-390-retry1/trace.zip
@@ -794,7 +794,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/trace.zip
@@ -817,7 +817,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390-retry1/trace.zip
@@ -840,7 +840,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/trace.zip
@@ -863,7 +863,7 @@ Running 18 tests using 2 workers
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:164:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390-retry1/trace.zip

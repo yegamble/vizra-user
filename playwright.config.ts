@@ -26,13 +26,15 @@
  * red lane. NO PIXELS are recorded: `screenshot` and `video` are "off", and the
  * trace records no screencast (`screenshots: false`). The repositories are
  * PUBLIC, and a screenshot of a page is pixels no redactor or scanner can read
- * (security seat, PR B plan review, Q3 and F14). THE CONTROL is at runtime:
- * `e2e/harness/recorders.ts`, called by both harness fixtures, refuses any
- * RESOLVED value other than these three, however it was produced (a second
- * `defineConfig` argument, a later assignment, a mutated device descriptor, a
- * spec's `test.use`). `check-e2e-lane.mjs` reads the literals below as an early
- * warning only. The demos configuration inherits them. What the trace still
- * carries, and the capture APIs a spec can still call, are listed in AGENTS.md
+ * (security seat, PR B plan review, Q3 and F14). Two controls. The one that
+ * holds regardless is the UPLOAD GATE: `scripts/ci/redact-artifacts.sh` refuses
+ * the upload if any image or video is present, whatever produced it. The EARLY
+ * one is at runtime: `e2e/harness/recorders.ts`, called by both harness fixtures,
+ * refuses a RESOLVED value that is not exactly one of these three as a plain value
+ * (a second `defineConfig` argument, a later assignment, a mutated device
+ * descriptor, a spec's `test.use`, a getter or a `toJSON`), but code a spec runs
+ * can still get around it. `check-e2e-lane.mjs` reads the literals below as an
+ * early warning only. The demos configuration inherits them. See AGENTS.md
  * § Artifact privacy.
  */
 
@@ -127,9 +129,9 @@ export default defineConfig({
     // NO PIXELS. `screenshots: false` stops the trace's screencast frames;
     // `screenshot` and `video` "off" stop the per-test PNG and WebM. Measured on
     // a failing demo before this change: 2 PNGs, 2 WebMs, and 3 + 2 screencast
-    // frames inside the two traces; after it, none of the three. The harness
-    // refuses any other RESOLVED value at runtime; the lane guard warns early
-    // on another literal here, and on a project that sets one of these keys.
+    // frames inside the two traces; after it, none of the three. The upload gate
+    // refuses any image or video; the harness refuses any other RESOLVED value
+    // at runtime; the lane guard warns early on another literal here.
     trace: { mode: "retain-on-failure", sources: false, screenshots: false },
     screenshot: "off",
     video: "off",

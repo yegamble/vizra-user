@@ -636,3 +636,21 @@ than something a reader has to discover.
 - **`mutation-digests.txt` is regenerated in the same commit.** `e2e/harness/test.ts`
   is hashed there, and this fix round changes it. `D23b recorders.ts` lines are
   new.
+
+## PR #10 — fix round 2 (2026-09-23): the upload gate refuses pixels
+
+- **`d24*` are new.** They exercise the gate
+  (`scripts/ci/redact-artifacts.sh`, exit 4 on any image or video) and the
+  stricter runtime check:
+  - the verifier's N1 (`toJSON`) and N2 (getters) are refused by name at runtime,
+    with no pixels (d24a, d24b);
+  - a spec that replaces both branded fixtures (R-a) goes red unstamped and
+    produces pixels, and the gate refuses them, with 0 pixel files in the upload
+    set built as the runner builds it (d24c);
+  - with the runtime check switched off, N1 and N2 record, and the gate still
+    refuses them (d24d);
+  - with the gate's pixel refusal also switched off, all three upload (d24e);
+  - restored, the gate refuses again (d24f).
+- **`mutation-digests.txt`** gains the `D24d recorders.ts` and
+  `D24e redact-artifacts.sh` lines. The `D23b recorders.ts` lines change with
+  `recorders.ts`, whose D23b mutation now targets the new plain-value loop.

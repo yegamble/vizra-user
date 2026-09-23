@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 VZ_DEMO_TYPED=vzenvbf9623ac3be15a42 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 VZ_DEMO_TYPED=vzenv1bc4913fe2df3227 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
 
 
 Running 1 test using 1 worker
@@ -34,7 +34,7 @@ Running 1 test using 1 worker
       269 | }
       270 |
         at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:303:37)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:306:37)
 
     Error Context: test-results/__envwrite-a-blank-in-a-test-extend-fixture-s-teardown-desktop-chromium-1440/error-context.md
 

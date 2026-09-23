@@ -1,0 +1,13 @@
+$ gate_then_upload
+
+::error::redact-artifacts: IMAGE OR VIDEO bytes are present in test-results/__ra-home-renders-desktop-chromium-1440/trace.zip - Lane A records no pixels, and a screenshot, a video or a screencast frame is pixels no redactor can read. Nothing will be uploaded.
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@52d77a034ff9c1bebe3198a00845b65e-1790197650381.jpeg
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/screencast/page@52d77a034ff9c1bebe3198a00845b65e-1790197650297.jpeg
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/attachments/3162247b86d366195b1be0a1a3087349017f8535
+  <test-results/__ra-home-renders-desktop-chromium-1440/trace.zip>/attachments/c53b6d5c92868ece0918d24a9712f4e7ecbbbae4
+  See AGENTS.md § Artifact privacy, "Lane A records NO PIXELS".
+gate exit: 4
+uploaded: nothing (the upload step is gated on this step's success)
+pixel files: png=0 webm=0 screencast-frames=0
+
+[exit 0]

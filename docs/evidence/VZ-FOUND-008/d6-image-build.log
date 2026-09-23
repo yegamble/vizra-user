@@ -1,19 +1,14 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile:
-#1 transferring dockerfile: 6.23kB 0.0s done
+#1 transferring dockerfile: 6.23kB done
 #1 DONE <time>
 
 #2 resolve image config for docker-image://docker.io/docker/dockerfile:1
 #2 DONE <time>
 
 #3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
-#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.2s done
-#3 DONE <time>
-
-#3 docker-image://docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+#3 resolve docker.io/docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32 0.0s done
 #3 CACHED
 
 #4 [internal] load metadata for docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
@@ -23,25 +18,21 @@
 #5 transferring context: 598B 0.0s done
 #5 DONE <time>
 
-#6 [internal] load build context
+#6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
+#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
 #6 DONE <time>
 
-#7 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#7 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.2s done
+#7 [internal] load build context
+#7 transferring context: 1.74MB 0.1s done
 #7 DONE <time>
 
-#6 [internal] load build context
-#6 transferring context: 1.81MB 0.5s done
-#6 DONE <time>
-
-#8 [deps 2/4] WORKDIR /app
+#8 [deps 3/4] COPY package.json package-lock.json ./
 #8 CACHED
 
-#9 [deps 3/4] COPY package.json package-lock.json ./
+#9 [deps 4/4] RUN npm ci
 #9 CACHED
 
-#10 [deps 4/4] RUN npm ci
+#10 [deps 2/4] WORKDIR /app
 #10 CACHED
 
 #11 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
@@ -51,36 +42,36 @@
 #12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 15.41 
-#13 15.41 > vizra-user@0.0.0 build
-#13 15.41 > next build
-#13 15.41 
-#13 19.23 ▲ Next.js 16.3.5 (Turbopack)
-#13 19.58 ✓ Running next.config.ts took <time>
-#13 19.64 
-#13 19.75   Creating an optimized production build ...
-#13 52.56 ✓ Compiled successfully in <time>
-#13 52.62   Running TypeScript ...
-#13 65.89   Finished TypeScript in 13.3s ...
-#13 65.92   Collecting page data using 5 workers ...
-#13 68.73   Generating static pages using 5 workers (0/3) ...
-#13 71.88 ✓ Generating static pages using 5 workers (3/3) in <time>
-#13 71.92   Finalizing page optimization ...
-#13 73.64 
-#13 73.66 Route (app)
-#13 73.66 ┌ ○ /
-#13 73.66 ├ ○ /_not-found
-#13 73.66 └ ƒ /health
-#13 73.66 
-#13 73.66 
-#13 73.66 ○  (Static)   prerendered as static content
-#13 73.66 ƒ  (Dynamic)  server-rendered on demand
-#13 73.66 
-#13 73.79 npm notice
-#13 73.79 npm notice New major version of npm available! 10.9.2 -> 12.1.0
-#13 73.79 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
-#13 73.79 npm notice To update run: npm install -g npm@12.1.0
-#13 73.79 npm notice
+#13 1.200 
+#13 1.200 > vizra-user@0.0.0 build
+#13 1.200 > next build
+#13 1.200 
+#13 2.075 ▲ Next.js 16.3.5 (Turbopack)
+#13 2.209 ✓ Running next.config.ts took <time>
+#13 2.225 
+#13 2.266   Creating an optimized production build ...
+#13 9.805 ✓ Compiled successfully in <time>
+#13 9.805   Running TypeScript ...
+#13 14.06   Finished TypeScript in 4.3s ...
+#13 14.07   Collecting page data using 5 workers ...
+#13 14.95   Generating static pages using 5 workers (0/3) ...
+#13 15.74 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 15.75   Finalizing page optimization ...
+#13 16.58 
+#13 16.58 Route (app)
+#13 16.58 ┌ ○ /
+#13 16.58 ├ ○ /_not-found
+#13 16.58 └ ƒ /health
+#13 16.58 
+#13 16.58 
+#13 16.58 ○  (Static)   prerendered as static content
+#13 16.58 ƒ  (Dynamic)  server-rendered on demand
+#13 16.58 
+#13 16.65 npm notice
+#13 16.65 npm notice New major version of npm available! 10.9.2 -> 12.1.0
+#13 16.65 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#13 16.65 npm notice To update run: npm install -g npm@12.1.0
+#13 16.65 npm notice
 #13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
@@ -97,16 +88,14 @@
 
 #18 exporting to image
 #18 exporting layers
-#18 exporting layers 7.6s done
-#18 exporting manifest sha256:b685e66e1178616a38f61e0a5cf202951944b6e00d58eeae820d12abbd95d0de 0.0s done
-#18 exporting config sha256:34e2ffc1e19c4d658830e5ab828d483d64a171c86f0281fca739eb6c5cbaec34 0.1s done
-#18 exporting attestation manifest sha256:4876dfa1d64b85289c84beefe733d571959894c3b58e28480c6fd52cf8f8fc85
-#18 exporting attestation manifest sha256:4876dfa1d64b85289c84beefe733d571959894c3b58e28480c6fd52cf8f8fc85 0.1s done
-#18 exporting manifest list sha256:66979ba9fe1707c549287d77c257a98e6d3e4b44e8008c0fcefa9c2d26445b2b 0.1s done
-#18 naming to docker.io/library/vzb-pr10r1:demonstrate
-#18 naming to docker.io/library/vzb-pr10r1:demonstrate 0.0s done
-#18 unpacking to docker.io/library/vzb-pr10r1:demonstrate
-#18 unpacking to docker.io/library/vzb-pr10r1:demonstrate 3.4s done
+#18 exporting layers 3.1s done
+#18 exporting manifest sha256:f7e3761ad94c1c9ffec3180445bc4b11f4a213136b0d75ffde29db448ef81c48 done
+#18 exporting config sha256:a92557f52a4ff23f69c76e0518452502ac0e7bf5daee954933a2d6f7af3f9c90 done
+#18 exporting attestation manifest sha256:25bf9450e95a5f15c6737c88e5c74c6a1bc92b8e1d597257106fbc42cc620096 done
+#18 exporting manifest list sha256:b35fb9118e84b51b1463517548fd74bc323853b1daf9a642cab6f77c1aa9120a done
+#18 naming to docker.io/library/vzb-pr10r2:demonstrate done
+#18 unpacking to docker.io/library/vzb-pr10r2:demonstrate
+#18 unpacking to docker.io/library/vzb-pr10r2:demonstrate 0.6s done
 #18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/m8w41n0ow8o8zm9h67ykk58ks
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/wdu2o1cm9ou48l9c907ggq288

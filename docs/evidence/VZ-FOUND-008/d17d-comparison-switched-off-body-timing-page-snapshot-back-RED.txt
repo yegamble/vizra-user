@@ -1,7 +1,6 @@
 $ page_snapshot_count <repo>/test-results <repo>/playwright-report/results.json
 
-  page snapshot inside test-results/__envwrite-the-two-lines-in-the-body-desktop-chromium-1440/trace.zip
   page snapshot in test-results/__envwrite-the-two-lines-in-the-body-desktop-chromium-1440/error-context.md
-files or archives with a page-snapshot heading in the upload set: 2
+files or archives with a page-snapshot heading in the upload set: 1
 
 [exit 1]

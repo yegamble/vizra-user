@@ -179,7 +179,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check, browser-revision record and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the `with:` of `actions/checkout` and `actions/setup-node` exact, and workflow `permissions:` exactly `contents: read`; root install lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare`, `dependencies`) refused; the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion; Lane A's no-pixels values as an EARLY WARNING only (`use.screenshot` and `use.video` exactly `"off"` and `use.trace` exactly `{ mode: "retain-on-failure", sources: false, screenshots: false }` where the source reader can see them, no project override, the demos configuration declaring neither `use` nor `projects`), the harness entry CALLING `recorderProblems` (the runtime control), and the canary's `--config` pinned to `playwright.demos.config.ts` |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
-| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); REFUSE — exit 1, so nothing uploads — if any file or member carries a `# Page snapshot`; and REFUSE — exit 3 — a named directory that does not exist, so a mistyped or dropped argument cannot empty the gate |
+| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); REFUSE — exit 1, so nothing uploads — if any file or member carries a `# Page snapshot`; REFUSE — exit 4 — any IMAGE OR VIDEO in what would be uploaded (a file or archive member named `.png`/`.jpg`/`.jpeg`/`.webp`/`.gif`/`.avif`/`.bmp`/`.webm`/`.mp4`/`.mov`, an archive member whose path contains `screencast`, any file or member whose first bytes carry an image or video signature, and a JSON-report attachment typed `image/*` or `video/*`), naming the path and never the content; and REFUSE — exit 3 — a named directory that does not exist, so a mistyped or dropped argument cannot empty the gate |
 | `npx vitest run e2e/harness/redaction-corpus.test.ts` | both redactors over one 42-entry corpus, every output byte for byte; the shell half runs the shipped script. Part of `npm run test` |
 | `node scripts/ci/check-source-hygiene.mjs` | no literal control bytes in a tracked text source, and `mutation-digests.txt` is COMPLETE (every label `demonstrate.sh` records) and matches this tree. Part of `npm run ci` |
 | `node scripts/ci/ts-source-facts.mjs` | (library) facts read from a PARSED TypeScript tree, so a comment, a string literal, `void f()` or a shadowed callee cannot satisfy a guard's check. Unit-tested in `ts-source-facts.test.mjs` |
@@ -211,7 +211,7 @@ at the wrong server goes red rather than quietly testing something else.
 
 | Fixture | Scope | What it does |
 |---|---|---|
-| `vizraWorkerGuard` | **worker**, automatic | refuses the worker if the RESOLVED `screenshot`/`video`/`trace` options are not Lane A's no-pixels values; installs the BrowserContext-level listeners and the creation guard, for the worker's whole life, into one append-only buffer |
+| `vizraWorkerGuard` | **worker**, automatic | refuses the worker unless the RESOLVED `screenshot`/`video`/`trace` options are exactly Lane A's no-pixels literals as plain values (the EARLY control; the upload gate is the one that holds regardless, see § Artifact privacy); installs the BrowserContext-level listeners and the creation guard, for the worker's whole life, into one append-only buffer |
 | `vizraHarnessGuard` | test, automatic | checks the same resolved recorder options again before the body; charges each recorded signal to exactly one test, judges it under that test's allow-list, and writes the runtime stamp |
 
 For every test, a console error, an uncaught exception, a failed request or any
@@ -771,7 +771,7 @@ allowlist of three paths; this is what is in them and what is done to each.
 | Uploaded | What it carries | Redacted? |
 |---|---|---|
 | `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**. **No screencast frames** (`trace.screenshots: false`), but `resources/*` still holds any image bytes the page fetched, and the trace viewer re-renders a DOM snapshot as a page | URLs, in the shapes above — every other channel is **untouched** |
-| `test-results/**/test-failed-1.png`, `video.webm` | **not produced by the recorders**: the RESOLVED `screenshot` and `video` options are checked at runtime (below). A spec's own capture APIs can still write a PNG or WebM here; see "What this does NOT stop" | — |
+| `test-results/**/test-failed-1.png`, `video.webm`, and any other image or video | **never uploaded**: the pinned gate refuses the upload (exit 4) if any image or video file, trace screencast frame or image resource is present, whatever produced it (below). The recorders are also checked at runtime, as the early control | — |
 | `test-results/**/error-context.md` | the error message, and a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) **when the failing error's stack has a readable source location** — measured present for an `expect` failing in a spec (D16d); a harness-raised browser-error failure may have none | URLs, in the shapes above. Its `# Page snapshot` is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT`, and a file that carries one anyway is **refused at the upload gate** |
 | `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs, in the shapes above — including the double-escaped form a printed slash-escaped URL becomes here (D16d). **This file is uploaded and this table did not used to name it** |
 | `playwright-browsers.txt` | `playwright install --dry-run chromium` output | nothing sensitive |
@@ -796,66 +796,110 @@ configuration inherits them. Measured on one failing demonstration
 | screencast frames inside the two `trace.zip` files | 3 and 2 | 0 and 0 |
 | `trace.zip` and `error-context.md` | present | present |
 
-**The control is a RUNTIME check on the RESOLVED values.** `e2e/harness/recorders.ts`
-compares the `screenshot`, `video` and `trace` option values Playwright has
-resolved with the three literals, and both harness fixtures call it:
-`vizraWorkerGuard` before the worker's first hook or test, and `vizraHarnessGuard`
-again before each test body. A difference throws, naming the option and never the
-value it was given. The three options are worker-scoped in the installed 1.63.0
-(`playwright/lib/index.js:73, :74, :195`), so a worker whose resolved values
-differ fails before it runs anything. It sits inside the two BRANDED fixtures, so
-replacing either fixture to drop the check costs the stamp.
+**Two controls, and it matters which holds.**
 
-It is at runtime because the first version, a reader of the configuration's
-SOURCE, was walked through. An independent verifier turned every recorder back on
-with that reader green by six routes: a second `defineConfig` argument; an
-assignment to `config.use` after the declaration; `Object.assign` on the imported
-`base.use` in the demos configuration; mutating a `devices[…]` descriptor from a
-module the configuration imports; one `test.use({ … })` line in a spec, which
-gave Lane A "18 passed" with 6 PNGs and 6 WebMs; and a second configuration file
-named by the canary script (PR #10 VERIFY, E1–E6 and S6). The runtime check
-refuses each of them, whatever the spelling, because every one changes the
-RESOLVED value. **D23** is the demonstration:
-- the verifier's E6 line, planted in a spec, fails by name with no PNG, no WebM
-  and no screencast frame;
-- with the check switched off by a controlled mutation, the same spec PASSES and
-  the pixels come back;
-- restored, it fails by name again.
+**1. The control that holds regardless: the upload gate refuses pixels.** The
+pinned step the upload depends on, `scripts/ci/redact-artifacts.sh`, exits 4, and
+so publishes nothing, if what would be uploaded holds any image or video:
+- a file or an archive member named as one (`.png`, `.jpg`, `.jpeg`, `.webp`,
+  `.gif`, `.avif`, `.bmp`, `.webm`, `.mp4`, `.mov`);
+- a trace member whose path contains `screencast`;
+- any file or member whose first bytes carry an image or video signature, whatever
+  its name. That catches an image resource the page fetched, which the trace
+  stores as `resources/<hash>`;
+- a JSON-report attachment typed `image/*` or `video/*`.
 
-`check-e2e-lane.mjs` still reads the three values from the parsed configuration,
-as the **early warning, not the control**. It refuses any other literal value, a
-spread or computed key in `use`, a project whose `use` sets one of the three keys
-or spreads anything but a `devices["…"]` descriptor (none of the 207 installed
-descriptors sets a recorder), and a demos configuration that DECLARES `use` or
-`projects`. It reads only `arguments[0]` of the exported call and an identifier's
-initializer, so the six routes above are invisible to it. In
-`require-checks_test.sh`, eight of its cases are red by name and one inverse
-control stays green. It also requires the harness entry to CALL `recorderProblems`,
-and it pins the canary's `--config` to `playwright.demos.config.ts` (S6), which
-the runtime check does not: the runtime check refuses a configuration's
-recorders, not which configuration runs.
+It names the offending path and never the content. It does not ask how the pixels
+were produced, so it holds for a recorder turned on by any spelling, for a spec
+that leaves the harness, and for a spec's own capture API. This is war-room rule
+R6: the job goes red, and a red job is exactly when the upload fires, so red
+alone must never be what publishes. **D24** demonstrates it:
+- the verifier's N1 and N2 are refused at runtime, with no pixels;
+- a spec that replaces both branded fixtures and turns the recorders on (R-a) goes
+  red unstamped **and produces a PNG and a WebM**. The gate refuses them, and the
+  upload set, built the way the runner builds it, holds 0 pixel files;
+- with the runtime check switched off by a controlled mutation, N1 and N2 record
+  pixels, and the gate still refuses them;
+- with the gate's pixel refusal also switched off, N1, N2 and R-a all UPLOAD their
+  pixels;
+- restored, the gate refuses again.
+
+`e2e/harness/upload-gate-pixels.test.ts` runs the shipped script over one tree per
+kind: a named PNG, WebM or MP4; an image whose name hides it (refused by its
+bytes); a trace with screencast frames; a trace with an extension-less image
+resource; and a JSON report with an inline image attachment. Each is exit 4, with
+the path named and no content echoed. The inverse control, a tree shaped like a
+real red Lane A run, passes.
+
+**2. The EARLY control: a runtime check on the RESOLVED option values.**
+`e2e/harness/recorders.ts` checks the `screenshot`, `video` and `trace` values
+Playwright has resolved, and both harness fixtures call it:
+- `vizraWorkerGuard`, before the worker's first hook or test. The three options are
+  worker-scoped in the installed 1.63.0 (`playwright/lib/index.js:73, :74, :195`);
+- `vizraHarnessGuard`, again before each test body.
+
+A value passes only if it is the exact primitive string, or a PLAIN object:
+- prototype exactly `Object.prototype`, and not a Proxy;
+- own keys exactly the literal's, each an enumerable DATA property compared with
+  `===`;
+- no getter, no `toJSON`, no symbol key.
+
+Nothing on the value is called or serialised. A refusal throws before any page
+exists, naming the option and never the value, so the lane is red by name and
+nothing was recorded.
+
+It began as a check on the configuration's SOURCE, which six routes walked through
+(PR #10 VERIFY, E1–E6 and S6). Its second version compared `JSON.stringify(value)`,
+which a `toJSON()` (N1) and getters that answer the check differently (N2) both
+satisfied while Playwright recorded. Lane A then passed 20/20 with 2 PNG and
+2 WebM. Both are now refused by name (unit cases, and D24a/b).
+
+**What the runtime check cannot promise, stated as its residual.** Code that runs
+in a spec shares the process with the check. It can leave the harness (R-a: the
+run is red, and the pixels are written on the runner), and in principle it can
+subvert the JavaScript runtime the check runs in. The check captures its
+intrinsics when the harness loads, before any spec, and uses no shared-prototype
+method in its answer. It is still an early control, not a guarantee. The
+guarantee for the published artifact is the upload gate above.
+
+`check-e2e-lane.mjs` reads the three literals from the parsed configuration, as
+the **early warning, not a control**:
+- it refuses any other literal value, a spread or computed key in `use`, a project
+  whose `use` sets one of the three keys or spreads anything but a `devices["…"]`
+  descriptor (none of the 207 installed descriptors sets a recorder), and a demos
+  configuration that DECLARES `use` or `projects`;
+- it reads only `arguments[0]` of the exported call and an identifier's
+  initializer, so the six routes above are invisible to it. In
+  `require-checks_test.sh`, eight of its cases are red by name and one inverse
+  control stays green;
+- it also requires the harness entry to CALL `recorderProblems`;
+- it pins the canary's `--config` to `playwright.demos.config.ts` (S6), which the
+  runtime check does not do: the runtime check refuses a configuration's
+  recorders, not which configuration runs.
 
 **The cost:** a developer can no longer turn the recorders on locally with
-`--trace on`, `--video on` or `test.use`. The harness refuses the run. There is
-deliberately no environment switch to allow it.
+`--trace on` (Playwright 1.63.0 has no `--video` flag) or with `test.use`. The
+harness refuses the run. There is deliberately no environment switch to allow it.
 
-**What this does NOT stop, stated so it is not assumed.** The runtime check covers
-the three RECORDER OPTIONS, and nothing else. Each of these still writes pixels,
-and none is refused today:
-- the trace still records the network, so an image the page FETCHED is in
-  `resources/*` as bytes, and a DOM snapshot re-renders as the page in the trace
-  viewer. The measured demo fetched no image, so the table above does not
-  measure that channel;
-- a spec's own `page.screenshot({ path })` writes a PNG wherever it is pointed,
-  including `test-results/`;
-- a failing `expect(page).toHaveScreenshot()` writes the actual screenshot into
-  `test-results/` (and, with no baseline, a baseline under
-  `e2e/specs/*-snapshots/`), measured by the verifier;
-- `browser.newContext({ recordVideo: { dir } })` on a context the spec creates
-  writes a WebM, measured by the verifier with the test passing.
+**What this does NOT stop, stated so it is not assumed.** These still WRITE pixels
+on the runner. The upload gate refuses each of them once it lands under an
+uploaded path, so none of them is published, but they exist on the runner for the
+rest of the job, readable by later steps, which is the `run:` class (§ Residuals):
+- a spec that leaves the harness (replaced branded fixtures, or a direct
+  `@playwright/test` import) with the recorders on. The run goes red and unstamped
+  (R-a, D24c);
+- a spec's own `page.screenshot({ path })`, a failing
+  `expect(page).toHaveScreenshot()` (which also writes a baseline under
+  `e2e/specs/*-snapshots/` when there is none), and
+  `browser.newContext({ recordVideo: { dir } })` on a context the spec creates,
+  each measured by the verifier;
+- an image the page fetches is kept in the trace as `resources/<hash>` bytes. The
+  gate refuses it by its signature; the app ships no raster image today, so a
+  normal red run carries none.
 
-From the first slice that renders non-public media, these are the channels to
-close.
+A file written OUTSIDE the uploaded paths is not seen by the gate, and is not
+uploaded either. A DOM snapshot in the trace still re-renders as the page's
+structure and text in the trace viewer, but with no image bytes behind it.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -872,8 +916,7 @@ Measured channel by channel against a failing run:
 | DOM snapshots and attachments | `*-trace.trace` |
 | **Playwright call parameters** — `page.fill` / `page.evaluate` arguments, the channel a login spec uses | `*-trace.trace` |
 | artifact file and directory names (they derive from test titles) | everywhere |
-| image bytes the page fetched, and DOM snapshots the trace viewer re-renders as a page | `resources/*`, `*-trace.trace` |
-| a spec's own `page.screenshot({ path })`, a failing `toHaveScreenshot`, `recordVideo` on a context the spec creates (the recorder OPTIONS are checked at runtime; these APIs are not) | wherever the spec wrote them, including `test-results/` |
+| DOM snapshots the trace viewer re-renders as the page's structure and text (image bytes, whether fetched, screenshotted or recorded, are refused at the upload gate) | `*-trace.trace` |
 
 Earlier wording here offered "keeping origin, path, **headers** and timings
 readable" as a feature. Headers are the uncovered channel; that sentence is
@@ -948,10 +991,10 @@ repository being private, and nothing new is claimed here:
   are redacted, and nothing else is. Every row of the "NOT covered" table is published as
   recorded: header values, request and response bodies, non-URL console tokens,
   DOM snapshots and Playwright call parameters inside `trace.zip`, artifact file
-  names, and image bytes the page fetched (`resources/*` inside `trace.zip`).
-  The recorders' screenshots, video and trace screencast frames are refused at
-  runtime on their RESOLVED option values, but a spec's own capture APIs can
-  still write pixels (see "What this does NOT stop");
+  names. Images and video are NOT published: the gate refuses the upload (exit 4)
+  if any image or video file, trace screencast frame or image resource is present,
+  whatever produced it. The recorder options are also checked at runtime, as the
+  early control;
 - the `# Page snapshot` section of `error-context.md` is suppressed in CI by
   `PLAYWRIGHT_NO_COPY_PROMPT` and refused at the upload gate, subject to "What
   still gets through" above;

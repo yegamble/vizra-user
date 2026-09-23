@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r1:demonstrate-mutant
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r2:demonstrate-mutant
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
@@ -33,6 +33,7 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r1:demonstrate-muta
   app/e2e/harness/stamp.test.ts
   app/e2e/harness/stamp.ts
   app/e2e/harness/test.ts
+  app/e2e/harness/upload-gate-pixels.test.ts
   app/e2e/harness/worker-guard.test.ts
   app/e2e/harness/worker-guard.ts
   app/e2e/specs/

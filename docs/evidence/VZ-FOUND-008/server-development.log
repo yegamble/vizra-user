@@ -4,10 +4,12 @@
 ✓ Ready in <time>
 ✓ Running next.config.ts took <time>
 
-○ Compiling /health ...
- GET /health 200 in 176ms (next.js: 15ms, application-code: 161ms)
- GET /health 200 in 290ms (next.js: 20ms, application-code: 271ms)
- GET /health 200 in 407ms (next.js: 10ms, application-code: 397ms)
+ GET /health 200 in 2.2s (next.js: 1528ms, application-code: 627ms)
+ GET /health 200 in 53ms (next.js: 7ms, application-code: 46ms)
+ GET /health 200 in 95ms (next.js: 8ms, application-code: 87ms)
+ GET / 200 in 357ms (next.js: 23ms, application-code: 334ms)
+ GET / 200 in 360ms (next.js: 32ms, application-code: 327ms)
+ GET /health 200 in 231ms (next.js: 12ms, application-code: 219ms)
 ⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
 Cross-origin access to Next.js dev resources is blocked by default for safety.
 
@@ -18,7 +20,4 @@ module.exports = {
   allowedDevOrigins: ['127.0.0.1'],
 }
 
-Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
-○ Compiling / ...
- GET / 200 in 3.7s (next.js: 3.1s, application-code: 616ms)
- GET / 200 in 3.7s (next.js: 3.1s, application-code: 611m[?25h
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigin[?25h

@@ -63,3 +63,70 @@ describe("recorderMessage: names, never the resolved value", () => {
     expect(message).not.toContain(planted);
   });
 });
+
+describe("recorderProblems refuses values that disguise themselves (PR #10 re-verification, N1, N2)", () => {
+  const liveTrace = { mode: "retain-on-failure", sources: false, screenshots: false };
+
+  it("N1: a toJSON that reports the literals while .mode says on is refused, for all three", () => {
+    const screenshot = { mode: "on", toJSON: () => "off" };
+    const video = { mode: "on", toJSON: () => "off" };
+    const trace = { mode: "on", sources: false, screenshots: true, toJSON: () => liveTrace };
+    expect(recorderProblems({ screenshot, video, trace })).toEqual(["screenshot", "video", "trace"]);
+  });
+
+  it("N1 variant: a toJSON on an otherwise exact trace object is refused (extra key, and it is a function)", () => {
+    expect(recorderProblems({ ...shipped, trace: { ...liveTrace, toJSON: () => liveTrace } })).toEqual(["trace"]);
+  });
+
+  it("N2: getters that answer the literals are refused, without calling them", () => {
+    let calls = 0;
+    const trace = {
+      get mode() {
+        calls += 1;
+        return "retain-on-failure";
+      },
+      sources: false,
+      get screenshots() {
+        calls += 1;
+        return false;
+      },
+    };
+    expect(recorderProblems({ ...shipped, trace })).toEqual(["trace"]);
+    expect(calls).toBe(0);
+  });
+
+  it("a Proxy that reports a plain object is refused", () => {
+    const trace = new Proxy({ ...liveTrace }, {});
+    expect(recorderProblems({ ...shipped, trace })).toEqual(["trace"]);
+  });
+
+  it("a class instance, a null-prototype object, a non-enumerable field and a symbol key are refused", () => {
+    class Trace {
+      mode = "retain-on-failure";
+      sources = false;
+      screenshots = false;
+    }
+    expect(recorderProblems({ ...shipped, trace: new Trace() })).toEqual(["trace"]);
+    expect(recorderProblems({ ...shipped, trace: Object.assign(Object.create(null), liveTrace) })).toEqual(["trace"]);
+    const hidden = { ...liveTrace };
+    Object.defineProperty(hidden, "screenshots", { value: false, enumerable: false });
+    expect(recorderProblems({ ...shipped, trace: hidden })).toEqual(["trace"]);
+    expect(recorderProblems({ ...shipped, trace: { ...liveTrace, [Symbol("x")]: 1 } })).toEqual(["trace"]);
+  });
+
+  it("a String object is not the primitive \"off\"", () => {
+    expect(recorderProblems({ ...shipped, screenshot: new String("off") })).toEqual(["screenshot"]);
+  });
+
+  it("the check does not use Array.prototype.filter, so patching it does not blind the check", () => {
+    const original = Array.prototype.filter;
+    try {
+      Array.prototype.filter = function () {
+        return [];
+      } as typeof Array.prototype.filter;
+      expect(recorderProblems({ ...shipped, video: "on" })).toEqual(["video"]);
+    } finally {
+      Array.prototype.filter = original;
+    }
+  });
+});

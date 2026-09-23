@@ -196,6 +196,87 @@ refuse_page_snapshots() {
   exit 1
 }
 
+# THE UPLOAD GATE FOR PIXELS (PR #10 fix round 2; war-room rule R6: a failure
+# signal must not be the publishing trigger).
+#
+# Lane A records no pixels: `screenshot` and `video` are "off", and the trace
+# records no screencast frames. The harness checks the RESOLVED options at
+# runtime, and that check is the EARLY control. An independent verifier fooled it
+# twice with an option object the spec controls (a `toJSON()`, then getters that
+# answer differently to the check), and produced pixels past it two more ways
+# that turn the lane RED (replacing the branded fixtures, importing
+# `@playwright/test` directly). A red lane is exactly when this step runs and the
+# upload fires, so a red signal alone would have PUBLISHED those pixels.
+#
+# So, like the page-snapshot gate above, this does not ask HOW the pixels were
+# produced. If any file under the named directories, or any member of any archive
+# in them, is an image or a video, this script exits 4, and the upload step,
+# gated on this step having SUCCEEDED, publishes nothing. It identifies them:
+#
+#   - by NAME: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.avif`, `.bmp`,
+#     `.webm`, `.mp4`, `.mov` (case-insensitive), and any archive member whose
+#     path contains `screencast` (Playwright's trace screencast frames);
+#   - by CONTENT, whatever the name: the PNG, JPEG, GIF, WebP, Matroska/WebM
+#     and ISO-BMFF (MP4, MOV, AVIF) signatures in the first 12 bytes, so a
+#     renamed or extension-less attachment is refused too;
+#   - in the JSON report: an attachment whose `contentType` is `image/*` or
+#     `video/*`, because the JSON reporter can carry an attachment's bytes
+#     inline, in no file of their own.
+#
+# It prints the offending PATH, relative to the directory it was given, and
+# never any content.
+PIXEL_NAME_RE='\.(png|jpe?g|webp|gif|avif|bmp|webm|mp4|mov)$'
+pixel_magic() {
+  # pixel_magic FILE -> exit 0 when the file's first 12 bytes carry an image or video signature
+  local head
+  head=$(head -c 12 "$1" 2> /dev/null | od -An -tx1 | tr -d ' \n')
+  case "$head" in
+    89504e47*) return 0 ;;                  # PNG
+    ffd8ff*) return 0 ;;                    # JPEG
+    47494638*) return 0 ;;                  # GIF
+    52494646????????57454250*) return 0 ;;  # RIFF....WEBP
+    1a45dfa3*) return 0 ;;                  # Matroska / WebM
+    ????????66747970*) return 0 ;;          # ISO BMFF (ftyp): MP4, MOV, AVIF
+  esac
+  return 1
+}
+refuse_pixels() {
+  local root=$1 label=$2 file relative hits=""
+  while IFS= read -r -d '' file; do
+    relative=${file#"$root"/}
+    if printf '%s' "$relative" | grep -Eiq -- "$PIXEL_NAME_RE" ||
+      printf '%s' "$relative" | grep -iq -- 'screencast' ||
+      pixel_magic "$file"; then
+      hits="${hits}  <${label}>/${relative}
+"
+    fi
+  done < <(find "$root" -type f ! -name '*.zip' -print0)
+  while IFS= read -r -d '' file; do
+    if perl -MJSON::PP -0777 -ne '
+      my $doc = eval { JSON::PP->new->decode($_) } or exit 1;
+      my $found = 0;
+      my $walk; $walk = sub {
+        my ($n) = @_;
+        if (ref $n eq "HASH") {
+          $found = 1 if defined $n->{contentType} && !ref $n->{contentType}
+            && $n->{contentType} =~ m{^(image|video)/}i;
+          $walk->($_) for values %$n;
+        } elsif (ref $n eq "ARRAY") { $walk->($_) for @$n }
+      };
+      $walk->($doc); exit($found ? 0 : 1);' "$file" 2> /dev/null; then
+      hits="${hits}  <${label}>/${file#"$root"/} (an image or video attachment)
+"
+    fi
+  done < <(find "$root" -type f -name '*.json' -print0)
+  [ -z "$hits" ] && return 0
+  echo "::error::redact-artifacts: IMAGE OR VIDEO bytes are present in $label - Lane A records no" \
+    "pixels, and a screenshot, a video or a screencast frame is pixels no redactor can read." \
+    "Nothing will be uploaded." >&2
+  printf '%s' "$hits" >&2
+  echo "  See AGENTS.md § Artifact privacy, \"Lane A records NO PIXELS\"." >&2
+  exit 4
+}
+
 total_files=0
 total_zips=0
 
@@ -214,6 +295,7 @@ for dir in "${dirs[@]}"; do
     fi
     redact_tree "$work" > /dev/null
     refuse_page_snapshots "$work" "$archive"
+    refuse_pixels "$work" "$archive"
     rm -f "$absolute"
     # Repack from inside the tree so member paths stay relative, as Playwright
     # expects. `-X` drops extra file attributes; `-r` recurses; `-q` is quiet.
@@ -231,6 +313,7 @@ for dir in "${dirs[@]}"; do
   n=$(redact_tree "$dir" ! -name '*.zip')
   total_files=$((total_files + n))
   refuse_page_snapshots "$dir" "$dir"
+  refuse_pixels "$dir" "$dir"
 done
 
-echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, across: ${dirs[*]}"
+echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, and no image or video is present, across: ${dirs[*]}"
