@@ -554,8 +554,12 @@ OTHER_UPLOADER
 half d7b-other-uploader-ungated-RED 1 "not gated on the redaction having SUCCEEDED" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
-# And the control: a second upload step that IS correctly gated passes, so the
-# check refuses the ungated step rather than refusing a second step as such.
+# And a second upload step that IS correctly gated. This half was GREEN until
+# PR #8 round 3, as the control that the check refused the ungated step rather
+# than a second step as such. Since R3-FINDING H the upload is PINNED
+# (`.github/e2e-pinned-steps.yml`): exactly one step, byte-equal to its pin, so a
+# second uploader is a reviewed change to the pin and not a step the guard waves
+# through. The half is kept, inverted, so the change of rule is on record.
 cp .github/workflows/e2e.yml "$mutant"
 cat >> "$mutant" <<'SECOND_GATED'
 
@@ -569,7 +573,7 @@ cat >> "$mutant" <<'SECOND_GATED'
           retention-days: 3
           if-no-files-found: error
 SECOND_GATED
-half d7b-second-gated-upload-GREEN 0 "still drives the built image" \
+half d7b-second-gated-upload-refused-by-the-pin-RED 1 "not byte-equal to the pinned \`upload\` step" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
 # --- D7c the canary step itself must be present and unconditional ----------

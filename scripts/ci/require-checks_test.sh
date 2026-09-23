@@ -746,6 +746,9 @@ harness_tree() {
   # the real workflows, and a stale copy would assert nothing.
   mkdir -p "$root/.github"
   ln -s "$here/../../.github/workflows" "$root/.github/workflows"
+  # The pinned step bodies the guard compares the workflow with. COPIED, not
+  # symlinked: the round-3 cases below mutate it.
+  cp "$here/../../.github/e2e-pinned-steps.yml" "$root/.github/e2e-pinned-steps.yml"
 }
 
 # harness_expect WANT_RC PATTERN FILE PERL_PROGRAM
@@ -933,8 +936,14 @@ lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
           path: test-results/
 YAML
 
-title="a second upload step that IS correctly gated passes"
-lane_append 0 'still drives the built image' <<'YAML'
+# THIS CASE WAS GREEN UNTIL ROUND 3, AND IS RED ON PURPOSE NOW. A second upload
+# step that carried the right gate used to pass, because the guard judged each
+# uploader by a list of properties. Since R3-FINDING H every step the guard relies
+# on must be BYTE-EQUAL to its pin in .github/e2e-pinned-steps.yml, and the upload
+# is exactly one step. A second uploader is a change to what leaves the runner; it
+# lands as a reviewed change to the pin, not as a step the guard waves through.
+title="a second upload step, even one correctly gated, is refused: the upload is pinned"
+lane_append 1 'not byte-equal to the pinned .upload. step' <<'YAML'
       - name: Upload Playwright artifacts (second, correctly gated)
         if: failure() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -969,6 +978,168 @@ lane_expect 1 'harness-canary step sets .continue-on-error' 's|^        run: nod
 
 title="pinning the per-run stamp key in the workflow fails by name"
 lane_expect 1 'VIZRA_E2E_STAMP_KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          VIZRA_E2E_STAMP_KEY: deadbeef|'
+
+# ---------------------------------------------------------------------------
+# ROUND 3 (PR #8, R3-FINDING H): THE STEPS THE GUARD RELIES ON ARE PINNED.
+#
+# The guard found the redaction step with `run.includes("redact-artifacts.sh")`,
+# and an independent verifier showed eight spellings that each left it green
+# while `steps.redact.outcome == 'success'` let the upload publish with no URL
+# redaction and no page-snapshot gate. Each is below, red BY NAME, followed by one
+# case per other pinned step, the environment routes that change what a
+# byte-equal body does, and the pins file's own invariants.
+# ---------------------------------------------------------------------------
+redact_line='^        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report$'
+redact_spellings=(
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report || true'
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report; exit 0'
+  'set +e; bash scripts/ci/redact-artifacts.sh test-results playwright-report; true'
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report > /dev/null 2>&1 || echo skipped'
+  'bash scripts/ci/redact-artifacts.sh test-result playwright-reports'
+  'bash scripts/ci/redact-artifacts.sh test-results'
+  'bash scripts/ci/redact-artifacts.sh /tmp/empty'
+  'echo redact-artifacts.sh'
+)
+for spelling in "${redact_spellings[@]}"; do
+  title="R3-H: the redaction step as \`$spelling\` fails by name"
+  lane_expect 1 'not byte-equal to the pinned .redact. step.*run. differs' \
+    "s#$redact_line#        run: ${spelling//&/\\&}#"
+done
+
+title="R3-H: the real redaction step BESIDE a laundered copy fails by name"
+lane_append 1 'mentions .redact-artifacts.sh.* but is not byte-equal to the pinned .redact. step' <<'YAML'
+      - name: Redact again, quietly
+        if: failure()
+        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report || true
+YAML
+
+title="R3-H: build_image with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .build_image. step' \
+  's#^        run: docker build --tag vizra-user:e2e .$#        run: docker build --tag vizra-user:e2e . || true#'
+
+title="R3-H: fixture_free with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .fixture_free. step' \
+  's#^        run: bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e$#&; exit 0#'
+
+title="R3-H: start_image marked continue-on-error fails by name"
+lane_expect 1 'not byte-equal to the pinned .start_image. step' \
+  's#^      - name: Start the production image$#&\n        continue-on-error: true#'
+
+title="R3-H: the lane step run from another working-directory fails by name"
+lane_expect 1 'not byte-equal to the pinned .lane. step.*working-directory. not in the pin' \
+  's#^        run: npm run e2e$#        working-directory: e2e\n&#'
+
+title="R3-H: the floor step with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .floor. step' \
+  's#^        run: node scripts/ci/check-coverage-floor-ran.mjs$#& || true#'
+
+title="R3-H: the canary with a step timeout fails by name"
+lane_expect 1 'not byte-equal to the pinned .canary. step.*timeout-minutes. not in the pin' \
+  's#^        run: node scripts/ci/harness-canary.mjs$#        timeout-minutes: 1\n&#'
+
+title="R3-H: the browser-revision step writing more into the uploaded file fails by name"
+lane_expect 1 'not byte-equal to the pinned .record_browsers. step' \
+  's#^          npx playwright install --dry-run chromium | tee playwright-browsers.txt$#&\n          cat test-results/*/error-context.md >> playwright-browsers.txt || true#'
+
+title="R3-H: the upload step with hidden files switched on fails by name"
+lane_expect 1 'not byte-equal to the pinned .upload. step.*include-hidden-files' \
+  's#^          if-no-files-found: error$#&\n          include-hidden-files: true#'
+
+title="R3-H: a step between the redaction and the upload fails by name"
+lane_expect 1 'must IMMEDIATELY follow the redaction' \
+  's#^      - name: Upload Playwright artifacts$#      - name: Between\n        if: failure()\n        run: echo between\n\n&#'
+
+# The environment a byte-equal body runs in.
+title="R3-H: workflow-level defaults.run.shell fails by name"
+lane_expect 1 'declares .defaults:. at top level' \
+  "s#^permissions:\$#defaults:\n  run:\n    shell: bash --noprofile --norc {0} || true\n&#"
+
+title="R3-H: job-level defaults fails by name"
+lane_expect 1 'the .e2e. job declares .defaults:.' \
+  's#^    timeout-minutes: 30$#&\n    defaults:\n      run:\n        working-directory: e2e#'
+
+title="R3-H: a job container fails by name"
+lane_expect 1 'the .e2e. job declares .container:.' \
+  's#^    timeout-minutes: 30$#&\n    container: node:22#'
+
+title="R3-H: a self-hosted runner fails by name"
+lane_expect 1 'must run on .ubuntu-24.04.' \
+  's#^    runs-on: ubuntu-24.04$#    runs-on: self-hosted#'
+
+title="R3-H: BASH_ENV in the job env fails by name (default-deny)"
+lane_expect 1 'sets .BASH_ENV.. Env at this scope is DEFAULT-DENY' \
+  's#^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$#&\n      BASH_ENV: scripts/ci/redact-artifacts.sh#'
+
+title="R3-H: PATH in the workflow env fails by name (default-deny)"
+lane_expect 1 'sets .PATH.. Env at this scope is DEFAULT-DENY' \
+  "s#^permissions:\$#env:\n  PATH: ./bin:/usr/bin:/bin\n&#"
+
+title="R3-H: env on an UNPINNED step fails by name (default-deny)"
+lane_expect 1 'may set no environment' \
+  's#^        run: npm ci$#        env:\n          FOO: bar\n&#'
+
+title="R3-K: HOME in the job env fails by name"
+lane_expect 1 'sets .HOME., which is refused at every scope' \
+  's#^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$#&\n      HOME: /home/runner/work/.ci-home#'
+
+title="R3-K: HOME at step level fails by name"
+lane_expect 1 'sets .HOME., which is refused at every scope' \
+  's#^          E2E_BASE_URL: http://127.0.0.1:3000$#&\n          HOME: /tmp/elsewhere#'
+
+# THE PINS FILE'S OWN INVARIANTS. The same edit applied to the workflow step AND
+# its pin is deep-equal, so without these the pins file would only move the
+# weakness. Each case mutates both, in a throwaway tree.
+pinned_pair_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 program=$3 rc=0
+  local root=$tmp/pinpair-$cases
+  harness_tree "$root"
+  cp "$real_workflow" "$root/mutated-e2e.yml"
+  perl -0pi -e "$program" "$root/mutated-e2e.yml" "$root/.github/e2e-pinned-steps.yml" \
+    || { record 1 "mutation failed to apply"; return; }
+  if cmp -s "$root/.github/e2e-pinned-steps.yml" "$here/../../.github/e2e-pinned-steps.yml"; then
+    record 1 "THE MUTATION DID NOT CHANGE the pins file — a demonstration that does not mutate proves nothing"
+    return
+  fi
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$root/mutated-e2e.yml" >"$tmp/pinpair-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/pinpair-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/pinpair-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/pinpair-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="R3-H pins: renaming the redaction step in BOTH files passes (the inverse control)"
+pinned_pair_expect 0 'still drives the built image' \
+  's/name: Redact URL query strings in the artifacts$/name: Redact the artifacts/m'
+
+title="R3-H pins: \`|| true\` on the redaction in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 is PERL's capture group, not a shell expansion
+pinned_pair_expect 1 'the .redact. pin runs .* and must run exactly' \
+  's/(run: bash scripts\/ci\/redact-artifacts\.sh test-results playwright-report)$/$1 || true/m'
+
+title="R3-H pins: the upload gated on bare failure() in BOTH files fails by name"
+pinned_pair_expect 1 'the .upload. pin is not gated on the redaction having SUCCEEDED' \
+  "s/if: failure\\(\\) && steps\\.redact\\.outcome == 'success'\$/if: failure()/m"
+
+title="R3-H pins: a working-directory on the lane in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 is PERL's capture group, not a shell expansion
+pinned_pair_expect 1 'the .lane. pin carries .working-directory.' \
+  's/^(\s+)(run: npm run e2e)$/$1working-directory: e2e\n$1$2/m'
+
+title="R3-H pins: retention above the ceiling in BOTH files fails by name"
+pinned_pair_expect 1 'the ceiling is 3' \
+  's/retention-days: 3$/retention-days: 30/m'
+
+title="R3-H pins: the lane pointed at another port in BOTH files fails by name"
+pinned_pair_expect 1 'does not match any port' \
+  's#E2E_BASE_URL: http://127\.0\.0\.1:3000$#E2E_BASE_URL: http://127.0.0.1:3999#mg'
+
+title="R3-H pins: a pin this guard has no rule for fails by name"
+pinned_pair_expect 1 'has no rule for' \
+  's/^steps:\n/steps:\n  extra:\n    name: Extra\n    run: echo extra\n/m'
 
 # ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).

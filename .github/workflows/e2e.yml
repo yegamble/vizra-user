@@ -171,6 +171,13 @@ jobs:
       # still diagnosable (origin, path, headers, timings) and carries no
       # credential.
       #
+      # THIS STEP IS PINNED BYTE-FOR-BYTE, like every step
+      # `scripts/ci/check-e2e-lane.mjs` relies on: see .github/e2e-pinned-steps.yml.
+      # The guard used to recognise it by the substring `redact-artifacts.sh`, so
+      # `… || true`, a mistyped directory or `echo redact-artifacts.sh` left the
+      # upload below gated on a step that had redacted and gated nothing
+      # (PR #8, R3-FINDING H). Edit the step and its pin together.
+      #
       # The upload below is gated on THIS step having succeeded, not merely on
       # the job having failed. `failure()` is true when any earlier step failed,
       # so with both steps on a bare `if: failure()` a redactor that exits

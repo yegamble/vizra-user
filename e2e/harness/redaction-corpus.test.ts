@@ -165,6 +165,36 @@ describe("the upload gate: no page snapshot leaves the runner", () => {
     }
   });
 
+  // R3-FINDING H: a mistyped directory used to print "nothing to redact" and exit
+  // 0, so the upload gated on this step's success published the real tree.
+  it("REFUSES a directory that does not exist - exit 3, never \"nothing to redact\"", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "vizra-redact-missing-"));
+    try {
+      const result = spawnSync("bash", [shipped, path.join(dir, "test-result")], { encoding: "utf8" });
+      expect(result.status).toBe(3);
+      expect(result.stderr).toContain("is not a directory");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("REFUSES when one of two directories is mistyped, even though the other exists and is clean", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "vizra-redact-typo-"));
+    try {
+      mkdirSync(path.join(dir, "test-results"));
+      writeFileSync(path.join(dir, "test-results", "error-context.md"), "# Error details\n\nboom\n");
+      const result = spawnSync(
+        "bash",
+        [shipped, path.join(dir, "test-results"), path.join(dir, "playwright-reports")],
+        { encoding: "utf8" },
+      );
+      expect(result.status).toBe(3);
+      expect(result.stdout).not.toContain("OK:");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("does not trip on the phrase used in prose, only on the heading line", () => {
     const result = runGate({ "t/notes.md": "the # Page snapshot section is suppressed in CI\n" });
     expect(result.status).toBe(0);

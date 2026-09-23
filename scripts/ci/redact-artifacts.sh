@@ -47,12 +47,37 @@
 # value, binary files included, so this exclusion is verified rather than
 # assumed.
 #
+# A DIRECTORY THAT DOES NOT EXIST IS REFUSED - exit 3 - and never "nothing to
+# redact". This used to print "does not exist, nothing to redact there" and carry
+# on, so `redact-artifacts.sh test-result playwright-reports` (a typo) or
+# `redact-artifacts.sh /tmp/empty` exited 0 having redacted and gated nothing,
+# and the upload gated on this step's SUCCESS published the real tree (PR #8,
+# R3-FINDING H). The CI step's bytes are now pinned
+# (`.github/e2e-pinned-steps.yml`), and this is the second half: no argument can
+# empty the gate.
+#
+# The case this makes red on purpose: the step runs only `if: failure()`, and when
+# the failure came BEFORE the lane (the image did not build, the container did not
+# start) neither directory exists. Then this exits 3, the upload is skipped, and
+# nothing is published - which is correct, because there is nothing the lane wrote
+# to diagnose, and a gate that reports success over an absent tree is the defect
+# being fixed. The build or start step's own log carries that failure.
+#
 # Usage:  bash scripts/ci/redact-artifacts.sh [dir ...]
 # Default: test-results playwright-report
 set -euo pipefail
 
 dirs=("$@")
 [ ${#dirs[@]} -gt 0 ] || dirs=(test-results playwright-report)
+
+for dir in "${dirs[@]}"; do
+  if [ ! -d "$dir" ]; then
+    echo "::error::redact-artifacts: '$dir' is not a directory. Every directory named here must exist:" \
+      "a missing or mistyped one would otherwise be redacted and gated by nothing while this step" \
+      "reports success. Nothing will be uploaded." >&2
+    exit 3
+  fi
+done
 
 for tool in perl unzip zip; do
   command -v "$tool" > /dev/null 2>&1 || {
@@ -165,11 +190,6 @@ total_files=0
 total_zips=0
 
 for dir in "${dirs[@]}"; do
-  if [ ! -d "$dir" ]; then
-    echo "redact-artifacts: $dir does not exist, nothing to redact there."
-    continue
-  fi
-
   # 1. Zip members first: unzip, redact the tree, repack in place. Done before
   #    the plain-file pass, which then skips `*.zip` — running the byte
   #    substitution over a compressed archive could corrupt it.

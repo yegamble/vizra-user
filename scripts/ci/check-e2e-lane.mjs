@@ -19,40 +19,42 @@
  *
  * A grep cannot tell a step from a comment, a `run:` from a name, a step that
  * executes from one behind `if: false`, or `npm run e2e` from
- * `npm run e2e || true`. So the workflow is PARSED, and the assertions are
- * about the step graph:
+ * `npm run e2e || true`. So the workflow is PARSED — and since PR #8 round 3,
+ * every step this guard relies on is PINNED rather than recognised:
  *
- *   1. the `e2e` job exists, is not disabled (`if:`), and does not hide its
- *      result (`continue-on-error`);
- *   2. exactly one step's `run` is EXACTLY the documented lane command
- *      (`npm run e2e`) — not a superstring, so `|| true`, `; true`, `&& :`,
- *      a subshell or any other exit-code laundering fails to match at all;
- *   3. that step is unconditional and does not continue-on-error;
- *   4. it targets the BUILT IMAGE: its `E2E_BASE_URL` is the URL a
- *      `docker run --publish` step in the same job exposes;
- *   5. the coverage-floor step FOLLOWS it;
- *  5b. the HARNESS CANARY step (`node scripts/ci/harness-canary.mjs`) exists,
- *      is unconditional, does not continue-on-error, and drives the same
- *      container. It is the only CI step that would notice the browser-error
- *      guard being switched off while its identifiers stayed in place — a case
- *      an independent verifier measured as silent in every other check;
- *   6. the image is built and started, and proved free of harness fixtures,
- *      before the lane runs;
- *   7. artifacts are redacted and then uploaded on failure, with EVERY upload
- *      step gated on `steps.<redact>.outcome == 'success'` — two bare
- *      `failure()` conditions are not a sequence — and with
- *      `if-no-files-found: error`. EVERY step, not the first one: a verifier
- *      appended a SECOND, ungated `actions/upload-artifact` step and the
- *      `.find()` this used to do answered OK, so a failing redactor would have
- *      had the unredacted tree published by the second step. An uploader that
- *      is not `actions/upload-artifact` is recognised too;
+ *   1. the `e2e` job exists, is not disabled, does not hide its result, runs on
+ *      `ubuntu-24.04`, and declares no key outside an allowlist (`defaults:`,
+ *      `container:` … change what every `run:` does without changing its bytes);
+ *   2. NINE STEPS ARE PINNED BYTE-FOR-BYTE in `.github/e2e-pinned-steps.yml` —
+ *      the image build, the fixture-free check, the container start, the lane
+ *      (`npm run e2e`), the coverage floor, the harness canary, the browser
+ *      revision, the redaction/upload gate and the upload. Each must appear
+ *      EXACTLY ONCE, deep-equal to its pin, with no key the pin lacks. This
+ *      replaced a substring match: `run.includes("redact-artifacts.sh")` accepted
+ *      `… || true`, `echo redact-artifacts.sh` and six other spellings that left
+ *      the upload gate open (R3-FINDING H);
+ *   3. a step ANYWHERE in the workflow that mentions a pinned role's token but is
+ *      not its pin is refused by name, so the real step cannot sit beside a
+ *      laundered copy;
+ *   4. the pins file itself must satisfy the policy (exact `run:` of the lane,
+ *      floor, canary, fixture check and redaction; the upload's gate, paths,
+ *      retention and `if-no-files-found: error`; the lane's port is the one the
+ *      container publishes), so editing the pin and the workflow together is a
+ *      named failure rather than a way round the check;
+ *   5. ORDER: image built, proved fixture-free and started before the lane;
+ *      floor and canary after it; the redaction after all three; the upload
+ *      IMMEDIATELY after the redaction;
+ *   6. env is DEFAULT-DENY: nothing at workflow level, only
+ *      `PLAYWRIGHT_NO_COPY_PROMPT: "1"` at job level, nothing on an unpinned
+ *      step — `BASH_ENV`, `PATH` and `HOME` change what a pinned body does;
+ *   7. upload scope is an allowlist across every job; `uses:` is a pinned
+ *      allowlist; no reusable workflow; no runner command files; no merge keys;
  *   8. nothing starts a development server, and nothing sets
  *      `E2E_COVERAGE_FLOOR` or `VIZRA_E2E_STAMP_KEY`;
  *   9. the workflow triggers on `pull_request` and `merge_group`;
- *  10. the harness keeps its guard AND its runtime stamp, and
- *      `playwright.config.ts` keeps the three lines the stamp depends on.
- *      Those last checks are string presence and are NOT the control; see the
- *      comment where they are made.
+ *  10. the harness keeps its guard AND its runtime stamp, read from a PARSED
+ *      TypeScript tree, and `playwright.config.ts` keeps the lines the stamp
+ *      depends on.
  *
  * Usage:  node scripts/ci/check-e2e-lane.mjs [workflow.yml]
  * Invoked by `scripts/ci/check-e2e-lane.sh`, which is what `ci-guard` runs and
@@ -94,12 +96,37 @@ try {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
+/**
+ * THE PINNED STEPS — `.github/e2e-pinned-steps.yml`.
+ *
+ * This guard used to IDENTIFY the steps it relies on by substring:
+ * `run.includes("redact-artifacts.sh")`, `includes("docker build")`,
+ * `includes(FLOOR_COMMAND)`, a `--publish` regex over any step, an `upload|artifact`
+ * regex over `uses:`. A step that MENTIONS a script is not a step that RUNS it,
+ * and an independent verifier showed eight guard-green spellings of the redaction
+ * step alone (PR #8, R3-FINDING H) — `… || true`, `…; exit 0`, `set +e; …; true`,
+ * a redirect and `|| echo`, a mistyped directory, a dropped `playwright-report`,
+ * `/tmp/empty`, and `echo redact-artifacts.sh` — each leaving
+ * `steps.redact.outcome == 'success'`, so the upload gated on it published with no
+ * URL redaction and no page-snapshot gate. The lane and the canary matched their
+ * `run:` exactly, but every OTHER key only through a list of refusals, and a list
+ * is what `working-directory:` or `timeout-minutes:` walk past.
+ *
+ * So identification is EXACT and the control is inverted, as vizra-core did for
+ * its make steps: every step below must be DEEP-EQUAL to its pin (keys and
+ * values, `name` included, `run` byte for byte after trimming one trailing
+ * newline), exactly once; a step that MENTIONS a pinned role's token but is not
+ * its pin is refused by name anywhere in the workflow; and the invariants each pin
+ * must satisfy are asserted on the pins file itself, so weakening the pin is a
+ * named failure too. Substring and regex tests survive below only in the REFUSAL
+ * direction — they decide that a step must be a pin, never that it is one.
+ */
+const PINS_FILE = ".github/e2e-pinned-steps.yml";
+
 /** The one command the lane may run. Documented in AGENTS.md as `npm run e2e`. */
 const LANE_COMMAND = "npm run e2e";
 /** The step that re-checks the floor from outside the Playwright process. */
 const FLOOR_COMMAND = "node scripts/ci/check-coverage-floor-ran.mjs";
-const FIXTURE_GUARD = "check-no-test-fixtures-in-image.sh";
-const REDACT_SCRIPT = "redact-artifacts.sh";
 /**
  * The harness's own self-test. Without it, neutering the browser-error guard
  * while leaving its identifiers in place is SILENT in CI — `npm run test` exits
@@ -108,20 +135,109 @@ const REDACT_SCRIPT = "redact-artifacts.sh";
  * fail on.
  */
 const CANARY_COMMAND = "node scripts/ci/harness-canary.mjs";
+const FIXTURE_COMMAND = "bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e";
+/**
+ * The redaction AND the page-snapshot upload gate. Both directories: `results.json`
+ * is uploaded and lives in `playwright-report/`. The script itself refuses a
+ * directory that does not exist (exit 3), so no argument can empty the gate.
+ */
+const REDACT_COMMAND = "bash scripts/ci/redact-artifacts.sh test-results playwright-report";
+/** The one uploader, at the one SHA it is pinned to. */
+const UPLOAD_ACTION = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02";
+const UPLOAD_GATE = "failure() && steps.redact.outcome == 'success'";
+const RUNNER = "ubuntu-24.04";
 
 /**
- * Does this `uses:` name a step that PUBLISHES artifacts?
- *
- * Broader than `actions/upload-artifact@` on purpose. A verifier's mutation
- * replaced that action with a different one and the guard's answer was "no step
- * uploads artifacts" — correct, but only because the check keyed on one exact
- * name. Anything whose action name contains `upload` or `artifact` is treated as
- * an uploader and must carry the same gate, so swapping the action is not a way
- * round the redaction. Arbitrary `run:` exfiltration (`gh release upload`,
- * `curl`) is outside what any parser can close; the control there is review, and
- * AGENTS.md says so rather than implying otherwise.
+ * The roles, in the order they must run, with the tokens that make a step a
+ * CLAIMANT to the role. Tokens are the refusal direction only: a step carrying one
+ * must BE a pin whose role lists that token, or it is refused by name.
  */
-const UPLOADER = /(^|\/)[\w.-]*(upload|artifact)[\w.-]*@/i;
+const ROLES = [
+  { role: "build_image", keys: ["name", "run"], what: "builds the production image" },
+  { role: "fixture_free", keys: ["name", "run"], what: "proves the image fixture-free" },
+  { role: "start_image", keys: ["name", "run"], what: "starts the built image" },
+  { role: "lane", keys: ["name", "env", "run"], what: "runs the browser lane" },
+  { role: "floor", keys: ["name", "run"], what: "re-checks the coverage floor" },
+  { role: "canary", keys: ["name", "env", "run"], what: "runs the harness canary" },
+  { role: "record_browsers", keys: ["name", "run"], what: "records the browser revision" },
+  { role: "redact", keys: ["name", "id", "if", "run"], what: "redacts and gates the artifacts" },
+  { role: "upload", keys: ["name", "if", "uses", "with"], what: "uploads the artifacts" },
+];
+const ROLE_NAMES = ROLES.map((entry) => entry.role);
+
+/** [pattern over the serialised step, human description, roles it claims]. */
+const MENTIONS = [
+  [/\bdocker\s+(?:buildx\b|build\b|image\s+build\b)/, "a `docker build`", ["build_image"]],
+  [/check-no-test-fixtures-in-image/, "`check-no-test-fixtures-in-image.sh`", ["fixture_free"]],
+  [/\bdocker\s+(?:container\s+)?(?:run|create)\b/, "a `docker run`", ["start_image"]],
+  [/\bnpm\s+(?:run|run-script)\s+e2e(?![\w:-])/, "`npm run e2e`", ["lane"]],
+  [/\bplaywright\s+test\b/, "`playwright test`", ["lane"]],
+  [/E2E_BASE_URL/, "`E2E_BASE_URL`", ["lane", "canary"]],
+  [/check-coverage-floor-ran/, "`check-coverage-floor-ran.mjs`", ["floor"]],
+  [/harness-canary/, "`harness-canary.mjs`", ["canary"]],
+  [/playwright-browsers\.txt/, "`playwright-browsers.txt`", ["record_browsers", "upload"]],
+  [/redact-artifacts/, "`redact-artifacts.sh`", ["redact"]],
+  [/test-results|playwright-report/, "an artifact directory", ["redact", "upload"]],
+  [/steps\.redact\b/, "`steps.redact`", ["upload"]],
+];
+/** Applied to `uses:` alone: anything that looks like it publishes must BE the pinned upload. */
+const UPLOADER_MENTION = /(^|\/)[\w.-]*(upload|artifact)[\w.-]*@/i;
+
+/**
+ * What a difference in a given field MEANS, per role, so a refusal says why
+ * rather than only that the bytes differ. `*` is the fallback for the role.
+ */
+const HINTS = {
+  lane: {
+    run:
+      `its \`run:\` must be exactly \`${LANE_COMMAND}\` — a superstring such as ` +
+      "`npm run e2e || true` launders the exit code",
+    if: "the browser lane must run unconditionally on every pull request",
+    "continue-on-error": "`continue-on-error` would make a red lane report success",
+    "env.E2E_BASE_URL":
+      "its E2E_BASE_URL does not match any port a `docker run --publish` step in this job exposes " +
+      "as pinned; the lane may not be driving the built image",
+    env: "any other env key on the lane step changes what `npm run e2e` does",
+  },
+  canary: {
+    run: `its \`run:\` must be exactly \`${CANARY_COMMAND}\`; anything else launders the exit code`,
+    if:
+      "the harness-canary step carries an `if:`. A conditional self-test is one expression away " +
+      "from never running, and its absence is invisible in a green lane",
+    "continue-on-error": "the harness-canary step sets `continue-on-error`, so a neutered guard would report success",
+    "env.E2E_BASE_URL": "its E2E_BASE_URL does not match any port a `docker run --publish` step in this job exposes",
+  },
+  floor: {
+    run: `its \`run:\` must be exactly \`${FLOOR_COMMAND}\`; anything else launders the exit code`,
+    if: "the coverage-floor step is conditional or continues on error",
+    "continue-on-error": "the coverage-floor step is conditional or continues on error",
+  },
+  redact: {
+    run:
+      `the redaction step's \`run:\` must be exactly \`${REDACT_COMMAND}\`. \`|| true\`, \`; exit 0\`, ` +
+      "`set +e`, a redirect with `|| echo`, a mistyped or dropped directory and `echo` each leave " +
+      "`steps.redact.outcome == 'success'` with the page-snapshot gate never run or its verdict " +
+      "discarded, and the upload gated on it then publishes",
+    id: "the redaction step has no `id:` (or a different one), so the upload step cannot be gated on whether it succeeded",
+    "continue-on-error":
+      "the redaction step sets `continue-on-error`, which would report `success` however it exited — " +
+      "the gate below would then always open",
+    if: "the redaction step must run exactly `if: failure()` — the only condition under which anything uploads",
+  },
+  upload: {
+    if:
+      `it is not gated on \`${UPLOAD_GATE}\` — not gated on the redaction having SUCCEEDED. With two ` +
+      "bare `failure()` conditions a redactor that exits non-zero still lets the unredacted tree be " +
+      "published, and a SECOND upload step publishes it even when the first one is correctly skipped",
+    uses: `the only uploader is \`${UPLOAD_ACTION}\``,
+    "with.if-no-files-found":
+      "it does not set `if-no-files-found: error`. This step only runs on failure, so a wrong path " +
+      "would be a warning nobody ever reads",
+    "with.path": "its `path:` must be exactly the pinned allowlist of literal paths",
+    "with.retention-days": "its `retention-days` must be the pinned value, at or under the ceiling",
+    "with.include-hidden-files": "`include-hidden-files` must stay absent",
+  },
+};
 
 const workflowPath = process.argv[2] ?? ".github/workflows/e2e.yml";
 const problems = [];
@@ -138,6 +254,19 @@ try {
   process.exit(1);
 }
 
+let pins = {};
+try {
+  const document = parse(readFileSync(path.join(repoRoot, PINS_FILE), "utf8"), { uniqueKeys: true });
+  pins = document?.steps && typeof document.steps === "object" ? document.steps : {};
+} catch (error) {
+  console.error(
+    `::error::e2e-lane guard: could not read the pinned steps ${PINS_FILE}: ` +
+      `${error instanceof Error ? error.message : String(error)}. Nothing can be compared with ` +
+      "nothing; this check is BLOCKED, not passed.",
+  );
+  process.exit(2);
+}
+
 /**
  * `continue-on-error` in ANY spelling that is not a literal false: `true`, the
  * string "true", or an expression whose value cannot be read here. Anything
@@ -152,6 +281,175 @@ function hidesFailure(value) {
 /** Any `if:` at all disables a step conditionally; the lane must be unconditional. */
 function isConditional(node) {
   return node && Object.prototype.hasOwnProperty.call(node, "if");
+}
+
+const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** `run` is compared after trimming AT MOST ONE trailing newline — a block scalar keeps one. */
+function normaliseStep(step) {
+  if (!isObject(step)) return step;
+  if (typeof step.run !== "string") return step;
+  return { ...step, run: step.run.endsWith("\n") ? step.run.slice(0, -1) : step.run };
+}
+
+/** Key-order-independent serialisation, so deep equality is string equality. */
+function canonical(value) {
+  return JSON.stringify(value, (_key, inner) =>
+    isObject(inner) ? Object.fromEntries(Object.keys(inner).sort().map((key) => [key, inner[key]])) : inner,
+  );
+}
+
+const pinCanon = Object.fromEntries(
+  Object.entries(pins).map(([role, body]) => [role, canonical(normaliseStep(body))]),
+);
+const isPin = (step, role) => pinCanon[role] !== undefined && canonical(normaliseStep(step)) === pinCanon[role];
+
+/** Field paths where `step` differs from the pin — one level into `env` and `with`. */
+function differences(step, pin) {
+  const out = [];
+  const a = isObject(step) ? normaliseStep(step) : {};
+  const b = isObject(pin) ? normaliseStep(pin) : {};
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if ((key === "env" || key === "with") && (isObject(a[key]) || isObject(b[key]))) {
+      const left = isObject(a[key]) ? a[key] : {};
+      const right = isObject(b[key]) ? b[key] : {};
+      for (const inner of new Set([...Object.keys(left), ...Object.keys(right)])) {
+        if (canonical(left[inner]) !== canonical(right[inner])) {
+          const state = !(inner in right) ? "not in the pin" : !(inner in left) ? "missing" : "differs";
+          out.push({ field: `${key}.${inner}`, top: key, state });
+        }
+      }
+      continue;
+    }
+    if (canonical(a[key]) !== canonical(b[key])) {
+      const state = !(key in b) ? "not in the pin" : !(key in a) ? "missing" : "differs";
+      out.push({ field: key, top: key, state });
+    }
+  }
+  return out;
+}
+
+function describeDifferences(role, diffs) {
+  const listed = diffs.map((diff) => `\`${diff.field}\` ${diff.state}`).join(", ");
+  const hints = [];
+  for (const diff of diffs) {
+    const hint = HINTS[role]?.[diff.field] ?? HINTS[role]?.[diff.top];
+    if (hint && !hints.includes(hint)) hints.push(hint);
+  }
+  return `${listed}${hints.length > 0 ? ` — ${hints.join("; ")}` : ""}`;
+}
+
+// --- the pins file itself: the invariants each pin must satisfy ------------
+//
+// The workflow must equal the pins; the pins must equal the policy. Without the
+// second half this file would move the weakness rather than remove it: a pull
+// request that changed the workflow's redaction step to `|| true` and made the
+// same change here would be deep-equal and green.
+{
+  const where = (role) => `${PINS_FILE}: the \`${role}\` pin`;
+  for (const role of Object.keys(pins)) {
+    if (!ROLE_NAMES.includes(role)) {
+      add(`${PINS_FILE} declares a pin \`${role}\` this guard has no rule for; an unread pin is not a control.`);
+    }
+  }
+  for (const { role, keys } of ROLES) {
+    const pin = pins[role];
+    if (!isObject(pin)) {
+      add(`${where(role)} is missing. Every step this guard relies on is pinned; see the file's header.`);
+      continue;
+    }
+    for (const key of Object.keys(pin)) {
+      if (!keys.includes(key)) {
+        add(`${where(role)} carries \`${key}\`, and may carry only ${keys.map((k) => `\`${k}\``).join(", ")}.`);
+      }
+    }
+    if (typeof pin.name !== "string" || pin.name.trim() === "" || pin.name.includes("${{")) {
+      add(`${where(role)} has no literal \`name\`.`);
+    }
+  }
+  const run = (role) => (isObject(pins[role]) && typeof pins[role].run === "string" ? normaliseStep(pins[role]).run : "");
+  for (const [role, command] of [
+    ["lane", LANE_COMMAND],
+    ["floor", FLOOR_COMMAND],
+    ["canary", CANARY_COMMAND],
+    ["fixture_free", FIXTURE_COMMAND],
+    ["redact", REDACT_COMMAND],
+  ]) {
+    if (isObject(pins[role]) && run(role) !== command) {
+      add(`${where(role)} runs \`${run(role)}\`, and must run exactly \`${command}\`.`);
+    }
+  }
+  if (isObject(pins.start_image) && !/\bdocker run\b/.test(run("start_image"))) {
+    add(`${where("start_image")} does not \`docker run\` the image.`);
+  }
+  if (isObject(pins.build_image) && !/^docker build\b/.test(run("build_image"))) {
+    add(`${where("build_image")} does not \`docker build\` the image.`);
+  }
+  // The lane and the canary drive the container the start step publishes.
+  const port = /--publish\s+(\d+):/.exec(run("start_image"))?.[1];
+  for (const role of ["lane", "canary"]) {
+    const pin = pins[role];
+    if (!isObject(pin)) continue;
+    const env = isObject(pin.env) ? pin.env : {};
+    const keys = Object.keys(env);
+    if (keys.length !== 1 || keys[0] !== "E2E_BASE_URL") {
+      add(`${where(role)} must set exactly one env key, \`E2E_BASE_URL\`; it sets ${JSON.stringify(keys)}.`);
+    }
+    const url = typeof env.E2E_BASE_URL === "string" ? env.E2E_BASE_URL : "";
+    if (port === undefined || !new RegExp(`^http://127\\.0\\.0\\.1:${port}$`).test(url)) {
+      add(
+        `${where(role)}'s E2E_BASE_URL (${url || "unset"}) does not match any port a \`docker run --publish\` ` +
+          "step in this job exposes; the lane may not be driving the built image.",
+      );
+    }
+  }
+  if (isObject(pins.redact)) {
+    if (pins.redact.id !== "redact") add(`${where("redact")} must have \`id: redact\`, which the upload gate names.`);
+    if (pins.redact.if !== "failure()") add(`${where("redact")} must run exactly \`if: failure()\`.`);
+  }
+  if (isObject(pins.upload)) {
+    const upload = pins.upload;
+    if (upload.uses !== UPLOAD_ACTION) add(`${where("upload")} must use \`${UPLOAD_ACTION}\`.`);
+    if (upload.if !== UPLOAD_GATE) {
+      add(`${where("upload")} is not gated on the redaction having SUCCEEDED: it must read \`if: ${UPLOAD_GATE}\`.`);
+    }
+    const inputs = isObject(upload.with) ? upload.with : {};
+    if (inputs["if-no-files-found"] !== "error") add(`${where("upload")} does not set \`if-no-files-found: error\`.`);
+    if ("include-hidden-files" in inputs) add(`${where("upload")} sets \`include-hidden-files\`; it must stay absent.`);
+    const retention = Number(inputs["retention-days"]);
+    if (!Number.isInteger(retention) || retention < 1 || retention > 3) {
+      add(`${where("upload")} sets \`retention-days: ${String(inputs["retention-days"])}\`; the ceiling is 3.`);
+    }
+    const entries = String(inputs.path ?? "")
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry !== "");
+    if (!entries.includes("test-results/")) add(`${where("upload")} no longer includes \`test-results/\`.`);
+    for (const entry of entries) {
+      if (!["test-results/", "playwright-report/results.json", "playwright-browsers.txt"].includes(entry)) {
+        add(`${where("upload")} uploads \`${entry}\`, which is not on the path allowlist.`);
+      }
+    }
+  }
+}
+
+// --- the workflow's shape: default-deny around the pinned bodies -----------
+//
+// A byte-equal body is only the same program if it runs in the same place.
+// `defaults.run.shell: bash -c '{0} || true'` discards the exit status of every
+// `run:` in the job; `defaults.run.working-directory` runs them against another
+// package.json; `container:` moves them into an image this repository does not
+// describe; a self-hosted `runs-on` brings a machine whose `~/.npmrc` and PATH
+// nobody reviewed. None of them changes a byte of any pinned step.
+const WORKFLOW_KEYS = new Set(["name", "run-name", "on", "true", "permissions", "concurrency", "jobs", "env"]);
+for (const key of Object.keys(isObject(workflow) ? workflow : {})) {
+  if (!WORKFLOW_KEYS.has(key)) {
+    add(
+      `the workflow declares \`${key}:\` at top level, which is not on this guard's allowlist ` +
+        `(${[...WORKFLOW_KEYS].filter((k) => k !== "true").join(", ")}). \`defaults:\` in particular ` +
+        "changes the shell or directory every pinned `run:` executes in without changing its bytes.",
+    );
+  }
 }
 
 const triggers = workflow?.on ?? workflow?.true; // YAML 1.1 parses bare `on:` as true
@@ -171,6 +469,7 @@ if (!triggers || typeof triggers !== "object") {
   }
 }
 
+const JOB_KEYS = new Set(["name", "runs-on", "timeout-minutes", "env", "steps"]);
 const job = workflow?.jobs?.e2e;
 if (!job) {
   add("there is no `e2e` job — the required check of that name could never run.");
@@ -181,235 +480,105 @@ if (!job) {
   if (hidesFailure(job["continue-on-error"])) {
     add("the `e2e` job sets `continue-on-error`, which hides a red lane.");
   }
+  for (const key of Object.keys(isObject(job) ? job : {})) {
+    if (!JOB_KEYS.has(key)) {
+      add(
+        `the \`e2e\` job declares \`${key}:\`, which is not on this guard's allowlist ` +
+          `(${[...JOB_KEYS].join(", ")}). \`defaults:\`, \`container:\`, \`services:\` and friends change ` +
+          "what every pinned step does without changing a byte of it.",
+      );
+    }
+  }
+  if (job["runs-on"] !== RUNNER) {
+    add(
+      `the \`e2e\` job runs on ${JSON.stringify(job["runs-on"])}; it must run on \`${RUNNER}\` ` +
+        "(ADR-009) — another runner brings its own PATH, home directory and npm configuration.",
+    );
+  }
 
   const steps = Array.isArray(job.steps) ? job.steps : [];
   if (steps.length === 0) add("the `e2e` job has no steps.");
 
-  const runOf = (step) => (typeof step?.run === "string" ? step.run.trim() : "");
-  const usesOf = (step) => (typeof step?.uses === "string" ? step.uses : "");
-
-  // (2) the lane step, matched EXACTLY.
-  const laneIndexes = steps
-    .map((step, index) => (runOf(step) === LANE_COMMAND ? index : -1))
-    .filter((index) => index >= 0);
-
-  if (laneIndexes.length === 0) {
-    const nearMiss = steps.find((step) => runOf(step).includes("e2e") || runOf(step).includes("playwright"));
-    add(
-      `no step runs the browser lane. Exactly one step's \`run\` must be \`${LANE_COMMAND}\` ` +
-        "and nothing else — a superstring such as `npm run e2e || true` launders the exit code" +
-        (nearMiss ? `. Closest step found: \`${runOf(nearMiss)}\`` : ", and deleting the step is silent") +
-        ".",
-    );
-  } else if (laneIndexes.length > 1) {
-    add(`${laneIndexes.length} steps run \`${LANE_COMMAND}\`; exactly one must.`);
+  // EXACT identification: a step IS a role only when it is deep-equal to the pin.
+  const found = {};
+  for (const role of ROLE_NAMES) {
+    found[role] = steps.map((step, index) => (isPin(step, role) ? index : -1)).filter((index) => index >= 0);
   }
 
-  const laneIndex = laneIndexes[0];
-  if (laneIndex !== undefined) {
-    const lane = steps[laneIndex];
-
-    // (3) unconditional, and its exit code counts.
-    if (isConditional(lane)) {
-      add("the browser-lane step carries an `if:`; it must run unconditionally on every pull request.");
-    }
-    if (hidesFailure(lane["continue-on-error"])) {
-      add("the browser-lane step sets `continue-on-error`, so a red lane would report success.");
-    }
-    if (typeof lane.shell === "string" && !/^(bash|sh)( |$)/.test(lane.shell.trim())) {
-      add(`the browser-lane step overrides \`shell: ${lane.shell}\`; the default shell's exit-code handling is what the lane relies on.`);
-    }
-
-    // (4) it targets the built image.
-    const baseUrl = lane.env?.E2E_BASE_URL;
-    if (typeof baseUrl !== "string" || baseUrl.trim() === "") {
-      add(
-        "the browser-lane step sets no `E2E_BASE_URL`, so the harness would start its own " +
-          "server instead of driving the built image.",
-      );
-    } else {
-      const published = steps.some((step) => {
-        const run = runOf(step);
-        if (!run.includes("docker run")) return false;
-        const port = /--publish\s+(\d+):/.exec(run)?.[1];
-        return port !== undefined && baseUrl.includes(`:${port}`);
-      });
-      if (!published) {
-        add(
-          `the browser-lane step's E2E_BASE_URL (${baseUrl}) does not match any port a ` +
-            "`docker run --publish` step in this job exposes; the lane may not be driving the built image.",
-        );
-      }
-    }
-
-    // (5) the floor step follows it.
-    const floorIndex = steps.findIndex((step) => runOf(step).includes(FLOOR_COMMAND));
-    if (floorIndex === -1) {
-      add(
-        `no step runs \`${FLOOR_COMMAND}\`. The in-process coverage floor lives in ` +
-          "playwright.config.ts, which this pull request can edit; the floor must also be " +
-          "re-checked from the finished report.",
-      );
-    } else if (floorIndex < laneIndex) {
-      add("the coverage-floor step runs BEFORE the browser lane, so it would read a stale or absent report.");
-    } else if (isConditional(steps[floorIndex]) || hidesFailure(steps[floorIndex]["continue-on-error"])) {
-      add("the coverage-floor step is conditional or continues on error.");
-    }
-
-    // (6) the image is built, proved fixture-free and started, before the lane.
-    const before = steps.slice(0, laneIndex);
-    if (!before.some((step) => runOf(step).includes("docker build"))) {
-      add("no step builds the production image before the lane runs.");
-    }
-    if (!before.some((step) => runOf(step).includes("docker run"))) {
-      add("no step starts the built image before the lane runs.");
-    }
-    if (!before.some((step) => runOf(step).includes(FIXTURE_GUARD))) {
-      add(`no step runs \`${FIXTURE_GUARD}\` before the lane, so the shipped image is not proved fixture-free.`);
+  const MISSING = {
+    build_image: "no step builds the production image exactly as pinned, before the lane runs.",
+    fixture_free:
+      "no step runs `check-no-test-fixtures-in-image.sh` exactly as pinned before the lane, so the shipped " +
+      "image is not proved fixture-free.",
+    start_image: "no step starts the built image exactly as pinned before the lane runs.",
+    lane:
+      `no step runs the browser lane. Exactly one step must be byte-equal to the pinned \`lane\` step in ` +
+      `${PINS_FILE} (\`run: ${LANE_COMMAND}\` and nothing else) — a superstring such as ` +
+      "`npm run e2e || true` launders the exit code, and deleting the step is silent.",
+    floor:
+      `no step runs \`${FLOOR_COMMAND}\` exactly as pinned. The in-process coverage floor lives in ` +
+      "playwright.config.ts, which this pull request can edit; the floor must also be re-checked from " +
+      "the finished report.",
+    canary:
+      `no step runs \`${CANARY_COMMAND}\` exactly as pinned. Without it, neutering ` +
+      "e2e/harness/browser-errors.ts while leaving its identifiers in place is silent: every other " +
+      "check in this lane stays green, because a guard that has stopped looking finds nothing to fail on.",
+    record_browsers: "no step records the browser revision exactly as pinned.",
+    redact:
+      `no step runs \`${REDACT_COMMAND}\` exactly as pinned (redact-artifacts.sh). Playwright's traces ` +
+      "carry raw query strings that e2e/harness/redact.ts cannot reach, and the page-snapshot gate lives " +
+      "in that script; uploading without it publishes both.",
+    upload: "no step uploads artifacts exactly as pinned; a red lane would be undiagnosable.",
+  };
+  for (const role of ROLE_NAMES) {
+    if (found[role].length === 0) add(MISSING[role]);
+    else if (found[role].length > 1) {
+      add(`${found[role].length} steps are byte-equal to the pinned \`${role}\` step; exactly one may be.`);
     }
   }
 
-  // (5b) THE HARNESS CANARY. Asserted the same way as the lane step — present,
-  //      exactly the documented command, unconditional, exit code not laundered
-  //      — because this is the only CI step that would notice the guard itself
-  //      being switched off.
-  const canaryIndexes = steps
-    .map((step, index) => (runOf(step) === CANARY_COMMAND ? index : -1))
-    .filter((index) => index >= 0);
-  if (canaryIndexes.length === 0) {
-    add(
-      `no step runs \`${CANARY_COMMAND}\`. Without it, neutering e2e/harness/browser-errors.ts ` +
-        "while leaving its identifiers in place is silent: every other check in this lane " +
-        "stays green, because a guard that has stopped looking finds nothing to fail on.",
-    );
-  } else if (canaryIndexes.length > 1) {
-    add(`${canaryIndexes.length} steps run \`${CANARY_COMMAND}\`; exactly one must.`);
-  } else {
-    const canaryIndex = canaryIndexes[0];
-    const canary = steps[canaryIndex];
-    if (isConditional(canary)) {
-      add(
-        "the harness-canary step carries an `if:`. A conditional self-test is one expression " +
-          "away from never running, and its absence is invisible in a green lane.",
-      );
-    }
-    if (hidesFailure(canary["continue-on-error"])) {
-      add("the harness-canary step sets `continue-on-error`, so a neutered guard would report success.");
-    }
-    if (typeof canary.shell === "string" && !/^(bash|sh)( |$)/.test(canary.shell.trim())) {
-      add(`the harness-canary step overrides \`shell: ${canary.shell}\`; its exit code is the result.`);
-    }
-    if (laneIndex !== undefined && canaryIndex < laneIndex) {
-      add("the harness-canary step runs BEFORE the browser lane; it must exercise the same running container.");
-    }
-    const canaryBaseUrl = canary.env?.E2E_BASE_URL;
-    if (typeof canaryBaseUrl !== "string" || canaryBaseUrl.trim() === "") {
-      add(
-        "the harness-canary step sets no `E2E_BASE_URL`, so it would start a server of its own " +
-          "instead of exercising the built image the lane just drove.",
-      );
-    }
-  }
-
-  // (7) artifacts: redacted, then uploaded, with a loud missing-path — and the
-  //     upload gated on the redaction having SUCCEEDED, not merely on the job
-  //     having failed. `failure()` is true whenever any earlier step failed, so
-  //     two bare `if: failure()` steps are not a sequence: a redactor that
-  //     exits non-zero (exit 2 on a missing perl/unzip/zip, exit 1 on a repack
-  //     failure) satisfies its own condition and the unredacted tree ships.
-  const redactStep = steps.find((step) => runOf(step).includes(REDACT_SCRIPT));
-  if (!redactStep) {
-    add(
-      `no step runs \`${REDACT_SCRIPT}\`. Playwright's traces carry raw query strings that ` +
-        "e2e/harness/redact.ts cannot reach; uploading them unredacted publishes signed URLs.",
-    );
-  } else {
-    if (typeof redactStep.id !== "string" || redactStep.id.trim() === "") {
-      add(
-        "the redaction step has no `id:`, so the upload step cannot be gated on whether it " +
-          "succeeded.",
-      );
-    }
-    if (hidesFailure(redactStep["continue-on-error"])) {
-      add(
-        "the redaction step sets `continue-on-error`, which would report `success` however it " +
-          "exited — the gate below would then always open.",
-      );
-    }
-  }
-  //
-  //     EVERY upload step, not the first one. This used `steps.find(...)`, and a
-  //     verifier appended a SECOND `actions/upload-artifact` step on a bare
-  //     `if: failure()` publishing the same two directories: the parser said OK.
-  //     When the redactor fails, the gated upload is skipped and the ungated one
-  //     publishes the unredacted tree — precisely the fail-open the gate closed
-  //     for the first step. The parser's value is that it answers for the whole
-  //     job, and a reader assumes it does, so it now does.
-  const uploadSteps = steps.filter((step) => UPLOADER.test(usesOf(step)));
-  const canonicalUploads = uploadSteps.filter((step) =>
-    usesOf(step).startsWith("actions/upload-artifact@"),
+  // ORDER. Each role at its first exact match.
+  const at = Object.fromEntries(ROLE_NAMES.map((role) => [role, found[role][0]]));
+  const before = (a, b, message) => {
+    if (at[a] !== undefined && at[b] !== undefined && !(at[a] < at[b])) add(message);
+  };
+  before("build_image", "lane", "the image is built AFTER the browser lane runs.");
+  before("fixture_free", "lane", "the fixture-free check runs AFTER the browser lane.");
+  before("build_image", "fixture_free", "the fixture-free check runs before the image it checks is built.");
+  before("start_image", "lane", "the container is started AFTER the browser lane runs.");
+  before("lane", "floor", "the coverage-floor step runs BEFORE the browser lane, so it would read a stale or absent report.");
+  before("lane", "canary", "the harness-canary step runs BEFORE the browser lane; it must exercise the same running container.");
+  before("lane", "redact", "the redaction step runs BEFORE the browser lane, so what the lane writes is never redacted.");
+  before("canary", "redact", "the redaction step runs BEFORE the canary, so what the canary writes is never redacted.");
+  before("floor", "redact", "the redaction step runs BEFORE the coverage-floor step.");
+  before("record_browsers", "upload", "the browser revision is recorded AFTER the upload.");
+  before(
+    "redact",
+    "upload",
+    "the artifact upload runs before the redaction step: the artifacts are uploaded BEFORE they are redacted.",
   );
-  if (canonicalUploads.length === 0) {
-    add("no step uploads artifacts; a red lane would be undiagnosable.");
+  if (at.redact !== undefined && at.upload !== undefined && at.upload !== at.redact + 1) {
+    add(
+      `the artifact upload is step ${at.upload + 1} and the redaction is step ${at.redact + 1}; the upload ` +
+        "must IMMEDIATELY follow the redaction, so nothing can write into the redacted tree between them.",
+    );
   }
-  const redactId = typeof redactStep?.id === "string" ? redactStep.id.trim() : "";
-  const gate = redactId === "" ? null : new RegExp(`steps\\.${redactId}\\.outcome\\s*==\\s*'success'`);
-  const redactIndex = redactStep ? steps.indexOf(redactStep) : -1;
 
-  uploadSteps.forEach((uploadStep) => {
-    const index = steps.indexOf(uploadStep);
-    // Named by index AND by `uses`, so a report about a second upload step says
-    // which one rather than "the artifact upload".
-    const which = `the artifact upload at step ${index + 1} (\`${usesOf(uploadStep)}\`)`;
-
-    const uploadIf = String(uploadStep.if ?? "");
-    if (!uploadIf.includes("failure()")) {
-      add(`${which} is not gated on \`failure()\`.`);
-    }
-    if (gate === null || !gate.test(uploadIf)) {
+  // Unpinned steps carry no `env` at all: default-deny. Pinned steps carry
+  // exactly their pin's, which the equality above already decided.
+  steps.forEach((step, index) => {
+    if (ROLE_NAMES.some((role) => isPin(step, role))) return;
+    if (isObject(step?.env) && Object.keys(step.env).length > 0) {
       add(
-        `${which} is not gated on the redaction having SUCCEEDED. It must read ` +
-          `\`if: failure() && steps.${redactId || "<redact-step-id>"}.outcome == 'success'\`; ` +
-          `it reads \`${uploadIf || "(nothing)"}\`. With two bare \`failure()\` conditions a ` +
-          "redactor that exits non-zero still lets the unredacted tree be published — and a " +
-          "SECOND, ungated upload step publishes it even when the first one is correctly skipped.",
-      );
-    }
-    if (hidesFailure(uploadStep["continue-on-error"])) {
-      add(`${which} sets \`continue-on-error\`, hiding a failed publish.`);
-    }
-    if (redactIndex >= 0 && index < redactIndex) {
-      add(`${which} runs before the redaction step: the artifacts are uploaded BEFORE they are redacted.`);
-    }
-  });
-
-  // Path and `if-no-files-found` are properties of `actions/upload-artifact`'s
-  // own inputs, so they are asserted on those steps only. The gate above applies
-  // to every uploader whatever its inputs are called.
-  canonicalUploads.forEach((uploadStep) => {
-    const index = steps.indexOf(uploadStep);
-    const which = `the artifact upload at step ${index + 1}`;
-    const uploadPath = String(uploadStep.with?.path ?? "");
-    // `test-results/` only. `playwright-report/` used to be required here too,
-    // and is now REFUSED by the allowlist below: its `index.html` carries a
-    // base64-embedded ZIP of the whole report dataset that no redactor in this
-    // repository can reach (FINDING 3, measured). Everything diagnostic —
-    // trace.zip, the screenshot, the video, error-context.md — is under
-    // `test-results/`, and `playwright-report/data/` was a byte-identical second
-    // copy of the same traces. An upload that carries nothing is still a defect:
-    // a red lane must publish the trace of what failed.
-    for (const wanted of ["test-results"]) {
-      if (!uploadPath.includes(wanted)) add(`${which} no longer includes \`${wanted}\`.`);
-    }
-    if (String(uploadStep.with?.["if-no-files-found"] ?? "") !== "error") {
-      add(
-        `${which} does not set \`if-no-files-found: error\`. This step only runs on ` +
-          "failure, so a wrong path would be a warning nobody ever reads.",
+        `step ${index + 1}${step?.name ? ` (${step.name})` : ""} sets \`env:\` ` +
+          `(${Object.keys(step.env).join(", ")}). A step that is not pinned may set no environment: ` +
+          "the lane guard allowlists env keys, and this step's list is empty.",
       );
     }
   });
 
-  // (8) nothing that would make the lane test the wrong thing.
+  // (8) nothing that would make the lane test the wrong thing. REFUSAL direction.
+  const runOf = (step) => (typeof step?.run === "string" ? step.run.trim() : "");
   for (const step of steps) {
     const run = runOf(step);
     if (/\b(next|npm run) dev\b/.test(run)) {
@@ -434,6 +603,58 @@ if (!job) {
   if (job.env?.VIZRA_E2E_STAMP_KEY !== undefined) {
     add("the `e2e` job sets `VIZRA_E2E_STAMP_KEY` at job level; the key is minted per run.");
   }
+}
+
+// LOOK-ALIKES, ANYWHERE IN THE WORKFLOW. A step that mentions a pinned role's
+// token and is not that role's pin is refused by name — the real step beside a
+// second, laundered copy is exactly the shape a `.find()` used to accept.
+for (const [jobId, jobNode] of Object.entries(isObject(workflow?.jobs) ? workflow.jobs : {})) {
+  const jobSteps = Array.isArray(jobNode?.steps) ? jobNode.steps : [];
+  jobSteps.forEach((step, index) => {
+    if (!isObject(step)) return;
+    // Every key and every scalar value, one per line, as the runner would read
+    // them — not JSON, whose `\n` escapes would glue a token to the letter
+    // before it and hide it from a `\b`.
+    const flatten = (node) =>
+      Array.isArray(node)
+        ? node.flatMap(flatten)
+        : isObject(node)
+          ? Object.entries(node).flatMap(([key, value]) => [key, ...flatten(value)])
+          : [String(node)];
+    const serialised = flatten(step).join("\n");
+    const claimed = new Map();
+    for (const [pattern, described, roles] of MENTIONS) {
+      if (pattern.test(serialised)) for (const role of roles) claimed.set(role, [...(claimed.get(role) ?? []), described]);
+    }
+    const uses = typeof step.uses === "string" ? step.uses.trim() : "";
+    if (uses !== "" && (uses === UPLOAD_ACTION || UPLOADER_MENTION.test(uses))) {
+      claimed.set("upload", [...(claimed.get("upload") ?? []), `the uploader \`${uses}\``]);
+    }
+    if (claimed.size === 0) return;
+    const candidates = [...claimed.keys()];
+    if (jobId === "e2e" && candidates.some((role) => isPin(step, role))) return;
+    // Report against the closest pin, so the hints are about the step the
+    // author was probably writing.
+    const ranked = candidates
+      .filter((role) => isObject(pins[role]))
+      .map((role) => [role, differences(step, pins[role])])
+      // A `uses:` step is compared with the `uses:` pin, a `run:` step with a
+      // `run:` pin, before the number of differing fields is counted.
+      .map(([role, diffs]) => [role, diffs, ("uses" in step) === ("uses" in pins[role]) ? 0 : 1])
+      .sort((a, b) => a[2] - b[2] || a[1].length - b[1].length);
+    const where = `job \`${jobId}\` step ${index + 1}${step.name ? ` (${step.name})` : ""}`;
+    const mentions = [...new Set([...claimed.values()].flat())].join(", ");
+    if (ranked.length === 0) {
+      add(`${where} mentions ${mentions}, and no pin exists to compare it with.`);
+      return;
+    }
+    const [role, diffs] = ranked[0];
+    add(
+      `${where} mentions ${mentions} but is not byte-equal to the pinned \`${role}\` step in ${PINS_FILE}` +
+        (jobId === "e2e" ? "" : " (and pinned steps belong to the `e2e` job only)") +
+        `: ${describeDifferences(role, diffs)}.`,
+    );
+  });
 }
 
 // The harness itself must keep its default-deny guard AND its runtime proof.
@@ -946,7 +1167,10 @@ for (const [jobId, jobNode] of allJobs) {
       }
     }
 
-    if (uses === "" || !UPLOADER.test(uses)) return;
+    // The upload checks below apply to the pinned uploader by EXACT identity, and
+    // — in the refusal direction only — to anything whose name looks like one. An
+    // action that is neither is already refused by the `uses:` allowlist above.
+    if (uses === "" || !(uses === UPLOAD_ACTION || UPLOADER_MENTION.test(uses))) return;
 
     const withNode = step?.with ?? {};
 
@@ -1206,7 +1430,18 @@ const PAGE_SNAPSHOT_VALUE = "1";
  * `CI` is set — so the one env key that could switch that assertion off is the
  * one this lane may never declare. GitHub sets it for every job.
  */
-const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG", "NODE_OPTIONS", "CI"]);
+const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG", "NODE_OPTIONS", "CI", "HOME"]);
+
+/**
+ * And every OTHER key is refused too: the env maps are DEFAULT-DENY. The list above
+ * exists for its named messages; this is the control. The workflow's env
+ * allowlist is empty, the job's holds the one key below, and an unpinned step's is
+ * empty (checked with the pins). A list of dangerous names is what `BASH_ENV` (a
+ * file every `bash` step sources first), `PATH` (which `npm` and `bash` are run),
+ * `HOME` (whose `.npmrc` npm reads — R3-FINDING K) or `LD_PRELOAD` would each have
+ * walked past, and every one of them changes what a byte-equal pinned body does.
+ */
+const ALLOWED_ENV = { workflow: new Set(), job: new Set(["PLAYWRIGHT_NO_COPY_PROMPT"]) };
 
 const laneJob = workflow?.jobs?.e2e;
 const workflowEnv = workflow?.env ?? {};
@@ -1226,11 +1461,34 @@ const envScopes = [
   ]),
 ];
 
+for (const [scope, env, allowed] of [
+  ["the workflow", workflowEnv, ALLOWED_ENV.workflow],
+  ["the `e2e` job", jobEnv, ALLOWED_ENV.job],
+]) {
+  for (const key of Object.keys(env && typeof env === "object" ? env : {})) {
+    if (!allowed.has(key)) {
+      add(
+        `${scope} sets \`${key}\`. Env at this scope is DEFAULT-DENY (allowed: ` +
+          `${allowed.size === 0 ? "nothing" : [...allowed].join(", ")}): \`BASH_ENV\`, \`PATH\`, \`HOME\` and ` +
+          "their kind change what every pinned step does without changing a byte of it.",
+      );
+    }
+  }
+}
+
 const snapshotSightings = [];
 for (const [scope, env] of envScopes) {
   for (const [key, value] of Object.entries(env)) {
     if (key === PAGE_SNAPSHOT_KEY) {
       snapshotSightings.push({ scope, value });
+      continue;
+    }
+    if (key === "HOME") {
+      add(
+        `${scope} sets \`HOME\`, which is refused at every scope (R3-FINDING K): npm reads ` +
+          "`$HOME/.npmrc` for every `npm run`, so a committed file under a redirected home is a " +
+          "`.npmrc` the default-deny rule for the repository's own `.npmrc` never sees.",
+      );
       continue;
     }
     const lowered = key.toLowerCase();
