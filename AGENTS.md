@@ -176,10 +176,12 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals; `PLAYWRIGHT_NO_COPY_PROMPT` set and `DEBUG`/`PWDEBUG`/other `PLAYWRIGHT_*` refused |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
-| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload — THREE programs: absolute, authority-relative (`host:port/path?q`, how Playwright writes a step subtitle) and path-relative |
+| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); and REFUSE — exit non-zero, so nothing uploads — if any file or member carries a `# Page snapshot` |
+| `npx vitest run e2e/harness/redaction-corpus.test.ts` | both redactors over one 27-entry corpus, every output byte for byte; the shell half runs the shipped script. Part of `npm run test` |
+| `node scripts/ci/check-source-hygiene.mjs` | no literal control bytes in a tracked text source, and `mutation-digests.txt` is COMPLETE (every label `demonstrate.sh` records) and matches this tree. Part of `npm run ci` |
 | `node scripts/ci/ts-source-facts.mjs` | (library) facts read from a PARSED TypeScript tree, so a comment, a string literal, `void f()` or a shadowed callee cannot satisfy a guard's check. Unit-tested in `ts-source-facts.test.mjs` |
 | `bash scripts/e2e/sweep-artifacts.sh SENTINEL DIR` | search every byte of an artifact tree for a value, with `.zip` members unpacked AND `;base64,` payloads decoded and recursed into |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
@@ -495,22 +497,45 @@ command**.
 **Covered — query strings and fragments, in the URL shapes the FOUR programs
 below match, and `Location`.** Read the list before relying on it: it is not
 "every query string in every artifact", and this section has claimed that twice.
-Both redactors carry the same four programs, and each is pinned by a test:
+
+**The two redactors are ONE program in behaviour, by construction.**
+`e2e/harness/redact.ts` (what the harness prints) and
+`scripts/ci/redact-artifacts.sh` (the bytes CI uploads) both read
+`e2e/harness/redaction-patterns.json`, and `e2e/harness/redaction-corpus.test.ts`
+runs BOTH — the shell half by executing the shipped script, as CI does — over
+one corpus of 27 inputs and checks every output **byte for byte**. The only
+difference is the replacement text (`?<redacted>` in the shell, a parameter count
+in the harness), and the corpus pins both. This used to be two hand-kept copies
+that AGENTS.md called "the same four programs"; an independent verifier showed
+they matched different shapes (PR #8, R2-FINDING C), and the round-1 shell
+script fails 26 of the corpus's 95 assertions.
 
 | Program | Matches | Example |
 |---|---|---|
-| absolute | `scheme://…`, **case-insensitively**, with optional backslash-escaped slashes | `HTTPS://h/p?q`, `{"u":"https:\/\/h/p?q"}` |
-| authority-relative | `host[:port]/path?query` — dotted host, IPv4, **bracketed IPv6**, any label with an explicit `:port`, or bare `localhost` | `host:3219/m.jpg?q`, `[::1]:3000/p?q` |
+| absolute | `scheme://…` (`http`, `https`, `ws`, `wss`, `ftp`), **case-insensitively**, including a bracketed IPv6 host | `HTTPS://h/p?q`, `http://[::1]:3000/p?q` |
 | protocol-relative | `//host[:port]/path?query` | `//host.example:8443/p?q` |
+| authority-relative | `host[:port]/path?query` — dotted host, IPv4, **bracketed IPv6 with an optional zone id** (`[fe80::1%25eth0]`), any label with an explicit `:port`, or bare `localhost` | `host:3219/m.jpg?q`, `[::1]:3000/p?q` |
 | path-relative | `/path?query` | `/m.jpg?q` |
 
-Four, not three, and case-insensitive, because an independent verifier measured
-five shapes this section named as covered and were not: `//host:8443/p?q`
-(starts at `/`), `HTTPS://h/p?q` (carries a scheme), `[::1]:3000/p?q`,
-`[2001:db8::1]/p?q`, and JSON-escaped `https:\/\/h/p?q`. **Do not widen this
-claim again without a measurement**; the price of the current width is
-deliberate over-redaction of a `1:23/foo?x=y`-shaped string, which costs
-diagnostic text and leaks nothing.
+**JSON escaping, at up to three levels.** Every slash in every program may be
+written `/`, `\/`, `\\/` or `\\\/`, and a `\uXXXX` escape may appear inside the
+URL. That covers what a slash-escaping serializer emits (PHP's `json_encode`), the
+DOUBLE-escaped form Playwright writes into `results.json` and
+`trace.zip::test.trace` when a spec prints such a string — measured through the
+real lane in demonstration **D16d** — and **`&` written as `\u0026`**, which is what
+Go's `encoding/json` does by default and therefore what vizra-core's JSON
+responses will contain. The query match stops at a bare backslash, so an escaped
+closing quote (`\"`) is left intact and the document is still valid JSON; the
+corpus asserts that for every JSON entry.
+
+**NOT covered by these programs, stated so it is not assumed:** a
+protocol-relative or authority-relative URL with **no path** (`//host?q`,
+`host:3000?q`); a single-label host with no port and no scheme
+(`intranet/p?q`); a query string split across two JSON fields or two archive
+members; a URL inside a `.png`, `.webm` or other binary member. **Do not widen
+this claim without a corpus case.** The price of the current width is deliberate
+over-redaction of a `1:23/foo?x=y`-shaped string, which costs diagnostic text and
+leaks nothing.
 
 Two layers, because they reach different bytes.
 
@@ -546,14 +571,8 @@ drops the scheme when it writes a `test.trace` step subtitle — measured in a
 probe as `"title":"Navigate","subtitle":"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=…"`
 beside a `params.url` the absolute program did catch.
 
-Both `scripts/ci/redact-artifacts.sh` and `e2e/harness/redact.ts` now carry the
-same THREE programs — absolute, authority-relative and path-relative — and the
-verifier's own reduction line redacts, including its **undotted** hostname. The
-authority is a dotted host or IPv4 literal (port optional), any label with an
-explicit `:port`, or bare `localhost`, and a path must follow immediately. The
-price is deliberate OVER-redaction of a `1:23/foo?x=y`-shaped string: that costs
-a little diagnostic text and leaks nothing, which is the right way round.
-`see step 3/4?` has no authority and no path and is untouched.
+Both redactors now handle it — they read the same programs file (above) — and
+the verifier's own reduction line redacts, including its **undotted** hostname.
 
 **AND THE ONE NOBODY HAD LOOKED AT: `playwright-report/index.html` carries a
 BASE64-EMBEDDED ZIP of the entire report, which no redactor here can reach.**
@@ -610,20 +629,59 @@ DOM text node and **every input's current value**. In the probe it is what
 captured a typed password while every recorder was off. One environment variable
 gates it (`playwright/lib/index.js:657-658`), so the `e2e` job sets
 `PLAYWRIGHT_NO_COPY_PROMPT: "1"` at job level — in CI only, so a developer still
-gets the snapshot on their own machine — and `check-e2e-lane.mjs` asserts it is
-set. The FILE is still written, and its error details are still uploaded; that is
-deliberate, and it is why the Lane-B design in the queued authenticated-lane
-slice makes the PATH the control rather than an option.
+gets the snapshot on their own machine.
+
+**What is asserted about that variable, in three layers — and "asserts it is
+set", which this paragraph used to say, was never one of them.**
+
+1. **Statically, the routes a parser can read.** `check-e2e-lane.mjs` requires the
+   key exactly once, at job level, with the literal `"1"`, and refuses it at
+   workflow and step level (a step `env:` overrides the job's, and Playwright
+   gates on truthiness, so `""` at step level restored the snapshot with the
+   guard green — round-1 FINDING 2). It also refuses the routes that rewrite the
+   environment of a LATER process: **any key in a committed `.npmrc`** (the
+   allowlist is empty — a verifier's one-line `node-options=` blanked the
+   variable inside the Playwright process with every workflow declaration still
+   reading `"1"`, R2-FINDING E), `NODE_OPTIONS`, `npm_config_*` and `CI` in any
+   env map, any reference to `$GITHUB_ENV`, `$GITHUB_PATH` or
+   `$GITHUB_STEP_SUMMARY` in the job's `run:` text or env values, and YAML merge
+   keys. That is a list of routes, and a list is not the property.
+2. **At runtime, the property itself.** `e2e/harness/ci-environment.ts` reads
+   `PLAYWRIGHT_NO_COPY_PROMPT` **inside the Playwright worker** — the process
+   whose recorder takes the snapshot — when `CI` is set: once in the
+   worker-scoped fixture before any hook or test opens a page, and again after
+   each test body before its context closes. Anything but exactly `"1"` fails
+   the run by name, whatever route changed it. Demonstrated in **D16b** (the
+   verifier's `.npmrc` line, red at both layers) and **D16c** (the environment a
+   `$GITHUB_ENV` write produces — blank, or unset — simulated, since Actions
+   cannot run here; and the inverse control, the whole lane green with the
+   variable `"1"` and `CI` set).
+3. **At the upload gate, the artifact.** `redact-artifacts.sh` refuses — exits
+   non-zero, so the gated upload publishes nothing — if ANY file or archive
+   member carries a `# Page snapshot` heading. Demonstrated in **D16a**, and the
+   heading is pinned against Playwright's own source by a unit test so a rename
+   cannot blind it.
+
+**What still gets through, named:** code that runs BEFORE the harness module
+loads (a `--require`/`--import` preload arriving by a route none of the above
+sees) and that replaces `process.env` itself, or patches Playwright's recorder,
+can make layer 2 read `"1"` while the recorder reads something else. Layer 3 does
+not depend on the variable at all, so for the page snapshot specifically it still
+holds; for every other channel the recorders write, it does not apply.
+
+The FILE `error-context.md` is still written and its error details are still
+uploaded; that is deliberate, and it is why the Lane-B design in the queued
+authenticated-lane slice makes the PATH the control rather than an option.
 
 **WHAT A RED LANE A ACTUALLY PUBLISHES, file by file.** The upload is an
 allowlist of three paths; this is what is in them and what is done to each.
 
 | Uploaded | What it carries | Redacted? |
 |---|---|---|
-| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**, screencast frames | URLs only — every other channel is **untouched** |
+| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**, screencast frames | URLs, in the shapes above — every other channel is **untouched** |
 | `test-results/**/test-failed-1.png`, `video.webm` | pixels of the rendered page | **not at all** — a byte substitution would corrupt them, and a rendered page is not a greppable string |
-| `test-results/**/error-context.md` | the error message, a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) | URLs only. Its `# Page snapshot` — the aria snapshot of the live page — is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT` |
-| `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs only. **This file is uploaded and this table did not used to name it** |
+| `test-results/**/error-context.md` | the error message, and a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) **when the failing error's stack has a readable source location** — measured present for an `expect` failing in a spec (D16d); a harness-raised browser-error failure may have none | URLs, in the shapes above. Its `# Page snapshot` is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT`, and a file that carries one anyway is **refused at the upload gate** |
+| `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs, in the shapes above — including the double-escaped form a printed slash-escaped URL becomes here (D16d). **This file is uploaded and this table did not used to name it** |
 | `playwright-browsers.txt` | `playwright install --dry-run chromium` output | nothing sensitive |
 
 `playwright-report/` itself is **not** uploaded — see the base64 paragraph above.
@@ -1001,10 +1059,17 @@ it is trusted.
   The cost is 250 ms per test: the 18-test lane went `3.2 s → 4.4 s` at the
   local worker count and `4.8 s → 6.9 s` at `--workers=2` (the CI shape, 9 tests
   per worker), and ran **20 consecutive times with 18 passed, floor OK and 18
-  stamps every time**. Both ends of the boundary are pinned by **D14**: a fault
-  at 150 ms must fail the test, and a fault at 600 ms passes — that green half
-  is the documented limit, and it goes red if the number here ever stops
-  matching the code. A spec whose page misbehaves more than about a quarter of a
+  stamps every time** — on a QUIET machine. **This table is a quiet-machine
+  measurement.** The settle is a Node timer and a page fault is a browser timer,
+  and load stretches only one of them, so under load the window WIDENS: an
+  independent verifier ran the suite at load averages of 76–92 and the 600 ms
+  fault was caught in both runs (the fail-closed direction, but a demonstration
+  whose outcome depends on load is not evidence). So **D14** now pins the RED
+  end with a fault at 150 ms that must fail the test, the LIMIT end with a fault
+  20 s after the body — past the settle and past the context's close under any
+  load, asserting only the invariant that a fault which has not fired when a
+  test's window closes is not charged to that test — and the WIDTH itself with a
+  unit test that `SETTLE_MS` is 250 and that this file says so. A spec whose page misbehaves more than about a quarter of a
   second after its own body finished is not charged to THAT test; if a later
   test in the same worker is still running it is charged to that one, and if the
   worker has finished it fails the run — but if the browser has already closed,
@@ -1059,15 +1124,24 @@ it is trusted.
   change to lanes this slice does not own. **Named here rather than implied
   closed.**
 - **A `run:` step that writes through a HELPER SCRIPT is not seen.** The
-  `$GITHUB_STEP_SUMMARY` refusal and the four `PLAYWRIGHT_NO_COPY_PROMPT`-unset
-  spellings are greps over the step's `run:` text. Measured: writing the summary
-  from an inline command — even indirectly, via a shell variable — is refused;
-  `run: bash scripts/ci/some-helper.sh`, where the helper does it, is **not**.
-  Neither is a script that computes the variable name, sources another file, or
-  writes it from a here-doc. This is the same class as the `run:`-exfiltration
-  bullet above and has the same answer: no workflow parser can close it, the
-  control is review, and the greps are named as early warnings rather than as
-  the guarantee.
+  refusals of `$GITHUB_STEP_SUMMARY`, `$GITHUB_ENV` and `$GITHUB_PATH` read the
+  job's `run:` TEXT and its env-map VALUES at workflow, job and step level — a
+  verifier reached the step summary through an env map (`S: ${{ env.
+  GITHUB_STEP_SUMMARY }}`, then `echo >> "$S"`) while this bullet said the
+  indirect form was refused, which was false; it is refused now. What is still
+  not seen: `run: bash scripts/ci/some-helper.sh` where the helper does the
+  write, a script that computes the name, sources another file, or writes from a
+  here-doc. Same class as the `run:`-exfiltration bullet above, same answer: no
+  workflow parser closes it and review is the control. **For the one variable
+  this lane depends on, it no longer matters**: `$GITHUB_ENV` blanking
+  `PLAYWRIGHT_NO_COPY_PROMPT` by any route is caught by the runtime assertion
+  inside the Playwright worker (D16c).
+- **A user-level or global `.npmrc` on the runner, and `NPM_CONFIG_*` from the
+  runner image, are not read by the lane guard.** A committed `.npmrc` is
+  default-deny, and `npm_config_userconfig` / `npm_config_globalconfig` in any
+  env map are refused; a file a `run:` step writes into the home directory is the
+  `run:` class. Any of them that blanks `PLAYWRIGHT_NO_COPY_PROMPT` is caught at
+  runtime; one that does something ELSE to every `npm run` is not caught.
 - **A stray extra Playwright config file is green, and inert.** A second
   `playwright.*.config.ts` in the tree is not refused. It can only be SELECTED by
   `--config` in a script or `PLAYWRIGHT_CONFIG` in the environment, and both of
