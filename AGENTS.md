@@ -824,15 +824,55 @@ redacted, page-controlled text is made inert, retention is 3 days, and the uploa
 scope is an allowlist rather than a derivation. Read the table above before
 deciding a red lane is safe to share.
 
-**Who can read an uploaded artifact, exactly.** `yegamble/vizra-user` is a
-**PRIVATE** repository (checked with `gh repo view --json visibility`, as are
-`vizra`, `vizra-core` and `vizra-search`), so artifacts and job logs are readable
-by its **collaborators** — everyone with access now, and anyone an owner adds
-later — and not by the public. "Not public" is not "not published": an artifact
-is a durable copy of whatever the lane saw, held by GitHub, outside this
-repository's own access controls. Retention is **3 days**
-(`check-e2e-lane.mjs` enforces the ceiling); a trace nobody downloaded in three
-days is a trace nobody needed.
+**Who can read an uploaded artifact and a job log, exactly: the repository is
+PUBLIC.** `yegamble/vizra-user` became a **public** repository on 2026-09-23
+(`gh repo view yegamble/vizra-user --json visibility` → `PUBLIC`, checked
+2026-09-23; `vizra`, `vizra-core` and `vizra-search` report `PUBLIC` too). This
+paragraph used to say that artifacts and job logs were readable only by the
+collaborators of a private repository. That is no longer true: the Actions
+artifacts and job logs of a public repository are readable by the public. Two
+retention periods apply, and they are not the same:
+
+- uploaded artifacts: **3 days** (`retention-days: 3`, a ceiling
+  `check-e2e-lane.mjs` enforces);
+- job logs: **90 days**, the repository's artifact-and-log retention setting
+  (`gh api repos/yegamble/vizra-user/actions/permissions/artifact-and-log-retention`
+  → `{"days":90}`, read 2026-09-23). Nothing in this repository shortens it, and
+  a line in a job log cannot be recalled or redacted after it is written.
+
+**What PR A's controls still guarantee for a public artifact, at their measured
+strength.** None of them depended on the repository being private, and nothing
+new is claimed here:
+
+- the upload runs only on a red lane, only after the pinned redaction step
+  succeeded, and only for the three allowlisted paths (`test-results/`,
+  `playwright-report/results.json`, `playwright-browsers.txt`).
+  `playwright-report/` itself, with its base64-embedded report archive, is not
+  uploaded, and nothing under `.vizra-e2e/` is uploaded by any workflow;
+- URL query strings and fragments are redacted in the four URL shapes above, and
+  nothing else is. Every row of the "NOT covered" table is published as
+  recorded: header values, request and response bodies, non-URL console tokens,
+  DOM snapshots and Playwright call parameters inside `trace.zip`, artifact file
+  names, screenshots and video;
+- the `# Page snapshot` section of `error-context.md` is suppressed in CI by
+  `PLAYWRIGHT_NO_COPY_PROMPT` and refused at the upload gate;
+- the traces carry no credential only because nothing in this repository
+  authenticates. That is an accident of scope, which
+  `e2e/harness/no-credentials-in-specs.test.ts` asserts as a tripwire; it is not a
+  control.
+
+**The job log is now the wider channel.** It is public for 90 days and it is not
+redacted. The `list` reporter prints a failing assertion's received value and a
+source excerpt of the spec. The `Container logs` step prints the last 200 lines
+of the production container's output as-is. Only messages the harness itself
+generates pass through `e2e/harness/redact.ts` (URL redaction, plus the CR/LF and
+leading-`::` sanitiser). Treat anything a spec, a fixture or the running image
+writes to stdout or stderr as published.
+
+"Public" changes the stakes of the hard rule above, not its content: until the
+authenticated lane lands, no spec may authenticate, fill a credential or touch a
+signed URL, because a spec that did would publish the credential to anyone, for
+up to 90 days in the log and 3 days in the artifact.
 
 When the authenticated lane lands, the first authenticating spec proves its
 coverage with `scripts/e2e/sweep-artifacts.sh`, which now performs this search
