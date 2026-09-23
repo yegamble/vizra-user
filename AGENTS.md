@@ -824,15 +824,72 @@ redacted, page-controlled text is made inert, retention is 3 days, and the uploa
 scope is an allowlist rather than a derivation. Read the table above before
 deciding a red lane is safe to share.
 
-**Who can read an uploaded artifact, exactly.** `yegamble/vizra-user` is a
-**PRIVATE** repository (checked with `gh repo view --json visibility`, as are
-`vizra`, `vizra-core` and `vizra-search`), so artifacts and job logs are readable
-by its **collaborators** — everyone with access now, and anyone an owner adds
-later — and not by the public. "Not public" is not "not published": an artifact
-is a durable copy of whatever the lane saw, held by GitHub, outside this
-repository's own access controls. Retention is **3 days**
-(`check-e2e-lane.mjs` enforces the ceiling); a trace nobody downloaded in three
-days is a trace nobody needed.
+**Who can read an uploaded artifact and a job log, exactly: the repository is
+PUBLIC.** `yegamble/vizra-user` became a **public** repository on 2026-09-23
+(`gh repo view yegamble/vizra-user --json visibility` → `PUBLIC`, checked
+2026-09-23; `vizra`, `vizra-core` and `vizra-search` report `PUBLIC` too). This
+paragraph used to say that artifacts and job logs were readable only by the
+collaborators of a private repository. That is no longer true: the Actions
+artifacts and job logs of a public repository are readable by the public.
+Retention differs by what was published. The figures below match
+`gh api repos/yegamble/vizra-user/actions/artifacts` on 2026-09-23 (59 unexpired
+artifacts):
+
+- the `e2e` lane's artifact (`playwright-artifacts-*`), as uploaded by the
+  current workflow: **3 days** (`retention-days: 3`, a ceiling
+  `check-e2e-lane.mjs` enforces);
+- the `supply-chain` scan reports (`npm-audit-*`, `trivy-image-*`, 29 of each on
+  that day): **30 days** (`retention-days: 30` in `supply-chain.yml`). They hold
+  the dependency-advisory and image-scan output, not browser artifacts;
+- **one `e2e` artifact that predates PR A:** `playwright-artifacts-35536837315-1`
+  (artifact id 10612777314, uploaded 2026-09-20 with **14-day** retention,
+  expiring 2026-10-04). It was uploaded before the upload allowlist and
+  `PLAYWRIGHT_NO_COPY_PROMPT` existed, so it contains `playwright-report/index.html`
+  with the base64-embedded report archive, `playwright-report/data/`, and four
+  `error-context.md` files carrying a `# Page snapshot`. Its content is the
+  skeleton page and is harmless, as an independent verifier found. None of PR A's
+  guarantees below apply to it. Deleting it before it expires is the owner's
+  decision;
+- job logs: **90 days**, the repository's artifact-and-log retention setting
+  (`gh api repos/yegamble/vizra-user/actions/permissions/artifact-and-log-retention`
+  → `{"days":90}`, read 2026-09-23). Nothing in this repository shortens it. A
+  line in a job log cannot be edited, and deleting a run's logs does not
+  un-publish what was already read.
+
+**What PR A's controls still guarantee for a public `e2e` artifact uploaded under
+the current workflow, at their measured strength.** None of them depended on the
+repository being private, and nothing new is claimed here:
+
+- the upload runs only on a red lane, only after the pinned redaction step
+  succeeded, and only for the three allowlisted paths (`test-results/`,
+  `playwright-report/results.json`, `playwright-browsers.txt`).
+  `playwright-report/` itself, with its base64-embedded report archive, is not
+  uploaded, and nothing under `.vizra-e2e/` is uploaded by any workflow;
+- URL query strings and fragments, in the four URL shapes above, and `Location`
+  are redacted, and nothing else is. Every row of the "NOT covered" table is published as
+  recorded: header values, request and response bodies, non-URL console tokens,
+  DOM snapshots and Playwright call parameters inside `trace.zip`, artifact file
+  names, screenshots and video;
+- the `# Page snapshot` section of `error-context.md` is suppressed in CI by
+  `PLAYWRIGHT_NO_COPY_PROMPT` and refused at the upload gate, subject to "What
+  still gets through" above;
+- the traces carry no credential only because nothing in this repository
+  authenticates. That is an accident of scope, which
+  `e2e/harness/no-credentials-in-specs.test.ts` asserts as a tripwire; it is not a
+  control.
+
+**The job log is now the wider channel.** It is public for 90 days and it is not
+redacted. The `list` reporter prints a failing assertion's received value and a
+source excerpt of the spec. The `Container logs` step prints the last 200 lines
+of the production container's output as-is. Only messages the harness itself
+generates pass through `e2e/harness/redact.ts` (URL redaction, plus the CR/LF and
+leading-`::` sanitiser). Treat anything a spec, a fixture or the running image
+writes to stdout or stderr as published.
+
+"Public" changes the stakes of the hard rule above, not its content: until the
+authenticated lane lands, no spec may authenticate, fill a credential or touch a
+signed URL, because a spec that did would publish the credential to anyone, for
+up to 90 days in the log and 3 days in the `e2e` artifact.
 
 When the authenticated lane lands, the first authenticating spec proves its
 coverage with `scripts/e2e/sweep-artifacts.sh`, which now performs this search
