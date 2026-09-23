@@ -137,6 +137,17 @@ const FLOOR_COMMAND = "node scripts/ci/check-coverage-floor-ran.mjs";
 const CANARY_COMMAND = "node scripts/ci/harness-canary.mjs";
 const FIXTURE_COMMAND = "bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e";
 /**
+ * The one pinned step whose OUTPUT is uploaded from outside the directories the
+ * redactor reads (`playwright-browsers.txt`). Asserted exactly like the other
+ * literal commands — without it, editing the pin and the workflow together to
+ * append anything to that file passed (PR #8 closing round, FINDING V-C).
+ */
+const RECORD_BROWSERS_COMMAND = [
+  "set -euo pipefail",
+  "npx playwright --version",
+  "npx playwright install --dry-run chromium | tee playwright-browsers.txt",
+].join("\n");
+/**
  * The redaction AND the page-snapshot upload gate. Both directories: `results.json`
  * is uploaded and lives in `playwright-report/`. The script itself refuses a
  * directory that does not exist (exit 3), so no argument can empty the gate.
@@ -373,6 +384,7 @@ function describeDifferences(role, diffs) {
     ["floor", FLOOR_COMMAND],
     ["canary", CANARY_COMMAND],
     ["fixture_free", FIXTURE_COMMAND],
+    ["record_browsers", RECORD_BROWSERS_COMMAND],
     ["redact", REDACT_COMMAND],
   ]) {
     if (isObject(pins[role]) && run(role) !== command) {
@@ -1063,6 +1075,25 @@ const ALLOWED_UPLOAD_PATHS = new Set([
   // step that writes it.
 ]);
 
+/**
+ * The `with:` inputs each UNPINNED allowlisted action may carry, exactly. An
+ * allowlisted action with free inputs is still a lever on every pinned step:
+ * `actions/checkout` with `ref:` elsewhere makes the byte-equal bodies run a
+ * different tree, and `persist-credentials: true` leaves a token in `.git/config`
+ * for every later step (PR #8 closing round, FINDING V-E). The upload action's
+ * inputs are pinned with its step.
+ */
+const ALLOWED_WITH = new Map([
+  ["actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", { "persist-credentials": false }],
+  [
+    "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+    { "node-version-file": ".nvmrc", cache: "npm", "cache-dependency-path": "package-lock.json" },
+  ],
+]);
+
+/** The workflow's token scope, exactly. */
+const WORKFLOW_PERMISSIONS = { contents: "read" };
+
 /** Actions this workflow may use, at the exact SHA each is pinned to. */
 const ALLOWED_USES = new Set([
   "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -1128,6 +1159,14 @@ for (const where of mergeKeyPaths(workflow, "", [])) {
   );
 }
 
+if (canonical(workflow?.permissions ?? null) !== canonical(WORKFLOW_PERMISSIONS)) {
+  add(
+    `the workflow's \`permissions:\` must be exactly ${JSON.stringify(WORKFLOW_PERMISSIONS)}; it is ` +
+      `${JSON.stringify(workflow?.permissions ?? null)}. A wider token is available to every step, ` +
+      "the unpinned ones included.",
+  );
+}
+
 const allJobs = Object.entries(workflow?.jobs ?? {});
 if (allJobs.length === 0) add("the workflow declares no jobs at all.");
 
@@ -1149,6 +1188,13 @@ for (const [jobId, jobNode] of allJobs) {
     // (b) the `uses:` allowlist. This catches `actions/cache`, composite actions,
     //     and any third-party action, pinned or not.
     const uses = typeof step?.uses === "string" ? step.uses.trim() : "";
+    if (ALLOWED_WITH.has(uses) && canonical(step?.with ?? {}) !== canonical(ALLOWED_WITH.get(uses))) {
+      add(
+        `${where} uses \`${uses}\`, and its \`with:\` must be exactly ` +
+          `${JSON.stringify(ALLOWED_WITH.get(uses))}; it is ${JSON.stringify(step?.with ?? {})}. ` +
+          "Another `ref:`, repository or path makes every pinned step run a different tree.",
+      );
+    }
     if (uses !== "" && !ALLOWED_USES.has(uses)) {
       add(
         `${where} uses \`${uses}\`, which is not on this workflow's pinned action allowlist. ` +
@@ -1357,6 +1403,31 @@ try {
             "green. Refused outright — nothing here needs a lifecycle hook.",
         );
       }
+    }
+  }
+
+  // AND THE ROOT INSTALL LIFECYCLE. npm runs these for the root package inside
+  // `npm ci` — the unpinned step before every pinned one — so a `package.json`
+  // edit here runs arbitrary shell before the lane, including a `$GITHUB_ENV`
+  // write the `run:` text scan never reads. `pree2e` was refused and these were
+  // not (PR #8 closing round, FINDING V-B). This repository declares none.
+  // `dependencies` runs after any operation that changes node_modules.
+  for (const hook of [
+    "preinstall",
+    "install",
+    "postinstall",
+    "prepublish",
+    "preprepare",
+    "prepare",
+    "postprepare",
+    "dependencies",
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(scripts, hook)) {
+      add(
+        `package.json declares \`scripts.${hook}\`, which npm runs for the root package during ` +
+          "`npm ci` — the unpinned step before every pinned one — so it can rewrite the workspace or " +
+          "write `$GITHUB_ENV` before the lane runs. Refused outright; nothing here needs one.",
+      );
     }
   }
 } catch (error) {

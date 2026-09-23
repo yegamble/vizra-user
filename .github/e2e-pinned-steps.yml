@@ -35,7 +35,8 @@
 #     role token but is not byte-equal to that pin is REFUSED by name, so the
 #     real step cannot sit beside a look-alike that launders it;
 #   * the guard asserts, on THIS file, the invariants each pin must satisfy (the
-#     exact `run:` of the lane, canary, floor and redaction; the upload's gate,
+#     exact `run:` of the lane, canary, floor, fixture check, browser-revision
+#     record and redaction; the upload's gate,
 #     paths, retention and `if-no-files-found`; the port the lane targets is the
 #     port the container publishes). Weakening a pin here is therefore a named
 #     failure too, not a way round the check;

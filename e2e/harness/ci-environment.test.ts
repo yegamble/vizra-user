@@ -138,6 +138,32 @@ describe("the capture taken at configuration load", () => {
     expect(() => assertPageSnapshotSuppressed("x", live, captured)).toThrow(PAGE_SNAPSHOT_NOT_SUPPRESSED);
   });
 
+  // PR #8 closing round, FINDING V-A. The policy used to be keyed on `CI` alone,
+  // and GitHub documents that a job CAN overwrite `CI` ("Currently you can
+  // overwrite the value of the `CI` variable"), so a pre-load route that emptied
+  // `CI` as well as the variable left the policy silent. `GITHUB_ACTIONS` is a
+  // default a job cannot overwrite through `env:` or `$GITHUB_ENV`.
+  it("V-A: applies the policy when GITHUB_ACTIONS was \"true\" at capture, even with CI emptied too", () => {
+    const captured = captureEnvironment({ CI: "", PLAYWRIGHT_NO_COPY_PROMPT: "", GITHUB_ACTIONS: "true" });
+    expect(pageSnapshotProblem(captured)).toContain(PAGE_SNAPSHOT_NOT_SUPPRESSED);
+    expect(() => assertPageSnapshotSuppressed("at worker start", { ...captured }, captured)).toThrow(
+      /PLAYWRIGHT_NO_COPY_PROMPT is not "1".*\[checked at worker start\]/s,
+    );
+  });
+
+  it("V-A: GITHUB_ACTIONS anything but \"true\" does not switch the policy on (the inverse control)", () => {
+    expect(pageSnapshotProblem({ GITHUB_ACTIONS: "false", PLAYWRIGHT_NO_COPY_PROMPT: "" })).toBeUndefined();
+    expect(pageSnapshotProblem({ GITHUB_ACTIONS: "true", PLAYWRIGHT_NO_COPY_PROMPT: "1" })).toBeUndefined();
+  });
+
+  it("V-A: a spec that deletes GITHUB_ACTIONS is a named change, restored like the other two", () => {
+    const live: Record<string, string | undefined> = { GITHUB_ACTIONS: "true", PLAYWRIGHT_NO_COPY_PROMPT: "1" };
+    const captured = captureEnvironment(live);
+    delete live.GITHUB_ACTIONS;
+    expect(takeEnvironmentChange("x", live, captured)).toContain("`GITHUB_ACTIONS`");
+    expect(live.GITHUB_ACTIONS).toBe("true");
+  });
+
   it("the capture is frozen", () => {
     const captured = captureEnvironment({ CI: "1", PLAYWRIGHT_NO_COPY_PROMPT: "1" });
     expect(Object.isFrozen(captured)).toBe(true);

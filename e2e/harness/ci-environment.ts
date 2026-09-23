@@ -85,23 +85,37 @@
  *     after recording an error and changing the variable in the same body — the
  *     snapshot is taken during that close, before the after-body check.
  *
- * The capture is only as good as the moment it was taken: code that runs BEFORE
- * the configuration loads (a `--require`/`--import` preload, `NODE_OPTIONS`) is
- * captured as if it were the job's environment. For that route the POLICY check
- * below still applies to the captured value — in CI it must be exactly "1" — and
- * the lane guard refuses every route to a preload it can read.
+ * The capture is only as good as the moment it was taken: whatever changed the
+ * environment BEFORE the configuration loads — a `$GITHUB_ENV` write, a
+ * user-level `.npmrc`, `NODE_OPTIONS`, a `--require`/`--import` preload — is
+ * captured as if it were the job's environment. Against such a route this layer
+ * holds only through the POLICY below, and only when the capture says "this is
+ * CI". It does NOT hold when the same route also makes the capture say "not CI";
+ * then layer 3 — the pinned redaction step, whose gate refuses any
+ * `# Page snapshot` — is what holds (PR #8 closing round, FINDING V-A).
  *
  * NOT AT MODULE LOAD, THE POLICY. Capturing is side-effect free; ASSERTING is not
  * done at load, because `e2e/harness/collection.test.ts` imports
  * `playwright.config.ts` inside vitest in the `frontend` lane — where `CI` is set
  * and this variable is not, because no page is ever rendered there.
  *
- * ONLY WHEN `CI` WAS SET, FOR THE POLICY. A developer running the lane locally
- * still gets the page snapshot on their own machine, where they are allowed to
- * see it. GitHub sets `CI` for every job, and the lane guard refuses the ways the
- * workflow could take it away (`CI` in any env map, `$GITHUB_ENV`, a job-level env
- * allowlist). The COMPARISON runs whether or not `CI` was set: a spec that changes
- * either variable fails locally too.
+ * ONLY IN CI, FOR THE POLICY — `CI` truthy OR `GITHUB_ACTIONS` exactly "true" at
+ * capture. A developer running the lane locally still gets the page snapshot on
+ * their own machine, where they are allowed to see it.
+ *
+ * Why two anchors. `CI` alone could be taken away before the configuration loads:
+ * GitHub's own documentation says "Currently you can overwrite the value of the
+ * `CI` variable" (Actions reference, "Variables" → "Default environment
+ * variables", and "Workflow commands" → "Setting an environment variable"), and
+ * the lane guard's `$GITHUB_ENV` refusal is a scan of `run:` text that a helper
+ * script walks past. The same pages say "You can't overwrite the value of the
+ * default environment variables named `GITHUB_*` and `RUNNER_*`", and that an
+ * `env:` assignment to a default name "is ignored" (read 2026-09-23). So a
+ * `$GITHUB_ENV` write or an env map cannot switch the policy off; an IN-PROCESS
+ * route that runs before the configuration loads (a preload, a user-level
+ * `.npmrc`'s `node-options`) still can, by deleting both — and then only layer 3
+ * holds. The COMPARISON runs whether or not either was set: a spec that changes
+ * any watched variable fails locally too.
  */
 
 export const PAGE_SNAPSHOT_KEY = "PLAYWRIGHT_NO_COPY_PROMPT";
@@ -119,12 +133,16 @@ export const PAGE_SNAPSHOT_NOT_SUPPRESSED =
   `${PAGE_SNAPSHOT_KEY} is not "${PAGE_SNAPSHOT_VALUE}" in this Playwright worker`;
 
 /** The two variables the page snapshot depends on. */
-export const WATCHED_KEYS = ["CI", PAGE_SNAPSHOT_KEY] as const;
+export const WATCHED_KEYS = ["CI", "GITHUB_ACTIONS", PAGE_SNAPSHOT_KEY] as const;
 type WatchedKey = (typeof WATCHED_KEYS)[number];
 export type CapturedEnvironment = Readonly<Record<WatchedKey, string | undefined>>;
 
 export function captureEnvironment(env: Environment = process.env): CapturedEnvironment {
-  return Object.freeze({ CI: env.CI, [PAGE_SNAPSHOT_KEY]: env[PAGE_SNAPSHOT_KEY] } as Record<
+  return Object.freeze({
+    CI: env.CI,
+    GITHUB_ACTIONS: env.GITHUB_ACTIONS,
+    [PAGE_SNAPSHOT_KEY]: env[PAGE_SNAPSHOT_KEY],
+  } as Record<
     WatchedKey,
     string | undefined
   >);
@@ -185,7 +203,7 @@ export function takeEnvironmentChange(
   });
   restoreEnvironment(changed, live, captured);
   return (
-    `${ENVIRONMENT_CHANGED}: ${described.join(", ")} [detected ${when}]. Both decide whether ` +
+    `${ENVIRONMENT_CHANGED}: ${described.join(", ")} [detected ${when}]. These decide whether ` +
     "Playwright writes an aria snapshot of the live page — every DOM text node and every input's " +
     "value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at " +
     "configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else " +
@@ -201,7 +219,11 @@ export function takeEnvironmentChange(
  * text, and the log line only needs to say that it is wrong.
  */
 export function pageSnapshotProblem(env: Environment = CAPTURED): string | undefined {
-  if (!env.CI) return undefined;
+  // In CI when EITHER was set at capture. `GITHUB_ACTIONS` is the anchor a job
+  // cannot take away: GitHub documents that `CI` CAN be overwritten, and that the
+  // `GITHUB_*` defaults cannot (see the header). An in-process route that runs
+  // before the configuration loads can still delete both.
+  if (!env.CI && env.GITHUB_ACTIONS !== "true") return undefined;
   const value = env[PAGE_SNAPSHOT_KEY];
   if (value === PAGE_SNAPSHOT_VALUE) return undefined;
   const state = value === undefined ? "it is UNSET" : "it is set to something else";

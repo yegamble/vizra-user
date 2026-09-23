@@ -1143,6 +1143,45 @@ pinned_pair_expect 1 'has no rule for' \
   's/^steps:\n/steps:\n  extra:\n    name: Extra\n    run: echo extra\n/m'
 
 # ---------------------------------------------------------------------------
+# PR #8 CLOSING ROUND (verifier V-B, V-C, V-E).
+# ---------------------------------------------------------------------------
+# V-B: npm runs the ROOT package's install lifecycle scripts inside the unpinned
+# `npm ci` step, before every pinned step. `pree2e` was refused; these were not.
+for hook in preinstall install postinstall prepublish preprepare prepare postprepare dependencies; do
+  title="V-B: a root \`$hook\` lifecycle script fails by name"
+  harness_expect 1 "scripts.$hook" package.json \
+    "s|\"dev\": \"next dev\",|\"$hook\": \"echo hello\",\n    \"dev\": \"next dev\",|"
+done
+
+title="V-B: an ordinary extra script passes (the inverse control)"
+harness_expect 0 'still drives the built image' package.json \
+  's|"dev": "next dev",|"extra-noop": "echo hello",\n    "dev": "next dev",|'
+
+# V-C: the one pinned step whose output is uploaded from OUTSIDE the redacted
+# directories had no invariant, so editing its pin and the workflow together passed.
+title="V-C: appending to playwright-browsers.txt in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 and $2 are PERL's capture groups
+pinned_pair_expect 1 'the .record_browsers. pin runs' \
+  's/^([ ]+)(npx playwright install --dry-run chromium \| tee playwright-browsers\.txt)$/$1$2\n$1uname -a >> playwright-browsers.txt/m'
+
+# V-E: the `with:` inputs of the unpinned allowlisted actions are pinned too.
+title="V-E: actions/checkout pointed at another ref fails by name"
+lane_expect 1 'actions/checkout.* .with:. must be exactly' \
+  's#^          persist-credentials: false$#&\n          ref: 0000000000000000000000000000000000000000#'
+
+title="V-E: actions/checkout persisting credentials fails by name"
+lane_expect 1 'actions/checkout.* .with:. must be exactly' \
+  's#^          persist-credentials: false$#          persist-credentials: true#'
+
+title="V-E: actions/setup-node with another node version fails by name"
+lane_expect 1 'actions/setup-node.* .with:. must be exactly' \
+  's#^          node-version-file: .nvmrc$#          node-version: "20"#'
+
+title="V-E: workflow-level permissions widened fails by name"
+lane_expect 1 'workflow.s .permissions:. must be exactly' \
+  's#^  contents: read$#  contents: write#'
+
+# ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
 #
 # The repository refuses mutable references for GitHub Actions and for the

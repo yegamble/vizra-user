@@ -176,7 +176,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check, browser-revision record and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the `with:` of `actions/checkout` and `actions/setup-node` exact, and workflow `permissions:` exactly `contents: read`; root install lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare`, `dependencies`) refused; the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
 | `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); REFUSE — exit 1, so nothing uploads — if any file or member carries a `# Page snapshot`; and REFUSE — exit 3 — a named directory that does not exist, so a mistyped or dropped argument cannot empty the gate |
@@ -415,10 +415,10 @@ the other, at either scope. That sentence was false for one round at the test
 scope, and would have become false again at the worker scope; the section above
 says how both were closed.
 
-The key is not readable from a spec. It reaches workers through the
-environment, and `e2e/harness/stamp.ts` **deletes it from `process.env` while
-the configuration is being loaded**, which in a worker happens before any test
-file is evaluated (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which
+The key is not readable from a spec **running in a worker**. It reaches workers
+through the environment, and `e2e/harness/stamp.ts` **deletes it from the
+worker's `process.env` while the configuration is being loaded**, which in a
+worker happens before any test file is evaluated (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which
 re-executes `playwright.config.ts` — before `loadTestFile`; read out of the
 installed `playwright/lib/worker/workerProcessEntry.js`, not assumed). That is
 why `playwright.config.ts` imports `./e2e/harness/test`: the import is a
@@ -427,13 +427,24 @@ is handed out **once per worker**, to the harness entry, during that same load �
 so a spec that imports `e2e/harness/stamp` and calls `claimSigner()` itself gets
 a throw. The reporter writes the key to `.vizra-e2e/stamp-key.json` only in
 `onEnd`, after the last test has finished, so the out-of-process check can
-verify it while no running spec could have read it.
+verify it while no spec running in a worker could have read it.
+
+**NOT in the main process.** `npx playwright test` collects spec files IN the
+Playwright MAIN process (`InProcessLoaderHost`, `playwright/lib/runner/index.js`),
+after the configuration has loaded — and the main process keeps the key in its
+`process.env` on purpose, because that is how forked workers inherit it. So by
+reading, a spec's MODULE SCOPE can read the key during collection. Whether that
+yields a working forgery (it would also need a channel into a worker) was not
+established, and no probe was built (verifier finding V-D, pre-existing since PR #7).
+The fix is queued for PR B; until then, read "absent" below as "absent from the
+worker".
 
 **What forging a stamp would take, stated honestly.** One of:
 
 1. recovering the 32-byte per-run key from inside a spec — it is absent from the
-   worker's environment, absent from disk while any test is running, and not
-   derivable from the report;
+   worker's environment and from disk while any test is running, and not
+   derivable from the report; it IS in the main process's environment while
+   spec files are collected there (above);
 2. importing `e2e/harness/stamp` or `e2e/harness/stamp-reporter` from a spec.
    `claimSigner()` already refuses the second claim in a worker
    (demonstration D11d), and `vizra/no-unguarded-playwright-import` refuses the
@@ -675,11 +686,20 @@ set", which this paragraph used to say, was never one of them.**
    `e2e/harness/ci-environment.ts` captures `CI` and `PLAYWRIGHT_NO_COPY_PROMPT`
    ONCE, when `playwright.config.ts` loads — in the Playwright main process before
    any spec file is collected, and in each worker before any spec file is loaded —
-   into a frozen, module-private value. Two things are then asserted. **The
-   capture must satisfy the policy**: in CI (`CI` set at capture), exactly `"1"` —
-   which is what catches a `.npmrc`, `NODE_OPTIONS` or `$GITHUB_ENV` route
-   (**D16b**, **D16c**; the inverse control, the whole lane green with the
-   variable `"1"` and `CI` set). **The live values must still equal the capture**,
+   (and `GITHUB_ACTIONS`) into a frozen, module-private value. Two things are then
+   asserted. **The capture must satisfy the policy**: in CI — `CI` truthy OR
+   `GITHUB_ACTIONS` exactly `"true"` at capture — the variable must be exactly
+   `"1"`. That catches a `.npmrc`, `NODE_OPTIONS` or `$GITHUB_ENV` route that blanks
+   the variable **only while the capture still says "CI"** (**D16b**, **D16c**; the
+   inverse control, the whole lane green with the variable `"1"` and `CI` set).
+   GitHub documents that a job CAN overwrite `CI` but CANNOT overwrite `GITHUB_*`
+   defaults through `env:` or `$GITHUB_ENV` (Actions reference, "Variables" and
+   "Workflow commands", read 2026-09-23), so a route that empties `CI` too is still
+   caught when it works through those (**D16c**'s "`CI` emptied" half, simulated).
+   An IN-PROCESS route that runs before the configuration loads — a preload, a
+   user-level `.npmrc`'s `node-options` — can delete both anchors, and then this
+   layer is silent: **layer 3 is the control that holds regardless** (verifier
+   finding V-A). **The live values must still equal the capture**,
    in CI or not: a difference — `CI` deleted counts — is RESTORED to the capture
    and then fails by name ("the page-snapshot environment was CHANGED after the
    Playwright configuration loaded"), never echoing a value.
@@ -701,7 +721,7 @@ set", which this paragraph used to say, was never one of them.**
    | in `afterEach` (or `beforeEach`, which runs inside the same window) | after the body | **prevents** — `afterEach` measured, **D17e**; `beforeEach` by the measured fixture order, not separately |
    | in the teardown of a `test.extend` fixture torn down BEFORE the harness fixture (an automatic fixture of the spec's own — the verifier's variant) | after the body | **prevents** — measured, **D17e** |
    | in `beforeAll`, or late in the previous test | before the next test, in the harness fixture's setup | **prevents** for that test's context — by construction, not separately measured |
-   | in a page event handler while the guard flushes | at the end of the harness fixture | **prevents** — by construction, not measured |
+   | in a page event handler while the guard flushes | at the end of the harness fixture | **prevents** — by construction, not measured; a handler for an event that fires during the context close itself is after that check, so it falls to the "detects only" row below |
    | in `afterAll`, or in the teardown of a fixture the harness fixture DEPENDS ON (an overridden `context` or `browser`), which Playwright tears down AFTER it | worker teardown — the run fails | **detects only** — stated from the fixture order and the recorder's source, not measured |
    | in the body, when the spec itself closes a context after recording an error | after the body | **detects only** — the snapshot is taken during that close; stated from the recorder's source, not measured |
 
@@ -723,10 +743,11 @@ set", which this paragraph used to say, was never one of them.**
 
 **What still gets through, named:** code that runs BEFORE the configuration
 loads — a `--require`/`--import` preload arriving by a route layer 1 does not see —
-is captured as if it were the job's environment; in CI the policy still refuses a
-captured value that is not `"1"`, but a preload that replaces `process.env`
-itself, or patches Playwright's recorder, can make layer 2 read `"1"` while the
-recorder reads something else. The two "detects only" rows above. And pinning a
+is captured as if it were the job's environment; while the capture says "CI" the
+policy still refuses a captured value that is not `"1"`, but such code can also
+delete `CI` and `GITHUB_ACTIONS` (layer 2 then silent), replace `process.env`
+itself, or patch Playwright's recorder so layer 2 reads `"1"` while the recorder
+reads something else. The two "detects only" rows above. And pinning a
 step fixes ITS bytes, not the bytes of the script it runs: an earlier `run:` step
 that rewrites `scripts/ci/redact-artifacts.sh` in the workspace is the `run:` class
 (§ Residuals), and review is its control. For the page snapshot, layer 3 does not
@@ -1203,23 +1224,34 @@ it is trusted.
   write, a script that computes the name, sources another file, or writes from a
   here-doc. Same class as the `run:`-exfiltration bullet above, same answer: no
   workflow parser closes it and review is the control. **For the one variable
-  this lane depends on, it no longer matters**: `$GITHUB_ENV` blanking
-  `PLAYWRIGHT_NO_COPY_PROMPT` by any route is caught by the runtime assertion
-  inside the Playwright worker (D16c).
+  this lane depends on**: a `$GITHUB_ENV` write that blanks
+  `PLAYWRIGHT_NO_COPY_PROMPT` is caught by the runtime policy inside the
+  Playwright worker while the capture says "CI" — and since `GITHUB_ACTIONS`
+  cannot be overwritten through `$GITHUB_ENV`, emptying `CI` in the same write
+  does not switch it off (D16c, simulated). It is not caught by layer 2 when an
+  in-process route deletes both anchors before the configuration loads; the
+  pinned redaction step's page-snapshot gate (layer 3) is what holds then.
 - **A user-level or global `.npmrc` on the runner, and `NPM_CONFIG_*` from the
   runner image, are not read by the lane guard.** A committed `.npmrc` is
   default-deny; `npm_config_userconfig` / `npm_config_globalconfig`, and **`HOME`**
   (whose `.npmrc` npm reads — R3-FINDING K), are refused in every env map, and env
   maps are default-deny anyway; a file a `run:` step writes into the home
-  directory is the `run:` class. Any of them that blanks
-  `PLAYWRIGHT_NO_COPY_PROMPT` before the configuration loads is caught by the
-  runtime policy check; one that does something ELSE to every `npm run` is not.
+  directory is the `run:` class. One that blanks `PLAYWRIGHT_NO_COPY_PROMPT`
+  before the configuration loads is caught by the runtime policy check ONLY while
+  the capture still says "CI" (`CI` truthy or `GITHUB_ACTIONS` "true"); an
+  npm-driven route runs in-process — `node-options` reaches `NODE_OPTIONS` — and
+  can delete both anchors, and then layer 2 is silent and the pinned redaction
+  step's page-snapshot gate (layer 3) is the control that holds. One that does
+  something ELSE to every `npm run` is not caught.
 - **Pinning a step fixes its BYTES, not what they run.** The nine steps in
   `.github/e2e-pinned-steps.yml` cannot be laundered, reordered, re-keyed or
-  duplicated in the workflow, and their environment is default-deny — but an
-  earlier `run:` step (unpinned, e.g. `npm ci`'s neighbours) that rewrites
-  `scripts/ci/redact-artifacts.sh` or `package.json` in the workspace changes
-  what a byte-equal step does. `package.json`'s `e2e*` scripts are byte-pinned too;
+  duplicated in the workflow, and their environment is default-deny; the unpinned
+  `actions/checkout` and `actions/setup-node` steps have their `with:` pinned (no
+  other `ref:`, no persisted credentials), and `npm ci`'s ROOT lifecycle scripts
+  are refused in `package.json` — but an earlier `run:` step (unpinned, e.g.
+  `npm ci`'s neighbours), or a DEPENDENCY's own install script run by `npm ci`,
+  that rewrites `scripts/ci/redact-artifacts.sh` or `package.json` in the
+  workspace changes what a byte-equal step does. `package.json`'s `e2e*` scripts are byte-pinned too;
   the scripts under `scripts/ci/` are CODEOWNERS paths. This is the `run:` class,
   and review is its control: the shapes `require-checks_test.sh` exercises are red
   by name, and the class is stated, not closed.
