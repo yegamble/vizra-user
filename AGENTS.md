@@ -457,8 +457,9 @@ worker".
 
 None of those is an accident, and every one is a named edit in the diff. The
 claim this section makes is therefore precise: **a test cannot pass without the
-harness**, and switching the harness off is a deliberate act in a file whose job
-is to be a gate — not a one-line opt-out in a spec.
+harness** — subject to the main-process note above, which is NOT CLOSED — and
+switching the harness off is a deliberate act in a file whose job is to be a
+gate — not a one-line opt-out in a spec.
 
 **Layer 2, the early warning — the ESLint rule.**
 `vizra/no-unguarded-playwright-import` is an error for **everything under
@@ -694,12 +695,17 @@ set", which this paragraph used to say, was never one of them.**
    inverse control, the whole lane green with the variable `"1"` and `CI` set).
    GitHub documents that a job CAN overwrite `CI` but CANNOT overwrite `GITHUB_*`
    defaults through `env:` or `$GITHUB_ENV` (Actions reference, "Variables" and
-   "Workflow commands", read 2026-09-23), so a route that empties `CI` too is still
-   caught when it works through those (**D16c**'s "`CI` emptied" half, simulated).
-   An IN-PROCESS route that runs before the configuration loads — a preload, a
-   user-level `.npmrc`'s `node-options` — can delete both anchors, and then this
-   layer is silent: **layer 3 is the control that holds regardless** (verifier
-   finding V-A). **The live values must still equal the capture**,
+   "Workflow commands", read 2026-09-23). So a DIRECT `env:` or `$GITHUB_ENV`
+   assignment of `CI` or `GITHUB_ACTIONS` itself cannot switch the policy off
+   (**D16c**'s "`CI` emptied" half, simulated). Anything that runs code before the
+   configuration loads CAN remove both anchors, and then this layer is silent —
+   **layer 3 is the control that holds regardless**. Three such routes, named: an
+   IN-PROCESS preload (a user-level `.npmrc`'s `node-options`, a `--require`); a
+   `BASH_ENV` written to `$GITHUB_ENV` by an earlier step or a helper it runs — not
+   a `GITHUB_*` name, and sourced by the lane step's own default `bash -e {0}`
+   before `npm run e2e` starts; and `$GITHUB_PATH`, which prepends a directory so a
+   different `npm` runs. These three were reasoned from GitHub's pages and the Bash
+   manual (`BASH_ENV`), not built (verifier findings V-A, V-A2). **The live values must still equal the capture**,
    in CI or not: a difference — `CI` deleted counts — is RESTORED to the capture
    and then fails by name ("the page-snapshot environment was CHANGED after the
    Playwright configuration loaded"), never echoing a value.
@@ -1226,11 +1232,15 @@ it is trusted.
   workflow parser closes it and review is the control. **For the one variable
   this lane depends on**: a `$GITHUB_ENV` write that blanks
   `PLAYWRIGHT_NO_COPY_PROMPT` is caught by the runtime policy inside the
-  Playwright worker while the capture says "CI" — and since `GITHUB_ACTIONS`
-  cannot be overwritten through `$GITHUB_ENV`, emptying `CI` in the same write
-  does not switch it off (D16c, simulated). It is not caught by layer 2 when an
-  in-process route deletes both anchors before the configuration loads; the
-  pinned redaction step's page-snapshot gate (layer 3) is what holds then.
+  Playwright worker while the capture says "CI"; a DIRECT `$GITHUB_ENV` assignment
+  of `CI` or `GITHUB_ACTIONS` itself cannot make it say otherwise, because
+  `GITHUB_ACTIONS` cannot be overwritten that way (D16c, simulated). A helper's
+  write can still silence layer 2 INDIRECTLY: a `BASH_ENV` written to
+  `$GITHUB_ENV` is sourced by the lane step's own shell, and a `$GITHUB_PATH` entry
+  puts a different `npm` first — either can remove both anchors before Playwright
+  starts, as can an in-process preload. Then the pinned redaction step's
+  page-snapshot gate (layer 3) is what holds. Reasoned from GitHub's pages and the
+  Bash manual, not built.
 - **A user-level or global `.npmrc` on the runner, and `NPM_CONFIG_*` from the
   runner image, are not read by the lane guard.** A committed `.npmrc` is
   default-deny; `npm_config_userconfig` / `npm_config_globalconfig`, and **`HOME`**

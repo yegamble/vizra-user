@@ -15,6 +15,6 @@ D15j test.ts RESTORED  a0650a886b4a4197a56c625d73527f70237fc74433fa8a74e5dd2c485
 D17c e2e.yml BEFORE  80206d814ff1cdb5b0b635ec260d0e40a1726530bb72e49f5843ac7f6cfe5c48  .github/workflows/e2e.yml
 D17c e2e.yml MUTATED  e98cbd0b8a1c34e2833f144675e95f171a86dbc342d92f0d0396c1026404c025  .github/workflows/e2e.yml
 D17c e2e.yml RESTORED  80206d814ff1cdb5b0b635ec260d0e40a1726530bb72e49f5843ac7f6cfe5c48  .github/workflows/e2e.yml
-D17d ci-environment.ts BEFORE  9bac8461857d9d170ec3d39450f4da7083512f4c174d57f2cd2c4c3b4e4ead85  e2e/harness/ci-environment.ts
-D17d ci-environment.ts MUTATED  7e87f9b59236cd61b8f26752e1daca891e2efab40541c1796fcbfee32fa1d99a  e2e/harness/ci-environment.ts
-D17d ci-environment.ts RESTORED  9bac8461857d9d170ec3d39450f4da7083512f4c174d57f2cd2c4c3b4e4ead85  e2e/harness/ci-environment.ts
+D17d ci-environment.ts BEFORE  cc700a6f9c27630639795d7fa0cb9465ef7e77bed50de0442300b1bc8d9d2dab  e2e/harness/ci-environment.ts
+D17d ci-environment.ts MUTATED  951695c40f2ad0da2c7a30ad6cfff796eec635d3e0c6e7c5df834f599fa3dd64  e2e/harness/ci-environment.ts
+D17d ci-environment.ts RESTORED  cc700a6f9c27630639795d7fa0cb9465ef7e77bed50de0442300b1bc8d9d2dab  e2e/harness/ci-environment.ts

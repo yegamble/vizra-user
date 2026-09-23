@@ -142,7 +142,8 @@ describe("the capture taken at configuration load", () => {
   // and GitHub documents that a job CAN overwrite `CI` ("Currently you can
   // overwrite the value of the `CI` variable"), so a pre-load route that emptied
   // `CI` as well as the variable left the policy silent. `GITHUB_ACTIONS` is a
-  // default a job cannot overwrite through `env:` or `$GITHUB_ENV`.
+  // default a job cannot overwrite by a DIRECT `env:` or `$GITHUB_ENV` assignment
+  // (a `BASH_ENV` or `$GITHUB_PATH` route can still remove it; AGENTS.md).
   it("V-A: applies the policy when GITHUB_ACTIONS was \"true\" at capture, even with CI emptied too", () => {
     const captured = captureEnvironment({ CI: "", PLAYWRIGHT_NO_COPY_PROMPT: "", GITHUB_ACTIONS: "true" });
     expect(pageSnapshotProblem(captured)).toContain(PAGE_SNAPSHOT_NOT_SUPPRESSED);

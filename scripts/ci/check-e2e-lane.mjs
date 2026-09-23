@@ -1454,8 +1454,11 @@ try {
 // user-level or global `.npmrc` on the runner, or one a `run:` step writes before
 // the lane. `npm_config_userconfig` / `npm_config_globalconfig` pointing at one are
 // refused below with every other `npm_config_*` key. For the rest, the RUNTIME
-// assertion in `e2e/harness/ci-environment.ts` reads the variable inside the
-// Playwright worker, whatever route changed it.
+// policy in `e2e/harness/ci-environment.ts` reads the variable inside the
+// Playwright worker — while the capture still says CI (`CI` or `GITHUB_ACTIONS`).
+// A route that also removes both anchors before the configuration loads leaves
+// it silent, and then the pinned redaction step's page-snapshot gate is the
+// control (AGENTS.md § Artifact privacy).
 const ALLOWED_NPMRC_KEYS = new Set();
 try {
   const npmrc = readFileSync(path.join(repoRoot, ".npmrc"), "utf8");
@@ -1511,9 +1514,9 @@ try {
 // routes a parser can read are refused one by one (the `.npmrc` allowlist above,
 // `NODE_OPTIONS` / `npm_config_*` / `CI` in every env map, `$GITHUB_ENV` and
 // `$GITHUB_PATH` below). The property itself — the value Playwright actually
-// reads — is asserted at RUNTIME, in the worker, by `e2e/harness/ci-environment.ts`,
-// and the upload gate in `redact-artifacts.sh` refuses any artifact that carries a
-// page snapshot anyway.
+// reads — is asserted at RUNTIME, in the worker, by `e2e/harness/ci-environment.ts`
+// while the capture says CI, and the upload gate in `redact-artifacts.sh` refuses
+// any artifact that carries a page snapshot regardless.
 const PAGE_SNAPSHOT_KEY = "PLAYWRIGHT_NO_COPY_PROMPT";
 const PAGE_SNAPSHOT_VALUE = "1";
 /**

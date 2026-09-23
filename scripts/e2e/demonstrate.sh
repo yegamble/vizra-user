@@ -2008,8 +2008,10 @@ half d16c-variable-blank-in-the-environment-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is 
 half d16c-variable-unset-in-the-environment-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is not" \
   -- env -u PLAYWRIGHT_NO_COPY_PROMPT CI=1 E2E_BASE_URL="$prod_url" npx playwright test
 # PR #8 closing round, FINDING V-A: the same route emptying `CI` as well. GitHub
-# documents that a job CAN overwrite `CI` and CANNOT overwrite `GITHUB_*`, so the
-# policy is also keyed on `GITHUB_ACTIONS` (simulated here, as above).
+# documents that a job CAN overwrite `CI` and CANNOT overwrite `GITHUB_*` by a
+# direct `env:` or `$GITHUB_ENV` assignment, so the policy is also keyed on
+# `GITHUB_ACTIONS` (simulated here, as above). An indirect route (`BASH_ENV`,
+# `$GITHUB_PATH`) can still remove both; layer 3 holds then (AGENTS.md).
 half d16c-variable-blank-and-CI-emptied-under-GITHUB_ACTIONS-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is not" \
   -- env CI= GITHUB_ACTIONS=true PLAYWRIGHT_NO_COPY_PROMPT= E2E_BASE_URL="$prod_url" npx playwright test
 half d16c-variable-exactly-1-with-CI-set-GREEN 0 "harness stamp: OK" \

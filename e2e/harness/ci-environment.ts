@@ -110,12 +110,16 @@
  * the lane guard's `$GITHUB_ENV` refusal is a scan of `run:` text that a helper
  * script walks past. The same pages say "You can't overwrite the value of the
  * default environment variables named `GITHUB_*` and `RUNNER_*`", and that an
- * `env:` assignment to a default name "is ignored" (read 2026-09-23). So a
- * `$GITHUB_ENV` write or an env map cannot switch the policy off; an IN-PROCESS
- * route that runs before the configuration loads (a preload, a user-level
- * `.npmrc`'s `node-options`) still can, by deleting both — and then only layer 3
- * holds. The COMPARISON runs whether or not either was set: a spec that changes
- * any watched variable fails locally too.
+ * `env:` assignment to a default name "is ignored" (read 2026-09-23). So a DIRECT
+ * `env:` or `$GITHUB_ENV` assignment of `CI` or `GITHUB_ACTIONS` itself cannot
+ * switch the policy off. Anything that runs code before the configuration loads
+ * CAN remove both, and then only layer 3 holds: an IN-PROCESS preload (a
+ * user-level `.npmrc`'s `node-options`); a `BASH_ENV` written to `$GITHUB_ENV`
+ * (not a `GITHUB_*` name), which the lane step's default `bash -e {0}` sources
+ * before `npm run e2e`; or a `$GITHUB_PATH` entry that puts a different `npm`
+ * first. Reasoned from GitHub's pages and the Bash manual, not built (verifier
+ * findings V-A, V-A2). The COMPARISON runs whether or not either was set: a spec
+ * that changes any watched variable fails locally too.
  */
 
 export const PAGE_SNAPSHOT_KEY = "PLAYWRIGHT_NO_COPY_PROMPT";
