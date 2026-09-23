@@ -52,6 +52,16 @@
 #       replaced worker-scoped guard — each red BY PHASE — plus the mutation
 #       that cuts the before-phase accounting and shows the verifier's spec
 #       going green again, and the honest inverse controls
+#   D16 ARTIFACT PRIVACY. The page snapshot, its runtime assertion, the upload
+#       gate, and a slash-escaped URL through the real lane
+#   D17 PR #8 ROUND 3. The verifier's two-line spec (`delete process.env.CI;
+#       process.env.PLAYWRIGHT_NO_COPY_PROMPT = "";`) red at lint AND at
+#       runtime with no page snapshot written; the combined R3-4 attack (that
+#       spec plus `|| true` on the redaction step) red end to end with an empty
+#       upload set; and the controlled mutation that switches the runtime
+#       comparison off and shows the snapshot coming back; and the timings after
+#       worker start (body, `afterEach`, a `test.extend` teardown), each red by
+#       name with no page snapshot written
 #
 # D6 needs Docker. Without it the demonstration is BLOCKED and says so; it is
 # never counted as a pass (meta `AGENTS.md`).
@@ -116,7 +126,8 @@ cleanup() {
     "$repo/eslint.config.no-banned-methods.mjs" \
     "$repo/playwright.config.no-stamp-reporter.ts" \
     "$repo/e2e/specs/__snapshot.spec.ts" \
-    "$repo/e2e/specs/__escaped.spec.ts"
+    "$repo/e2e/specs/__escaped.spec.ts" \
+    "$repo/e2e/specs/__envwrite.spec.ts"
   rm -rf "$repo/e2e/other"
   # D16 writes a `.npmrc` into the repository root; remove it only if D16 wrote
   # it, never one that was here before the script ran.
@@ -151,6 +162,17 @@ cleanup() {
   if [ -f "$repo/.worker-guard.ts.bak" ]; then
     cp "$repo/.worker-guard.ts.bak" "$repo/e2e/harness/worker-guard.ts"
     rm -f "$repo/.worker-guard.ts.bak"
+  fi
+  # D17 mutates the e2e workflow and the runtime check; restore both whatever
+  # happens, so an interrupted run never leaves `|| true` on the redaction step
+  # or the comparison switched off on disk.
+  if [ -f "$repo/.e2e.yml.bak" ]; then
+    cp "$repo/.e2e.yml.bak" "$repo/.github/workflows/e2e.yml"
+    rm -f "$repo/.e2e.yml.bak"
+  fi
+  if [ -f "$repo/.ci-environment.ts.bak" ]; then
+    cp "$repo/.ci-environment.ts.bak" "$repo/e2e/harness/ci-environment.ts"
+    rm -f "$repo/.ci-environment.ts.bak"
   fi
   rm -rf "$repo/.vizra-demo-userdata"
 }
@@ -2068,6 +2090,211 @@ half d16d-escaped-url-redacted-by-the-shipped-path-GREEN 0 "members containing t
   -- bash scripts/e2e/sweep-artifacts.sh "$escaped_marker" "$upload_set" host.example
 rm -rf "$upload_set"
 rm -f "$repo/e2e/specs/__escaped.spec.ts"
+
+# --- D17 PR #8 ROUND 3: the two-line spec, and all three layers at once -----
+# R3-FINDING J: two lines in a spec switched off the runtime check, because it
+# read `process.env` live and returned early when `CI` was unset. R3-4: those
+# two lines plus `|| true` on the redaction step defeated all three layers with
+# every check green, and a typed value reached the upload set in a page
+# snapshot. Now:
+#   (a) lint refuses the two lines (`vizra/no-process-env-write`);
+#   (b) at runtime, with CI=1 and the variable "1" as the job sets them, the run
+#       fails BY NAME and NO page snapshot is written - the values captured at
+#       configuration load are restored before any page exists;
+#   (c) the combined attack: the lane guard refuses the laundered redaction step
+#       (it is pinned byte-for-byte), and even with that step run as the runner
+#       would run it - verdict discarded - the upload set holds no page snapshot;
+#   (d) the controlled mutation: the runtime comparison switched off, and the
+#       same spec puts a page snapshot with the typed value back in the upload
+#       set. That red half is what makes (b) and (c) mean something.
+log "D17 — the two-line spec at lint and at runtime, the combined R3-4 attack, and the comparison switched off"
+
+# page_snapshot_count PATH... -> the number of files, and of zip archives with a
+# member, carrying Playwright's `# Page snapshot` heading line (the same literal
+# the upload gate refuses). Exit 1 when there is any. Counts and names only.
+page_snapshot_count() {
+  local n=0 target file
+  for target in "$@"; do
+    [ -e "$target" ] || continue
+    while IFS= read -r -d '' file; do
+      case "$file" in
+        *.zip)
+          if unzip -p "$file" 2> /dev/null | grep -qxF '# Page snapshot'; then
+            n=$((n + 1))
+            echo "  page snapshot inside ${file#"$repo/"}"
+          fi
+          ;;
+        *)
+          if grep -qxF '# Page snapshot' "$file"; then
+            n=$((n + 1))
+            echo "  page snapshot in ${file#"$repo/"}"
+          fi
+          ;;
+      esac
+    done < <(find "$target" -type f -print0)
+  done
+  echo "files or archives with a page-snapshot heading in the upload set: $n"
+  [ "$n" -eq 0 ]
+}
+
+env_typed=$(node -e 'process.stdout.write("vzenv" + require("crypto").randomBytes(8).toString("hex"))')
+cat > "$repo/e2e/specs/__envwrite.spec.ts" <<'ENVWRITE'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+// The verifier's two lines (PR #8, R3-FINDING J), verbatim, at module scope.
+import { expect, test } from "../harness/test";
+
+delete process.env.CI;
+process.env.PLAYWRIGHT_NO_COPY_PROMPT = "";
+
+test("the verifier's two lines, then a failing test on a page whose field holds a typed value", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const field = document.createElement("input");
+    field.setAttribute("aria-label", "demonstration field");
+    document.body.appendChild(field);
+  });
+  await page.getByLabel("demonstration field").pressSequentially(String(process.env.VZ_DEMO_TYPED));
+  expect(1, "this demonstration fails on purpose").toBe(2);
+});
+ENVWRITE
+
+# (a) the static layer.
+half d17a-two-lines-refused-by-lint-RED 1 "vizra/no-process-env-write" \
+  -- npx eslint e2e/specs/__envwrite.spec.ts
+
+# (b) the runtime layer: the WHOLE lane, as the job runs it.
+rm -rf "$repo/test-results" "$repo/playwright-report"
+half d17b-two-lines-refused-at-RUNTIME-RED 1 "page-snapshot environment was CHANGED" \
+  -- env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL="$prod_url" VZ_DEMO_TYPED="$env_typed" \
+  npx playwright test
+half d17b-no-page-snapshot-in-the-upload-set-GREEN 0 "heading in the upload set: 0" \
+  -- page_snapshot_count "$repo/test-results" "$repo/playwright-report/results.json"
+
+# (c) THE COMBINED ATTACK. The verifier's one workflow edit, applied to the real
+#     file (restored below and by the trap).
+workflow_file="$repo/.github/workflows/e2e.yml"
+cp "$workflow_file" "$repo/.e2e.yml.bak"
+digest "D17c e2e.yml BEFORE" "$workflow_file"
+perl -0pi -e 's/(\n        run: bash scripts\/ci\/redact-artifacts\.sh test-results playwright-report)\n/$1 || true\n/' "$workflow_file"
+digest "D17c e2e.yml MUTATED" "$workflow_file"
+half d17c-laundered-redaction-refused-by-the-lane-guard-RED 1 "not byte-equal to the pinned \`redact\` step" \
+  -- bash scripts/ci/check-e2e-lane.sh
+# Step 3 of R3-4, as the runner would run the laundered step: `bash -e` over the
+# step's own `run:` text, read out of the mutated workflow.
+laundered=$(node -e '
+  const { parse } = require("yaml");
+  const steps = parse(require("fs").readFileSync(process.argv[1], "utf8")).jobs.e2e.steps;
+  process.stdout.write(steps.find((step) => step.id === "redact").run);
+' "$workflow_file")
+# shellcheck disable=SC2016 # $1 expands in the inner shell, on purpose
+half d17c-laundered-redaction-step-reports-success-anyway-GREEN 0 "[exit 0]" \
+  -- bash -c 'echo "\$ bash -e -c \"$1\""; bash -e -c "$1"; rc=$?; echo "[exit $rc]"; exit "$rc"' _ "$laundered"
+half d17c-combined-attack-upload-set-has-no-page-snapshot-GREEN 0 "heading in the upload set: 0" \
+  -- page_snapshot_count "$repo/test-results" "$repo/playwright-report/results.json"
+cp "$repo/.e2e.yml.bak" "$workflow_file"
+rm -f "$repo/.e2e.yml.bak"
+digest "D17c e2e.yml RESTORED" "$workflow_file"
+
+# (d) THE CONTROLLED MUTATION. Switch the comparison off - `environmentChanges`
+#     reports nothing - and run the same spec through the whole lane again.
+env_check="$repo/e2e/harness/ci-environment.ts"
+cp "$env_check" "$repo/.ci-environment.ts.bak"
+digest "D17d ci-environment.ts BEFORE" "$env_check"
+perl -0pi -e 's/return WATCHED_KEYS\.filter\(\(key\) => live\[key\] !== captured\[key\]\);/void live; void captured; return [];/' "$env_check"
+digest "D17d ci-environment.ts MUTATED" "$env_check"
+rm -rf "$repo/test-results" "$repo/playwright-report"
+env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL="$prod_url" VZ_DEMO_TYPED="$env_typed" \
+  npx playwright test > "$evidence/d17d-comparison-switched-off-lane.log" 2>&1 || true
+node "$repo/scripts/e2e/normalise-transcript.mjs" "$evidence/d17d-comparison-switched-off-lane.log" "$repo"
+half d17d-comparison-switched-off-page-snapshot-back-RED 1 "page snapshot in" \
+  -- page_snapshot_count "$repo/test-results" "$repo/playwright-report/results.json"
+# Exit 1 when the typed value IS in an error-context.md - the leak, measured.
+# shellcheck disable=SC2016 # $1 and $2 expand in the inner shell, on purpose
+half d17d-comparison-switched-off-typed-value-in-error-context-RED 1 "error-context.md files carrying the typed value: " \
+  -- bash -c 'n=$(grep -rlF --include=error-context.md -- "$1" "$2" | wc -l | tr -d " "); echo "error-context.md files carrying the typed value: $n"; [ "$n" -eq 0 ]' _ "$env_typed" "$repo/test-results"
+# And the same mutation under the BODY timing (D17e's first case), so the
+# positive control covers a timing after worker start too.
+cat > "$repo/e2e/specs/__envwrite.spec.ts" <<'ENVWRITE_BODY'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { expect, test } from "../harness/test";
+
+test("the two lines in the body", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const field = document.createElement("input");
+    field.setAttribute("aria-label", "demonstration field");
+    document.body.appendChild(field);
+  });
+  await page.getByLabel("demonstration field").pressSequentially(String(process.env.VZ_DEMO_TYPED));
+  delete process.env.CI;
+  process.env.PLAYWRIGHT_NO_COPY_PROMPT = "";
+  expect(1, "this demonstration fails on purpose").toBe(2);
+});
+ENVWRITE_BODY
+rm -rf "$repo/test-results" "$repo/playwright-report"
+env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" VZ_DEMO_TYPED="$env_typed" \
+  npx playwright test e2e/specs/__envwrite.spec.ts --project="$project" --retries=0 > /dev/null 2>&1 || true
+half d17d-comparison-switched-off-body-timing-page-snapshot-back-RED 1 "page snapshot in" \
+  -- page_snapshot_count "$repo/test-results" "$repo/playwright-report/results.json"
+cp "$repo/.ci-environment.ts.bak" "$env_check"
+rm -f "$repo/.ci-environment.ts.bak"
+digest "D17d ci-environment.ts RESTORED" "$env_check"
+rm -f "$repo/e2e/specs/__envwrite.spec.ts"
+rm -rf "$repo/test-results" "$repo/playwright-report"
+
+# (e) THE TIMINGS AFTER WORKER START, one spec each, as AGENTS.md's table states
+#     them: the two lines in the BODY; a blank in `afterEach`; a blank in the
+#     teardown of the spec's own automatic `test.extend` fixture (the verifier's
+#     R3-3 variants f, e and g). Each must fail BY NAME and leave NO page snapshot
+#     - the capture is restored before the context closes.
+envwrite_timing() {
+  # envwrite_timing NAME SPEC_SOURCE
+  local name=$1 source=$2
+  printf '%s
+' "// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits." \
+    'import { expect, test } from "../harness/test";' "$source" > "$repo/e2e/specs/__envwrite.spec.ts"
+  rm -rf "$repo/test-results" "$repo/playwright-report"
+  half "d17e-$name-RED" 1 "page-snapshot environment was CHANGED" \
+    -- env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" VZ_DEMO_TYPED="$env_typed" \
+    npx playwright test e2e/specs/__envwrite.spec.ts --project="$project" --retries=0
+  half "d17e-$name-no-page-snapshot-GREEN" 0 "heading in the upload set: 0" \
+    -- page_snapshot_count "$repo/test-results" "$repo/playwright-report/results.json"
+}
+type_then_fail='await page.goto("/");
+  await page.evaluate(() => {
+    const field = document.createElement("input");
+    field.setAttribute("aria-label", "demonstration field");
+    document.body.appendChild(field);
+  });
+  await page.getByLabel("demonstration field").pressSequentially(String(process.env.VZ_DEMO_TYPED));'
+envwrite_timing body-two-lines "test(\"the two lines in the body\", async ({ page }) => {
+  $type_then_fail
+  delete process.env.CI;
+  process.env.PLAYWRIGHT_NO_COPY_PROMPT = \"\";
+  expect(1, \"this demonstration fails on purpose\").toBe(2);
+});"
+envwrite_timing afterEach-blank "test.afterEach(() => {
+  process.env.PLAYWRIGHT_NO_COPY_PROMPT = \"\";
+});
+test(\"a blank in afterEach\", async ({ page }) => {
+  $type_then_fail
+  expect(1, \"this demonstration fails on purpose\").toBe(2);
+});"
+envwrite_timing extend-teardown-blank "const withTeardown = test.extend<{ blankInTeardown: void }>({
+  blankInTeardown: [
+    async ({}, provide) => {
+      await provide();
+      process.env.PLAYWRIGHT_NO_COPY_PROMPT = \"\";
+    },
+    { auto: true },
+  ],
+});
+withTeardown(\"a blank in a test.extend fixture's teardown\", async ({ page }) => {
+  $type_then_fail
+  expect(1, \"this demonstration fails on purpose\").toBe(2);
+});"
+rm -f "$repo/e2e/specs/__envwrite.spec.ts"
+rm -rf "$repo/test-results" "$repo/playwright-report"
 
 printf '%s' "$digest_ledger" > "$evidence/mutation-digests.txt"
 echo "mutation digests: $evidence/mutation-digests.txt"
