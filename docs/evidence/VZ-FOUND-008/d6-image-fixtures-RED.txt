@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with-fixtures
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
@@ -12,6 +12,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/
   app/e2e/harness/browser-errors.test.ts
   app/e2e/harness/browser-errors.ts
+  app/e2e/harness/ci-environment.test.ts
+  app/e2e/harness/ci-environment.ts
   app/e2e/harness/collection.test.ts
   app/e2e/harness/coverage-reporter.ts
   app/e2e/harness/creation-guard.test.ts
@@ -20,6 +22,9 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with
   app/e2e/harness/production-build.ts
   app/e2e/harness/redact.test.ts
   app/e2e/harness/redact.ts
+  app/e2e/harness/redaction-corpus.json
+  app/e2e/harness/redaction-corpus.test.ts
+  app/e2e/harness/redaction-patterns.json
   app/e2e/harness/required-projects.json
   app/e2e/harness/required-projects.ts
   app/e2e/harness/stamp-reporter.ts

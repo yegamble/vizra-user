@@ -176,10 +176,14 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow: the lane step and the harness canary exist, run exactly their documented commands, are unconditional, target the built image; the coverage-floor step follows the lane; EVERY upload step is gated on the redaction having succeeded |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check, browser-revision record and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the `with:` of `actions/checkout` and `actions/setup-node` exact, and workflow `permissions:` exactly `contents: read`; root install lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare`, `dependencies`) refused; the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
-| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload |
+| `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); REFUSE — exit 1, so nothing uploads — if any file or member carries a `# Page snapshot`; and REFUSE — exit 3 — a named directory that does not exist, so a mistyped or dropped argument cannot empty the gate |
+| `npx vitest run e2e/harness/redaction-corpus.test.ts` | both redactors over one 42-entry corpus, every output byte for byte; the shell half runs the shipped script. Part of `npm run test` |
+| `node scripts/ci/check-source-hygiene.mjs` | no literal control bytes in a tracked text source, and `mutation-digests.txt` is COMPLETE (every label `demonstrate.sh` records) and matches this tree. Part of `npm run ci` |
+| `node scripts/ci/ts-source-facts.mjs` | (library) facts read from a PARSED TypeScript tree, so a comment, a string literal, `void f()` or a shadowed callee cannot satisfy a guard's check. Unit-tested in `ts-source-facts.test.mjs` |
+| `bash scripts/e2e/sweep-artifacts.sh SENTINEL DIR` | search every byte of an artifact tree for a value, with `.zip` members unpacked AND `;base64,` payloads decoded and recursed into |
 | `bash scripts/ci/check-no-test-fixtures-in-image.sh` | the built image contains no harness file and no fixture token (needs a built image) |
 | `bash scripts/ci/check-server-only-boundary.sh` | a Client Component importing the server-only modules fails `next build` |
 | `node scripts/check-spec-refs.mjs` | the vendored contract references nothing outside itself |
@@ -411,10 +415,10 @@ the other, at either scope. That sentence was false for one round at the test
 scope, and would have become false again at the worker scope; the section above
 says how both were closed.
 
-The key is not readable from a spec. It reaches workers through the
-environment, and `e2e/harness/stamp.ts` **deletes it from `process.env` while
-the configuration is being loaded**, which in a worker happens before any test
-file is evaluated (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which
+The key is not readable from a spec **running in a worker**. It reaches workers
+through the environment, and `e2e/harness/stamp.ts` **deletes it from the
+worker's `process.env` while the configuration is being loaded**, which in a
+worker happens before any test file is evaluated (`WorkerMain.runTestGroup` calls `_loadIfNeeded()` — which
 re-executes `playwright.config.ts` — before `loadTestFile`; read out of the
 installed `playwright/lib/worker/workerProcessEntry.js`, not assumed). That is
 why `playwright.config.ts` imports `./e2e/harness/test`: the import is a
@@ -423,13 +427,24 @@ is handed out **once per worker**, to the harness entry, during that same load �
 so a spec that imports `e2e/harness/stamp` and calls `claimSigner()` itself gets
 a throw. The reporter writes the key to `.vizra-e2e/stamp-key.json` only in
 `onEnd`, after the last test has finished, so the out-of-process check can
-verify it while no running spec could have read it.
+verify it while no spec running in a worker could have read it.
+
+**NOT in the main process.** `npx playwright test` collects spec files IN the
+Playwright MAIN process (`InProcessLoaderHost`, `playwright/lib/runner/index.js`),
+after the configuration has loaded — and the main process keeps the key in its
+`process.env` on purpose, because that is how forked workers inherit it. So by
+reading, a spec's MODULE SCOPE can read the key during collection. Whether that
+yields a working forgery (it would also need a channel into a worker) was not
+established, and no probe was built (verifier finding V-D, pre-existing since PR #7).
+The fix is queued for PR B; until then, read "absent" below as "absent from the
+worker".
 
 **What forging a stamp would take, stated honestly.** One of:
 
 1. recovering the 32-byte per-run key from inside a spec — it is absent from the
-   worker's environment, absent from disk while any test is running, and not
-   derivable from the report;
+   worker's environment and from disk while any test is running, and not
+   derivable from the report; it IS in the main process's environment while
+   spec files are collected there (above);
 2. importing `e2e/harness/stamp` or `e2e/harness/stamp-reporter` from a spec.
    `claimSigner()` already refuses the second claim in a worker
    (demonstration D11d), and `vizra/no-unguarded-playwright-import` refuses the
@@ -442,8 +457,9 @@ verify it while no running spec could have read it.
 
 None of those is an accident, and every one is a named edit in the diff. The
 claim this section makes is therefore precise: **a test cannot pass without the
-harness**, and switching the harness off is a deliberate act in a file whose job
-is to be a gate — not a one-line opt-out in a spec.
+harness** — subject to the main-process note above, which is NOT CLOSED — and
+switching the harness off is a deliberate act in a file whose job is to be a
+gate — not a one-line opt-out in a spec.
 
 **Layer 2, the early warning — the ESLint rule.**
 `vizra/no-unguarded-playwright-import` is an error for **everything under
@@ -490,10 +506,69 @@ command**.
 
 ### Artifact privacy: what is redacted, and what is NOT
 
-**Covered — query strings and fragments on URLs that carry a scheme or start at
-`/`, and `Location`.** Two layers, because they reach different bytes. Read the
-scheme-less exception below before relying on this: it is not "every query
-string in every artifact", and this section used to say that it was.
+**Covered — query strings and fragments, in the URL shapes the FOUR programs
+below match, and `Location`.** Read the list before relying on it: it is not
+"every query string in every artifact", and this section has claimed that twice.
+
+**The two redactors are ONE program in behaviour, by construction.**
+`e2e/harness/redact.ts` (what the harness prints) and
+`scripts/ci/redact-artifacts.sh` (the bytes CI uploads) both read
+`e2e/harness/redaction-patterns.json`, and `e2e/harness/redaction-corpus.test.ts`
+runs BOTH — the shell half by executing the shipped script, as CI does — over
+one corpus of 42 inputs and checks every output **byte for byte**. The only
+difference is the replacement text (`?<redacted>` in the shell, a parameter count
+in the harness), and the corpus pins both. This used to be two hand-kept copies
+that AGENTS.md called "the same four programs"; an independent verifier showed
+they matched different shapes (PR #8, R2-FINDING C), and the round-1 shell
+script fails 26 of the corpus's 95 assertions.
+
+| Program | Matches | Example |
+|---|---|---|
+| absolute | `scheme://…` (`http`, `https`, `ws`, `wss`, `ftp`), **case-insensitively**, including a bracketed IPv6 host | `HTTPS://h/p?q`, `http://[::1]:3000/p?q` |
+| protocol-relative | `//host[:port]/path?query` — which also catches a scheme the absolute program does not list, from its `:` (`s3://bucket.example/k?q`) | `//host.example:8443/p?q` |
+| authority-relative | `host[:port]/path?query` — dotted host, IPv4, **bracketed IPv6 with an optional zone id** (`[fe80::1%25eth0]`), any label with an explicit `:port`, or bare `localhost` | `host:3219/m.jpg?q`, `[::1]:3000/p?q` |
+| path-relative | `/path?query` | `/m.jpg?q` |
+
+**Where a URL may start.** The three scheme-less programs start at the beginning of
+a line, whitespace, `"`, `'`, `(`, `<`, `[`, `=`, `,`, `>`, **`:` or `;`** — so
+`url:h.example:3000/p?q`, `GET:/p?q` and `a;/p?q` are covered (R3-FINDING I). A `;`
+that ENDS an HTML-entity slash (`&#47;`, `&sol;`, `&#x2F;`) is not a start: every
+entity in a long path would otherwise begin a fresh scan to its end, which is
+quadratic (measured 25 s on a 240 KB line; a corpus test bounds it).
+
+**Encoded separators (R3-FINDING I).** A slash may be written `/`, `\/`, `\\/` or
+`\\\/` (JSON escaping, up to three levels), `\u002f` (1–3 backslashes), `\x2F`,
+`%2F`, `&#47;`, `&#x2F;` or `&sol;`; the `?` may be written `\u003f`, `\x3F` or `%3F`
+(and `#` starts a fragment, which is how `&#63;` is caught); the scheme's `:` may be
+`%3A` or `\u003a`, so a fully percent-encoded URL standing alone
+(`https%3A%2F%2Fh%2Fp%3Fq`) is covered. Any OTHER `\uXXXX` or `\xXX` escape may
+appear inside the host, the path or the query — not in place of the separators
+listed here. All of it lives once, in the `fragments` of
+`e2e/harness/redaction-patterns.json`, which both redactors expand the same way.
+That covers what a slash-escaping serializer emits (PHP's `json_encode`), the
+DOUBLE-escaped form Playwright writes into `results.json` and
+`trace.zip::test.trace` when a spec prints such a string — measured through the
+real lane in demonstration **D16d** — and **`&` written as `\u0026`**, which is what
+Go's `encoding/json` does by default and therefore what vizra-core's JSON
+responses will contain. The query match stops at a bare backslash, so an escaped
+closing quote (`\"`) is left intact and the document is still valid JSON; the
+corpus asserts that for every JSON entry.
+
+**NOT covered by these programs, stated so it is not assumed:** a
+protocol-relative or authority-relative URL with **no path** (`//host?q`,
+`host:3000?q`); a single-label host with no port and no scheme
+(`intranet/p?q`); a query string split across two JSON fields or two archive
+members, **or by a line wrap inside one field** (`…?a=1&s⏎ig=…`, or a wrap before
+the `?`); a `?` written as an HTML named entity (`&quest;`) or a `#` written
+`%23`/`\u0023`; a slash or separator escaped with four or more backslashes; a URL
+inside a `.png`, `.webm` or other binary member. A single URL longer than Perl's
+32 766-iteration limit for a repeated group is cut there by the shell redactor,
+which then redacts from a later separator — over-redaction, measured, not a leak. **Do not widen
+this claim without a corpus case.** The price of the current width is deliberate
+over-redaction of a `1:23/foo?x=y`-shaped string, which costs diagnostic text and
+leaks nothing.
+
+Two layers, because they reach different bytes.
 
 | | Covered by | What it reaches |
 |---|---|---|
@@ -510,11 +585,10 @@ and path intact. The upload is gated on
 `steps.redact.outcome == 'success'`, so a redactor that fails publishes nothing
 at all — two bare `if: failure()` conditions are not a sequence.
 
-**NOT covered: a SCHEME-LESS `host:port/path?query`, which is exactly how
-Playwright records a step subtitle.** This section previously claimed "**No URL
-query string leaves this repository, in any artifact**". That sentence is false,
-and an independent verifier reduced it to three lines against the redactor
-itself:
+**COVERED NOW: the SCHEME-LESS `host:port/path?query`, which is how Playwright
+records a step subtitle.** This section once claimed "no URL query string leaves
+this repository, in any artifact". That sentence was false, and an independent
+verifier reduced it to three lines against the redactor itself:
 
 ```
 "url":"http://host/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"        ->  ?<redacted>   OK
@@ -522,28 +596,188 @@ itself:
 "subtitle":"host:3219/m.jpg?X-Amz-Sig=SENTINELVALUE&e=60"     ->  UNCHANGED     LEAK
 ```
 
-`scripts/ci/redact-artifacts.sh`'s absolute program requires `scheme://` and its
-relative program requires the match to begin at `/`; `host:port/path?query`
-satisfies neither. Playwright drops the scheme when it writes a `test.trace` step
-subtitle, so **any `page.goto(signedUrl)` or `page.request.get(signedUrl)`
-produces one**, and the verifier measured a sentinel going 3 members → **1**
-after redaction, surviving in `test.trace`.
+The absolute program required `scheme://` and the relative program required the
+match to begin at `/`; `host:port/path?query` satisfied neither, and Playwright
+drops the scheme when it writes a `test.trace` step subtitle — measured in a
+probe as `"title":"Navigate","subtitle":"127.0.0.1:3987/media/p.jpg?X-Amz-Signature=…"`
+beside a `params.url` the absolute program did catch.
 
-**D9 does not exercise this path, and does not claim to.** Its fixture injects
-the signed URL as a *sub-resource* (`img.src = url`) and navigates to `/`; a
-sub-resource never becomes a step subtitle. The demonstration is sound for what
-it covers and blind to this.
+Both redactors now handle it — they read the same programs file (above) — and
+the verifier's own reduction line redacts, including its **undotted** hostname.
 
-**Nothing can leak today**, for the same one reason as everything else in this
-section: no spec touches a signed URL, nothing authenticates, and there is no
-vizra-core. The existing hard rule below — no spec may authenticate, fill a
-credential or touch a real signed URL until the artifact-privacy slice lands —
-is what holds the line, and it is asserted by
-`e2e/harness/no-credentials-in-specs.test.ts`. **The fix is queued with that
-slice**: a third program for authority-relative URLs (an optional `host[:port]`
-before the path), plus a second D9 fixture that reaches the sentinel through
-`page.goto()` so the subtitle path is covered by the demonstration that claims
-to cover it. Not done here.
+**AND THE ONE NOBODY HAD LOOKED AT: `playwright-report/index.html` carries a
+BASE64-EMBEDDED ZIP of the entire report, which no redactor here can reach.**
+`playwright/lib/runner/index.js:3704-3712` appends
+
+```
+<template id="playwrightReportBase64">data:application/zip;base64,…</template>
+```
+
+whose payload decodes (magic `504b0304`) to a ZIP whose members carry the error
+messages, the step titles and subtitles, and the attachment bodies.
+`redact-artifacts.sh` runs perl over `index.html` as TEXT, so it rewrites the
+plaintext and cannot touch the payload; it unpacks `*.zip` **files** only. And
+`sweep-artifacts.sh` — the script this file names as the proof — greps raw bytes
+and could not decode base64 either.
+
+Measured on a failing probe run: three planted markers — a scheme-less signed
+URL, a typed password and an assertion's received value — lived **only** inside
+that payload, a raw grep of `index.html` found **nothing**, and all three were
+**still live** after the shipped redactor reported
+`OK: redacted … 23 file(s) and 2 archive(s)`.
+
+**So every "verified end to end" redaction measurement this repository has
+recorded was made with a search blind to this file**, including the
+"239 `?<redacted>`, zero live queries" figure above and D9's "3 members → 0".
+Those numbers are true of the channels that were searched and unproven for this
+one. Two changes, and only one of them is a redactor:
+
+1. **`playwright-report/` is no longer uploaded.** The `e2e` workflow's upload
+   paths are an ALLOWLIST — `test-results/`, `playwright-report/results.json`,
+   `playwright-browsers.txt` — enforced by `check-e2e-lane.mjs` across every job
+   of the file, with globs, `${{ }}` expressions, `.` and `..` all refused.
+   Re-encoding the payload would have been a fifth URL-shape prediction after
+   four rounds; not uploading it is not a prediction. Nothing diagnostic is lost:
+   `test-results/` still holds `trace.zip`, the screenshot, the video and
+   `error-context.md`, `npx playwright show-trace test-results/<test>/trace.zip`
+   opens the trace without the report, and `playwright-report/data/` was a
+   byte-identical second copy of the same traces.
+2. **`sweep-artifacts.sh` decodes then recurses.** Every `;base64,` payload long
+   enough to be an archive is decoded and, if its magic says ZIP or gzip,
+   unpacked and searched with everything else. Verified against the probe tree:
+   the old raw grep found the marker in 1 member, the new sweep finds it in 5,
+   including `.decoded-0.bin.unzipped/…json` — the member a raw grep cannot see.
+
+**AND `error-context.md`, which no Playwright CONFIG option gates.** It is
+written by `playwright/lib/index.js:709` whenever a test has errors — measured
+still written with `trace`, `screenshot` and `video` all `"off"` — and the HTML
+reporter copies it into `playwright-report/data/`. It carries the error message,
+a `# Test source` code frame (±100 lines of `errorLocation.file`, which for an
+error raised in a helper is the **helper's** source), and a `# Page snapshot`.
+
+That last section is an `ariaSnapshot({ mode: "ai" })` of the LIVE PAGE: every
+DOM text node and **every input's current value**. In the probe it is what
+captured a typed password while every recorder was off. One environment variable
+gates it (`playwright/lib/index.js:657-658`), so the `e2e` job sets
+`PLAYWRIGHT_NO_COPY_PROMPT: "1"` at job level — in CI only, so a developer still
+gets the snapshot on their own machine.
+
+**What is asserted about that variable, in three layers — and "asserts it is
+set", which this paragraph used to say, was never one of them.**
+
+1. **Statically, the routes a parser can read.** `check-e2e-lane.mjs` requires the
+   key exactly once, at job level, with the literal `"1"`, and refuses it at
+   workflow and step level (a step `env:` overrides the job's, and Playwright
+   gates on truthiness, so `""` at step level restored the snapshot with the
+   guard green — round-1 FINDING 2). It also refuses the routes that rewrite the
+   environment of a LATER process: **any key in a committed `.npmrc`** (the
+   allowlist is empty — a verifier's one-line `node-options=` blanked the
+   variable inside the Playwright process with every workflow declaration still
+   reading `"1"`, R2-FINDING E); env maps are DEFAULT-DENY (nothing at workflow
+   level, only this key at job level, nothing on an unpinned step), with
+   `NODE_OPTIONS`, `npm_config_*`, `CI` and `HOME` also refused by name; any
+   reference to `$GITHUB_ENV`, `$GITHUB_PATH` or `$GITHUB_STEP_SUMMARY` in the
+   job's `run:` text or env values; `defaults:`; and YAML merge keys. In the specs,
+   **`vizra/no-process-env-write`** refuses any use of `process.env` in
+   `e2e/**` (outside `e2e/harness/**`) other than reading one member — the
+   verifier's `delete process.env.CI; process.env.PLAYWRIGHT_NO_COPY_PROMPT = "";`
+   is two lint errors (**D17a**). That is a list of routes and a lint rule, and
+   neither is the property.
+2. **At runtime, the property itself — captured, compared, RESTORED.**
+   `e2e/harness/ci-environment.ts` captures `CI` and `PLAYWRIGHT_NO_COPY_PROMPT`
+   ONCE, when `playwright.config.ts` loads — in the Playwright main process before
+   any spec file is collected, and in each worker before any spec file is loaded —
+   (and `GITHUB_ACTIONS`) into a frozen, module-private value. Two things are then
+   asserted. **The capture must satisfy the policy**: in CI — `CI` truthy OR
+   `GITHUB_ACTIONS` exactly `"true"` at capture — the variable must be exactly
+   `"1"`. That catches a `.npmrc`, `NODE_OPTIONS` or `$GITHUB_ENV` route that blanks
+   the variable **only while the capture still says "CI"** (**D16b**, **D16c**; the
+   inverse control, the whole lane green with the variable `"1"` and `CI` set).
+   GitHub documents that a job CAN overwrite `CI` but CANNOT overwrite `GITHUB_*`
+   defaults through `env:` or `$GITHUB_ENV` (Actions reference, "Variables" and
+   "Workflow commands", read 2026-09-23). So a DIRECT `env:` or `$GITHUB_ENV`
+   assignment of `CI` or `GITHUB_ACTIONS` itself cannot switch the policy off
+   (**D16c**'s "`CI` emptied" half, simulated). Anything that runs code before the
+   configuration loads CAN remove both anchors, and then this layer is silent —
+   **layer 3 is the control that holds regardless**. Three such routes, named: an
+   IN-PROCESS preload (a user-level `.npmrc`'s `node-options`, a `--require`); a
+   `BASH_ENV` written to `$GITHUB_ENV` by an earlier step or a helper it runs — not
+   a `GITHUB_*` name, and sourced by the lane step's own default `bash -e {0}`
+   before `npm run e2e` starts; and `$GITHUB_PATH`, which prepends a directory so a
+   different `npm` runs. These three were reasoned from GitHub's pages and the Bash
+   manual (`BASH_ENV`), not built (verifier findings V-A, V-A2). **The live values must still equal the capture**,
+   in CI or not: a difference — `CI` deleted counts — is RESTORED to the capture
+   and then fails by name ("the page-snapshot environment was CHANGED after the
+   Playwright configuration loaded"), never echoing a value.
+
+   This used to read the live environment and return early when `CI` was unset,
+   so the two lines above switched it off (R3-FINDING J), and this paragraph
+   claimed it caught a change "whatever route changed it". What it does now, by
+   WHEN the spec makes the change. **PREVENTS** means the capture is restored
+   before Playwright reads the variable as the context closes
+   (`playwright/lib/index.js:655-658`), so no page snapshot is written. **DETECTS**
+   means the run fails by name but a snapshot may already be on disk in
+   `test-results/`, and only layer 3 keeps it off the runner.
+
+   | The spec changes either variable… | Caught | Result |
+   |---|---|---|
+   | at MODULE SCOPE — run in the main process during collection | the stamp reporter's `onBegin`, before any worker is forked (workers inherit the restored environment) | **prevents** — measured, **D17b** |
+   | at module scope — run again when a worker loads the file | worker start, before any hook or test | **prevents** — measured, **D17b** |
+   | in the test BODY | after the body, before the context closes | **prevents** — measured, **D17e** |
+   | in `afterEach` (or `beforeEach`, which runs inside the same window) | after the body | **prevents** — `afterEach` measured, **D17e**; `beforeEach` by the measured fixture order, not separately |
+   | in the teardown of a `test.extend` fixture torn down BEFORE the harness fixture (an automatic fixture of the spec's own — the verifier's variant) | after the body | **prevents** — measured, **D17e** |
+   | in `beforeAll`, or late in the previous test | before the next test, in the harness fixture's setup | **prevents** for that test's context — by construction, not separately measured |
+   | in a page event handler while the guard flushes | at the end of the harness fixture | **prevents** — by construction, not measured; a handler for an event that fires during the context close itself is after that check, so it falls to the "detects only" row below |
+   | in `afterAll`, or in the teardown of a fixture the harness fixture DEPENDS ON (an overridden `context` or `browser`), which Playwright tears down AFTER it | worker teardown — the run fails | **detects only** — stated from the fixture order and the recorder's source, not measured |
+   | in the body, when the spec itself closes a context after recording an error | after the body | **detects only** — the snapshot is taken during that close; stated from the recorder's source, not measured |
+
+3. **At the upload gate, the artifact — and the step that runs it is pinned.**
+   `redact-artifacts.sh` refuses — exit 1 — if ANY file or archive member
+   carries a `# Page snapshot` heading line, and exit 3 if a directory it was
+   given does not exist. The upload is gated on that step's success, and since
+   R3-FINDING H **the step is byte-equal to its pin**: its verdict cannot be
+   discarded (`|| true`, `; exit 0`, `set +e`), its directories cannot be
+   mistyped, dropped or replaced (`/tmp/empty`), and a step that merely NAMES the
+   script (`echo redact-artifacts.sh`) is refused — each of the verifier's eight
+   spellings is red by name in `require-checks_test.sh`. Demonstrated in **D16a**,
+   and end to end in **D17c**: the verifier's combined attack (the two-line spec
+   plus `|| true` on this step) is refused by the lane guard, the lane fails by
+   name, and even with the laundered step run as the runner would run it, the
+   upload set holds **no** page snapshot. **D17d** switches the comparison off and
+   shows the snapshot, with the typed value, coming back. The heading is pinned
+   against Playwright's own source by a unit test, so a rename cannot blind it.
+
+**What still gets through, named:** code that runs BEFORE the configuration
+loads — a `--require`/`--import` preload arriving by a route layer 1 does not see —
+is captured as if it were the job's environment; while the capture says "CI" the
+policy still refuses a captured value that is not `"1"`, but such code can also
+delete `CI` and `GITHUB_ACTIONS` (layer 2 then silent), replace `process.env`
+itself, or patch Playwright's recorder so layer 2 reads `"1"` while the recorder
+reads something else. The two "detects only" rows above. And pinning a
+step fixes ITS bytes, not the bytes of the script it runs: an earlier `run:` step
+that rewrites `scripts/ci/redact-artifacts.sh` in the workspace is the `run:` class
+(§ Residuals), and review is its control. For the page snapshot, layer 3 does not
+depend on the variable, and its step can no longer be rewritten unseen in the
+workflow; for every other channel the recorders write, it does not apply.
+
+The FILE `error-context.md` is still written and its error details are still
+uploaded; that is deliberate, and it is why the Lane-B design in the queued
+authenticated-lane slice makes the PATH the control rather than an option.
+
+**WHAT A RED LANE A ACTUALLY PUBLISHES, file by file.** The upload is an
+allowlist of three paths; this is what is in them and what is done to each.
+
+| Uploaded | What it carries | Redacted? |
+|---|---|---|
+| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**, screencast frames | URLs, in the shapes above — every other channel is **untouched** |
+| `test-results/**/test-failed-1.png`, `video.webm` | pixels of the rendered page | **not at all** — a byte substitution would corrupt them, and a rendered page is not a greppable string |
+| `test-results/**/error-context.md` | the error message, and a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) **when the failing error's stack has a readable source location** — measured present for an `expect` failing in a spec (D16d); a harness-raised browser-error failure may have none | URLs, in the shapes above. Its `# Page snapshot` is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT`, and a file that carries one anyway is **refused at the upload gate** |
+| `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs, in the shapes above — including the double-escaped form a printed slash-escaped URL becomes here (D16d). **This file is uploaded and this table did not used to name it** |
+| `playwright-browsers.txt` | `playwright install --dry-run chromium` output | nothing sensitive |
+
+`playwright-report/` itself is **not** uploaded — see the base64 paragraph above.
+Nothing under `.vizra-e2e/` is uploaded, by any workflow, and the lane guard
+sweeps every workflow file for that name.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -566,21 +800,43 @@ Earlier wording here offered "keeping origin, path, **headers** and timings
 readable" as a feature. Headers are the uncovered channel; that sentence is
 gone.
 
-**The rule that follows, and it is a hard line.** Until the artifact-privacy
-slice lands (header, body, DOM and call-parameter redaction — its own slice, not
-this one): **no spec may authenticate, fill a credential, or touch a real signed
-URL.** The traces are safe today for exactly one reason — nothing in this
-repository authenticates: there is no vizra-core, no session cookie and no
-signed URL. That is an accident of scope, not a control, so
+**The rule that follows, and it is still a hard line.** Until the authenticated
+lane lands (its own slice: a Playwright invocation whose projects record no
+trace, screenshot or video, whose output directory is in no upload path, and
+whose only artifact is a structured summary): **no spec may authenticate, fill a
+credential, or touch a real signed URL.** The traces are safe today for exactly
+one reason — nothing in this repository authenticates: there is no vizra-core, no
+session cookie and no signed URL. That is an accident of scope, not a control, so
 `e2e/harness/no-credentials-in-specs.test.ts` asserts it in the `frontend` lane:
 `addCookies`, `storageState`, `setExtraHTTPHeaders`, `httpCredentials`,
-`Authorization`, `Bearer`, `Set-Cookie`, `.fill(`, credential-shaped
-identifiers and signed-URL shapes are all refused in `e2e/specs/**` and
-`e2e/demos/**`, with one allow-list entry — D9's sentinel — carrying a written
-reason. A slice that needs to log in lands the privacy slice first, or waits.
+`Authorization`, `Bearer`, `Set-Cookie`, `.fill(`, credential-shaped identifiers
+and signed-URL shapes are all refused in `e2e/specs/**` and `e2e/demos/**`, with
+one allow-list entry — D9's sentinel — carrying a written reason. A slice that
+needs to log in lands the authenticated lane first, or waits.
 
-When that slice lands, the first authenticating spec proves its coverage with
-`scripts/e2e/sweep-artifacts.sh`, which already performs exactly this search.
+**This slice narrowed what a red lane publishes; it did NOT lift that rule, and
+must not be read as having done so.** Uncovered channels remain uncovered: header
+values, request and response bodies, DOM snapshots inside the trace, Playwright
+call parameters, and artifact file names all still survive into `test-results/`
+and are still uploaded. What changed is that the base64 report copy is no longer
+published, the page snapshot is suppressed in CI, the scheme-less URL form is
+redacted, page-controlled text is made inert, retention is 3 days, and the upload
+scope is an allowlist rather than a derivation. Read the table above before
+deciding a red lane is safe to share.
+
+**Who can read an uploaded artifact, exactly.** `yegamble/vizra-user` is a
+**PRIVATE** repository (checked with `gh repo view --json visibility`, as are
+`vizra`, `vizra-core` and `vizra-search`), so artifacts and job logs are readable
+by its **collaborators** — everyone with access now, and anyone an owner adds
+later — and not by the public. "Not public" is not "not published": an artifact
+is a durable copy of whatever the lane saw, held by GitHub, outside this
+repository's own access controls. Retention is **3 days**
+(`check-e2e-lane.mjs` enforces the ceiling); a trace nobody downloaded in three
+days is a trace nobody needed.
+
+When the authenticated lane lands, the first authenticating spec proves its
+coverage with `scripts/e2e/sweep-artifacts.sh`, which now performs this search
+with base64 payloads decoded and recursed into.
 
 The first push of this harness committed a Next HMR URL with an opaque `?id=`
 into the evidence and the secret scanner flagged it; that is what started all
@@ -660,10 +916,11 @@ Per-fixture and not merely a count, because the other sharp case needs it too:
 with the `response` listener neutered the 404 fixture still fails, on the console
 error the 404 also produces, so a canary that counted failures would pass. Four
 browser launches, about six seconds (measured `real 5.77` on this machine).
-`check-e2e-lane.mjs` asserts the step
-exists, runs exactly that command, is unconditional, does not
-`continue-on-error` and drives the container; `require-checks_test.sh` drives
-all of that against mutated workflows.
+`check-e2e-lane.mjs` requires the step
+to be BYTE-EQUAL to its pin in `.github/e2e-pinned-steps.yml` — exactly that
+command, the container's URL, no `if:`, no `continue-on-error`, no other key —
+after the lane; `require-checks_test.sh` drives all of that against mutated
+workflows.
 
 **THE CANARY NOW COVERS ALL FOUR GUARDED SIGNAL KINDS, and the fourth was
 missing.** For one round there was no `requestfailed` fixture — the three
@@ -685,13 +942,18 @@ redaction) are deliberately NOT in the canary: they need a second image build, a
 development server, or are already asserted by cheap checks in other lanes. The
 canary is the smallest thing that would have caught the silent case.
 
-**Every artifact-upload step is checked, not the first one.** The parser used
-`steps.find(...)`, so a SECOND `actions/upload-artifact` step on a bare
-`if: failure()` passed — and when the redactor fails, the gated upload is
-skipped while the ungated one publishes the unredacted tree. It is now
-`filter`, every uploader must carry `failure() && steps.redact.outcome ==
-'success'`, and an uploader whose action is *not* `actions/upload-artifact` is
-recognised as one rather than ignored.
+**The upload is ONE pinned step, and every other uploader is refused.** The
+parser once used `steps.find(...)`, so a SECOND `actions/upload-artifact` step on a
+bare `if: failure()` passed — and when the redactor fails, the gated upload is
+skipped while the ungated one publishes the unredacted tree. It then became a
+`filter` over every uploader. Since PR #8 round 3 (R3-FINDING H) the upload is
+pinned byte-for-byte like every step the guard relies on: exactly one step
+deep-equal to the `upload` pin, IMMEDIATELY after the pinned redaction step, and
+any other step whose `uses:` looks like an uploader — `actions/upload-artifact`
+or not — is refused as a look-alike, even when it carries the right gate. (That
+last case was a GREEN control until this round; it is red on purpose now, in
+`require-checks_test.sh` and in **D7b**, because a second uploader is a change to
+what leaves the runner and belongs in the reviewed pin, not beside it.)
 
 **What this lane does NOT cover, and does not claim.** Chromium only: no WebKit,
 so Safari behaviour is not claimed. No accessibility engine yet — VZ-A11Y-001 is
@@ -719,71 +981,84 @@ it is trusted.
 - **The sealed-module ban is lint.** `claimSigner()` refusing a second claim is
   the runtime half and is demonstrated (D11d); the ESLint half is the early
   warning. A file under `e2e/harness/**` is exempt from both by construction.
-- **`check-e2e-lane.mjs`'s harness checks are a GREP, and a grep is all they
-  are. Read what defeats them before relying on one.** There are eleven: ten
-  that demand a CALL (`name(`) and one that demands the presence of
-  `STAMP_ANNOTATION`. They used to be `includes("guardBrowser")` and friends,
-  and an independent verifier measured what that bought: with the CALL replaced
-  by an inert guard object and the IMPORT left in place, `tsc` exit 0, the lane
-  guard exit 0, and the lane exit 0 with `18 passed` — the guard entirely
-  inert. Only the canary caught it. Demanding `name(` closes that case, and each
-  of the eleven is demonstrated going red against its own controlled mutation
-  (**D13q**).
+- **`check-e2e-lane.mjs`'s harness checks read a PARSED TREE, and what they
+  still cannot decide is written down.** There are eleven: ten that require a
+  genuine CALL and one that requires a non-import REFERENCE to
+  `STAMP_ANNOTATION`. They began as `includes("guardBrowser")`, and an
+  independent verifier measured what that bought: with the CALL replaced by an
+  inert guard object and the IMPORT left in place, `tsc` exit 0, the lane guard
+  exit 0, and the lane exit 0 with `18 passed` — the guard entirely inert. Only
+  the canary caught it.
 
-  **It does NOT "strip comments", and this file said that it did.** Measured
-  against `withoutComments` directly, with the call removed in each case:
+  **The string version was then defeated three more ways, and this file used to
+  say it "does not strip comments" and leave it there.** Measured with the call
+  removed in each case:
 
-  | Decoy left behind | Check |
-  |---|---|
-  | nothing | **RED** — the control working |
-  | a line comment where `//` starts the line | **RED** — stripped |
-  | a block comment `/* … */`, JSDoc included | **RED** — stripped |
-  | a **trailing** line comment: `void 0; // formatOrphans(a, b)` | **GREEN — defeated** |
-  | a **string literal**: `const s = "formatOrphans(";` | **GREEN — defeated** |
-  | **call-and-discard**: `void formatOrphans(a, b);` | **GREEN — defeated** |
+  | Decoy left behind | Old string check | Now |
+  |---|---|---|
+  | nothing | **RED** | **RED** |
+  | a line comment where `//` starts the line | **RED** | **RED** |
+  | a block comment `/* … */`, JSDoc included | **RED** | **RED** |
+  | a **trailing** line comment: `void 0; // formatOrphans(a, b)` | **GREEN — defeated** | **RED** |
+  | a **string literal**: `const s = "formatOrphans(";` | **GREEN — defeated** | **RED** |
+  | **call-and-discard**: `void formatOrphans(a, b);` | **GREEN — defeated** | **RED** |
+  | a **shadowed callee**: `const formatOrphans = () => "x";` above the call | (not reachable then) | **RED** |
 
   An independent verifier drove the trailing-comment case end to end on the one
   control the canary cannot reach: delete the orphan assertion from
   `e2e/harness/test.ts`, leave `// formatOrphans(…)` trailing — `tsc` exit 0,
   `check-e2e-lane.sh` exit 0, the canary exit 0, and an `afterAll` that breaks a
-  page **passes**. Blast radius is bounded: if a later test runs in the same
-  worker the records leak forward and are charged to it (measured), so only a
-  dirty `afterAll` that is the last thing a worker does goes fully silent.
+  page **passing**.
 
-  **This matters more for the late edge than anywhere else**, because for
-  `afterAll` → worker-teardown this grep is the ONLY compensating control — the
-  canary cannot exercise it and the out-of-process check does not see it. For
-  every other symbol the control is D13/D15's runtime shapes and the canary, and
-  the grep is only an early warning. Defeating it needs an edit to
-  `e2e/harness/**` (a CODEOWNERS path) by someone who also leaves a decoy, so it
-  is deliberate evasion rather than an honest mistake — but it is not what
-  "greps for the assertion by call, so deleting it is not silent" claimed.
-  **That sentence is still in the header of `e2e/harness/worker-guard.ts` and it
-  overstates the control**; it is left unedited only because
-  `docs/evidence/VZ-FOUND-008/mutation-digests.txt` pins that file's bytes, and
-  correcting it lands with the control. **Queued for the next vizra-user harness
-  slice**: match on a tokenised or parsed source so comments and string literals
-  cannot satisfy a check, with `require-checks_test.sh` cases for the
-  trailing-comment and string flavours. Not done here.
-- **`globalSetup` and `globalTeardown` are outside the guard entirely, and
-  nothing refuses one.** The listening starts at WORKER setup; `globalSetup`
-  runs in the Playwright main process before any worker exists, so no listener
-  is attached and the creation guard is unarmed. An independent verifier
-  measured it: a `globalSetup` that launches its own Chromium and opens a page
-  which 404s a sub-resource and throws gives `npx playwright test` exit **0**,
-  `3 passed`, with no guard message — and the module provably ran (it wrote a
-  marker file). `check-e2e-lane.sh` exits 0 too; neither this file nor any
-  script mentioned it before this paragraph.
+  `scripts/ci/ts-source-facts.mjs` now parses the file with the `typescript`
+  devDependency and looks for a `CallExpression` whose callee is the required
+  identifier. A comment is not a node and a string literal is not a call, so the
+  first two defeats are gone **by construction** rather than by a better regex —
+  which matters, because the three previous fixes were all better regexes. The
+  `void` spelling is refused explicitly, and a **shadowed callee** is refused
+  too: matching "a call to something named X" without asking which X would have
+  traded a string defeat for a scope defeat. The shadow check walks every
+  enclosing scope, and a binding that is not the module's own import fails the
+  check with its own named reason. The `STAMP_ANNOTATION` check went the same
+  way: it used to be satisfied by the identifier surviving on its own import
+  line, which a verifier measured at `f0ee8f1`.
 
-  It sits with the other config-level residuals rather than with the holes: it
-  needs a `playwright.config.ts` edit, which is a `.github/CODEOWNERS` path and
-  not reachable from a spec, and the repository has no `globalSetup` key today.
-  A setup **project** (`dependencies: [...]`) is by contrast fully covered — its
-  tests are ordinary tests and the verifier's broken one failed with
-  `[response] http 404`. **Queued for the next vizra-user harness slice**: have
-  `check-e2e-lane.mjs` refuse a `globalSetup`/`globalTeardown` key outright,
-  since nothing here needs one, or guard it if a later slice does. Not done
-  here.
+  Each of the five shapes is red in `scripts/ci/require-checks_test.sh`, for
+  `formatOrphans` **and** `guardBrowser`, against a throwaway tree — and the
+  helper **refuses a mutation that did not change the file**, so a demonstration
+  that stops demonstrating is a failure rather than a pass.
+
+  **STILL NOT DECIDED, and this is review-only:** whether a call's RESULT is used
+  in a way that matters. `const _ = formatOrphans(…)` and a call inside a branch
+  that never runs both satisfy the check. That needs a type checker and a
+  reachability analysis; `scripts/ci/ts-source-facts.test.mjs` pins both as
+  known-permitted rather than leaving them unstated. Defeating the check now
+  needs an edit to `e2e/harness/**` (a CODEOWNERS path) that a reviewer reading
+  the diff would see as a call being removed.
+
+- **`globalSetup` and `globalTeardown` are outside the guard, and are now
+  REFUSED.** The listening starts at WORKER setup; `globalSetup` runs in the
+  Playwright main process before any worker exists, so no listener is attached
+  and the creation guard is unarmed. An independent verifier measured it: a
+  `globalSetup` that launches its own Chromium and opens a page which 404s a
+  sub-resource and throws gives `npx playwright test` exit **0**, `3 passed`,
+  with no guard message — and the module provably ran (it wrote a marker file).
+  `check-e2e-lane.sh` exited 0 too.
+
+  `check-e2e-lane.mjs` now refuses either key outright, in
+  **`playwright.config.ts` and `playwright.demos.config.ts`**, read from the
+  parsed configuration so a key named in a comment or a string does not trip it
+  and a **spread or a computed key fails closed** — the guard cannot rule the key
+  out through one, so it does not try. The one spread it does follow is a spread
+  of a configuration IMPORTED from another file in the same checked set, which is
+  the demos configuration's honest shape; that file is checked in its own right.
+  Nothing here needs a `globalSetup`, and a setup **project**
+  (`dependencies: [...]`) is fully covered — its tests are ordinary guarded tests
+  and the verifier's broken one failed with `[response] http 404`. If a later
+  slice genuinely needs one, the refusal is where that conversation happens
+  rather than a silent gap. Four cases in `require-checks_test.sh`, plus the two
+  inverse controls (a comment and a string) that must stay green.
+
 - **A CONTEXT OR BROWSER THE HARNESS WAS NEVER HANDED — three import-free
   routes reached one, and all three are now closed at RUNTIME.** This bullet
   used to say "nothing catches these today"; that sentence is no longer true,
@@ -881,10 +1156,17 @@ it is trusted.
   The cost is 250 ms per test: the 18-test lane went `3.2 s → 4.4 s` at the
   local worker count and `4.8 s → 6.9 s` at `--workers=2` (the CI shape, 9 tests
   per worker), and ran **20 consecutive times with 18 passed, floor OK and 18
-  stamps every time**. Both ends of the boundary are pinned by **D14**: a fault
-  at 150 ms must fail the test, and a fault at 600 ms passes — that green half
-  is the documented limit, and it goes red if the number here ever stops
-  matching the code. A spec whose page misbehaves more than about a quarter of a
+  stamps every time** — on a QUIET machine. **This table is a quiet-machine
+  measurement.** The settle is a Node timer and a page fault is a browser timer,
+  and load stretches only one of them, so under load the window WIDENS: an
+  independent verifier ran the suite at load averages of 76–92 and the 600 ms
+  fault was caught in both runs (the fail-closed direction, but a demonstration
+  whose outcome depends on load is not evidence). So **D14** now pins the RED
+  end with a fault at 150 ms that must fail the test, the LIMIT end with a fault
+  20 s after the body — past the settle and past the context's close under any
+  load, asserting only the invariant that a fault which has not fired when a
+  test's window closes is not charged to that test — and the WIDTH itself with a
+  unit test that `SETTLE_MS` is 250 and that this file says so. A spec whose page misbehaves more than about a quarter of a
   second after its own body finished is not charged to THAT test; if a later
   test in the same worker is still running it is charged to that one, and if the
   worker has finished it fails the run — but if the browser has already closed,
@@ -924,6 +1206,71 @@ it is trusted.
 - **The redactor covers URL query strings, fragments and `Location` only.** The
   full "NOT covered" table is above; read it before deciding a red lane is safe
   to share.
+- **The upload-scope allowlist is scoped to `e2e.yml`, and one clause is not.**
+  Clauses (a)–(e) — literal `path:` entries, the pinned `uses:` allowlist, no
+  reusable workflows, no `$GITHUB_STEP_SUMMARY`, `include-hidden-files` — are
+  asserted over **every job of `.github/workflows/e2e.yml`**. Only the
+  `.vizra-e2e` deny sweep crosses files. So a NEW workflow whose job uploads
+  `path: .` is not refused by this guard: measured green by an independent
+  verifier. Three things bound it rather than close it — the pinned action
+  defaults `include-hidden-files` to false so `path: .` would not itself sweep up
+  `.vizra-e2e`; `ci-guard` requires every action in every workflow to be
+  SHA-pinned; and adding a workflow is a `.github/` diff. Extending clauses
+  (a)–(e) repo-wide would mean allowlisting the paths and actions of
+  `frontend-ci.yml`, `contract-ci.yml` and `supply-chain.yml` too, which is a
+  change to lanes this slice does not own. **Named here rather than implied
+  closed.**
+- **A `run:` step that writes through a HELPER SCRIPT is not seen.** The
+  refusals of `$GITHUB_STEP_SUMMARY`, `$GITHUB_ENV` and `$GITHUB_PATH` read the
+  job's `run:` TEXT and its env-map VALUES at workflow, job and step level — a
+  verifier reached the step summary through an env map (`S: ${{ env.
+  GITHUB_STEP_SUMMARY }}`, then `echo >> "$S"`) while this bullet said the
+  indirect form was refused, which was false; it is refused now. What is still
+  not seen: `run: bash scripts/ci/some-helper.sh` where the helper does the
+  write, a script that computes the name, sources another file, or writes from a
+  here-doc. Same class as the `run:`-exfiltration bullet above, same answer: no
+  workflow parser closes it and review is the control. **For the one variable
+  this lane depends on**: a `$GITHUB_ENV` write that blanks
+  `PLAYWRIGHT_NO_COPY_PROMPT` is caught by the runtime policy inside the
+  Playwright worker while the capture says "CI"; a DIRECT `$GITHUB_ENV` assignment
+  of `CI` or `GITHUB_ACTIONS` itself cannot make it say otherwise, because
+  `GITHUB_ACTIONS` cannot be overwritten that way (D16c, simulated). A helper's
+  write can still silence layer 2 INDIRECTLY: a `BASH_ENV` written to
+  `$GITHUB_ENV` is sourced by the lane step's own shell, and a `$GITHUB_PATH` entry
+  puts a different `npm` first — either can remove both anchors before Playwright
+  starts, as can an in-process preload. Then the pinned redaction step's
+  page-snapshot gate (layer 3) is what holds. Reasoned from GitHub's pages and the
+  Bash manual, not built.
+- **A user-level or global `.npmrc` on the runner, and `NPM_CONFIG_*` from the
+  runner image, are not read by the lane guard.** A committed `.npmrc` is
+  default-deny; `npm_config_userconfig` / `npm_config_globalconfig`, and **`HOME`**
+  (whose `.npmrc` npm reads — R3-FINDING K), are refused in every env map, and env
+  maps are default-deny anyway; a file a `run:` step writes into the home
+  directory is the `run:` class. One that blanks `PLAYWRIGHT_NO_COPY_PROMPT`
+  before the configuration loads is caught by the runtime policy check ONLY while
+  the capture still says "CI" (`CI` truthy or `GITHUB_ACTIONS` "true"); an
+  npm-driven route runs in-process — `node-options` reaches `NODE_OPTIONS` — and
+  can delete both anchors, and then layer 2 is silent and the pinned redaction
+  step's page-snapshot gate (layer 3) is the control that holds. One that does
+  something ELSE to every `npm run` is not caught.
+- **Pinning a step fixes its BYTES, not what they run.** The nine steps in
+  `.github/e2e-pinned-steps.yml` cannot be laundered, reordered, re-keyed or
+  duplicated in the workflow, and their environment is default-deny; the unpinned
+  `actions/checkout` and `actions/setup-node` steps have their `with:` pinned (no
+  other `ref:`, no persisted credentials), and `npm ci`'s ROOT lifecycle scripts
+  are refused in `package.json` — but an earlier `run:` step (unpinned, e.g.
+  `npm ci`'s neighbours), or a DEPENDENCY's own install script run by `npm ci`,
+  that rewrites `scripts/ci/redact-artifacts.sh` or `package.json` in the
+  workspace changes what a byte-equal step does. `package.json`'s `e2e*` scripts are byte-pinned too;
+  the scripts under `scripts/ci/` are CODEOWNERS paths. This is the `run:` class,
+  and review is its control: the shapes `require-checks_test.sh` exercises are red
+  by name, and the class is stated, not closed.
+- **A stray extra Playwright config file is green, and inert.** A second
+  `playwright.*.config.ts` in the tree is not refused. It can only be SELECTED by
+  `--config` in a script or `PLAYWRIGHT_CONFIG` in the environment, and both of
+  those are red (the scripts are byte-pinned, and every `PLAYWRIGHT_*` key but
+  one is refused at all three env scopes). Recorded because "green" and "safe"
+  are different words.
 - **Platform.** ADR-009's acceptance platform is GitHub `ubuntu-24.04`,
   linux/amd64. Local runs on macOS arm64 carry no platform claim.
 

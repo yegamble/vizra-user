@@ -66,7 +66,7 @@ import type {
   WebError,
 } from "@playwright/test";
 
-import { redactUrl, redactUrlsInText } from "./redact";
+import { redactExternalText, redactUrl } from "./redact";
 
 /** The four signal kinds the guard watches. */
 export type BrowserErrorKind =
@@ -101,12 +101,20 @@ export type AllowedBrowserError = {
 // Every URL below goes through `redact.ts` first — origin and path are kept,
 // query strings and fragments are not. See that module for why a test harness
 // is where a signed URL leaks into a log.
+//
+// And every string the PAGE controls goes through `redactExternalText`, which
+// redacts URLs and then makes what is left inert. A console message is text the
+// page chose; it is copied into a failure message, printed by the `list`
+// reporter, and lands in the GitHub Actions log, where a line beginning `::` is
+// a workflow command. From M1 that text is also product content, and from
+// federation it is a remote instance's display name or error string. See
+// FINDING 13 of the artifact-privacy plan review.
 function describeConsole(message: ConsoleMessage): string {
   const location = message.location();
   const at = location.url
     ? ` (${redactUrl(location.url)}:${location.lineNumber}:${location.columnNumber})`
     : "";
-  return `console.error: ${redactUrlsInText(message.text())}${at}`;
+  return `console.error: ${redactExternalText(message.text())}${at}`;
 }
 
 function describeRequestFailed(request: Request): string {
@@ -259,7 +267,7 @@ export function guardBrowser(browser: Browser): BrowserGuard {
     const onWebError = (webError: WebError) => {
       push(
         "pageerror",
-        `pageerror: ${redactUrlsInText(webError.error().message)}`,
+        `pageerror: ${redactExternalText(webError.error().message)}`,
         pageUrl(webError.page()),
       );
     };

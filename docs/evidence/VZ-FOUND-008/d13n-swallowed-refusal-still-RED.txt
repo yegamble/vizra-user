@@ -13,16 +13,16 @@ Running 1 test using 1 worker
 
       vizra harness: `chromium.launch` was called during a test, which would produce a browser or context the harness was never handed — and therefore one whose console errors, uncaught exceptions, failed requests and HTTP >= 400 responses nothing is watching. If a slice genuinely needs its own browser, the sanctioned route is an overridden `browser` FIXTURE, which Playwright resolves BEFORE this guard is armed and then hands to `vizraHarnessGuard`, which guards it (demonstration D13g). Write that fixture under `e2e/harness/**`, not in the spec: `vizra/no-unguarded-playwright-import` refuses the method names in `e2e/specs/**` and `e2e/demos/**`, and a second browser is a reviewed harness change rather than a line in a test. See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.
 
-       at ../harness/test.ts:294
+       at ../harness/test.ts:335
 
-      292 |         const violations = [...beforeBodyViolations, ...duringBodyViolations];
-      293 |         if (violations.length > 0) {
-    > 294 |           throw new Error(
+      333 |         const violations = [...beforeBodyViolations, ...duringBodyViolations];
+      334 |         if (violations.length > 0) {
+    > 335 |           throw new Error(
           |                 ^
-      295 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
-      296 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
-      297 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:294:17)
+      336 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
+      337 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
+      338 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:335:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/__guard-swallowing-the-refusal-does-not-swallow-the-failure-desktop-chromium-1440/video<n>.webm

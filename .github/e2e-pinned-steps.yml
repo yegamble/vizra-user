@@ -1,0 +1,140 @@
+# e2e-pinned-steps.yml — the steps of `.github/workflows/e2e.yml` that the lane
+# guard RELIES ON, pinned byte-for-byte.
+#
+# WHY THIS FILE REPLACED A SUBSTRING MATCH (PR #8, R3-FINDING H)
+# --------------------------------------------------------------
+# `scripts/ci/check-e2e-lane.mjs` used to find the redaction step with
+# `run.includes("redact-artifacts.sh")`. A step that MENTIONS a script is not a
+# step that RUNS it, and an independent verifier showed eight guard-green
+# spellings that each leave `steps.redact.outcome == 'success'`, so the upload
+# gated on it published with no URL redaction and no page-snapshot gate:
+#
+#   run: bash scripts/ci/redact-artifacts.sh test-results playwright-report || true
+#   run: bash scripts/ci/redact-artifacts.sh test-results playwright-report; exit 0
+#   run: set +e; bash scripts/ci/redact-artifacts.sh test-results playwright-report; true
+#   run: bash scripts/ci/redact-artifacts.sh test-results playwright-report > /dev/null 2>&1 || echo skipped
+#   run: bash scripts/ci/redact-artifacts.sh test-result playwright-reports     (typo)
+#   run: bash scripts/ci/redact-artifacts.sh test-results                      (results.json never gated)
+#   run: bash scripts/ci/redact-artifacts.sh /tmp/empty
+#   run: echo redact-artifacts.sh                                              (never runs)
+#
+# The floor step, the fixture-free step and the image build/start were found
+# the same way; the lane and the canary matched their `run:` exactly but every
+# OTHER key (`working-directory:`, `shell:`, `timeout-minutes:` …) only by a list
+# of refusals. A blacklist over arbitrary shell cannot be exhaustive, so the
+# control is INVERTED, as vizra-core did for its make steps
+# (`vizra-core/.github/pinned-steps.yml`):
+#
+#   * each step below must appear in the `e2e` job EXACTLY ONCE, and the step in
+#     the workflow must be DEEP-EQUAL to its pin — every key and every value,
+#     `name` included; `run` is compared byte for byte after trimming at most
+#     one trailing newline (a YAML block scalar keeps one). No key the pin does
+#     not carry is allowed: `continue-on-error`, `shell`, `working-directory`,
+#     `timeout-minutes`, an `if:` — each one changes what the same bytes do;
+#   * a step ANYWHERE in the workflow that mentions a pinned step's script or
+#     role token but is not byte-equal to that pin is REFUSED by name, so the
+#     real step cannot sit beside a look-alike that launders it;
+#   * the guard asserts, on THIS file, the invariants each pin must satisfy (the
+#     exact `run:` of the lane, canary, floor, fixture check, browser-revision
+#     record and redaction; the upload's gate,
+#     paths, retention and `if-no-files-found`; the port the lane targets is the
+#     port the container publishes). Weakening a pin here is therefore a named
+#     failure too, not a way round the check;
+#   * the ENVIRONMENT these bodies run in is default-deny: no workflow-level
+#     `env`, no `env` at job level but `PLAYWRIGHT_NO_COPY_PROMPT`, no `env` on
+#     any step that is not pinned, no `defaults:` at workflow or job level, job
+#     keys allowlisted, `runs-on` pinned — because `BASH_ENV`, `PATH` or
+#     `defaults.run.shell: bash -c '{0} || true'` change what a byte-equal body
+#     does without changing a byte of it.
+#
+# CHANGING THIS FILE
+# ------------------
+# Changing a pin changes what the gate accepts. It is a deliberate, reviewed
+# edit to a file whose only purpose is to be a gate (`.github/CODEOWNERS`
+# covers `.github/`). Edit the workflow step and its pin together; the guard
+# refuses the pair if they differ, and refuses the pin if it breaks an
+# invariant. Comments in the workflow are free — only the parsed step is
+# compared.
+steps:
+  # The production image the release builds (ADR-009).
+  build_image:
+    name: Build the production image (linux/amd64)
+    run: docker build --tag vizra-user:e2e .
+
+  # The shipped image carries no harness file and no fixture token.
+  fixture_free:
+    name: The image contains no browser-harness file or fixture
+    run: bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e
+
+  # The container the lane and the canary drive.
+  start_image:
+    name: Start the production image
+    run: |
+      set -euo pipefail
+      docker run --detach --name vizra-user-e2e --publish 3000:3000 \
+        --env INTERNAL_API_BASE_URL=http://api.sentinel.invalid:8080 \
+        --env PUBLIC_ORIGIN=http://127.0.0.1:3000 \
+        vizra-user:e2e
+      for _ in $(seq 1 30); do
+        if curl --silent --fail --max-time 2 http://127.0.0.1:3000/health -o /dev/null; then
+          echo "the image is serving"
+          exit 0
+        fi
+        sleep 2
+      done
+      echo "::error::the production image never answered /health"
+      docker logs vizra-user-e2e 2>&1 | tail -80
+      exit 1
+
+  # The lane itself. Unconditional, exit code load-bearing, pointed at the
+  # container rather than a server of its own.
+  lane:
+    name: Browser lane (desktop 1440, mobile 390)
+    env:
+      E2E_BASE_URL: http://127.0.0.1:3000
+    run: npm run e2e
+
+  # The coverage floor and the stamps, re-checked from OUTSIDE the Playwright
+  # process.
+  floor:
+    name: The coverage floor was actually satisfied
+    run: node scripts/ci/check-coverage-floor-ran.mjs
+
+  # The harness's self-test against the same container.
+  canary:
+    name: The harness still fails a broken page (canary)
+    env:
+      E2E_BASE_URL: http://127.0.0.1:3000
+    run: node scripts/ci/harness-canary.mjs
+
+  # Its output is uploaded and it is NOT under the directories the redactor
+  # reads, so the step that writes it is pinned and no other step may name it.
+  record_browsers:
+    name: Record the browser revision
+    run: |
+      set -euo pipefail
+      npx playwright --version
+      npx playwright install --dry-run chromium | tee playwright-browsers.txt
+
+  # URL redaction AND the page-snapshot upload gate. Exactly these bytes: both
+  # directories, no redirection, no `|| true`, nothing after it.
+  redact:
+    name: Redact URL query strings in the artifacts
+    id: redact
+    if: failure()
+    run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
+
+  # The only upload. Gated on the redaction having SUCCEEDED, literal paths
+  # from the allowlist, retention at the ceiling, a missing path loud.
+  upload:
+    name: Upload Playwright artifacts
+    if: failure() && steps.redact.outcome == 'success'
+    uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+    with:
+      name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+      path: |
+        test-results/
+        playwright-report/results.json
+        playwright-browsers.txt
+      retention-days: 3
+      if-no-files-found: error

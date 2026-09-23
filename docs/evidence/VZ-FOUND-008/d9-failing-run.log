@@ -18,7 +18,7 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/__vizra_e2e_fixture__/media/photo.jpg?<redacted: 2 parameter(s)>:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/video<n>.webm

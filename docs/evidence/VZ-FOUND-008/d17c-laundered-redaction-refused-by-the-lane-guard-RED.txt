@@ -1,0 +1,8 @@
+$ bash scripts/ci/check-e2e-lane.sh
+
+::error::the e2e lane no longer tests what it claims to test:
+  no step runs `bash scripts/ci/redact-artifacts.sh test-results playwright-report` exactly as pinned (redact-artifacts.sh). Playwright's traces carry raw query strings that e2e/harness/redact.ts cannot reach, and the page-snapshot gate lives in that script; uploading without it publishes both.
+  job `e2e` step 13 (Redact URL query strings in the artifacts) mentions `redact-artifacts.sh`, an artifact directory but is not byte-equal to the pinned `redact` step in .github/e2e-pinned-steps.yml: `run` differs — the redaction step's `run:` must be exactly `bash scripts/ci/redact-artifacts.sh test-results playwright-report`. `|| true`, `; exit 0`, `set +e`, a redirect with `|| echo`, a mistyped or dropped directory and `echo` each leave `steps.redact.outcome == 'success'` with the page-snapshot gate never run or its verdict discarded, and the upload gated on it then publishes.
+  These properties are invisible in a green run, which is why they are asserted here.
+
+[exit 1]

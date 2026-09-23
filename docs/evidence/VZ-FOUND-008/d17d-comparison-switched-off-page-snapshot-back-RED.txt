@@ -1,0 +1,9 @@
+$ page_snapshot_count <repo>/test-results <repo>/playwright-report/results.json
+
+  page snapshot in test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/error-context.md
+  page snapshot in test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/error-context.md
+  page snapshot in test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/error-context.md
+  page snapshot in test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/error-context.md
+files or archives with a page-snapshot heading in the upload set: 4
+
+[exit 1]

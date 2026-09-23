@@ -48,7 +48,17 @@ test.describe("home placeholder", () => {
     page,
   }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "/health" }).click();
+    // An explicit readiness wait before the click. `click()` auto-waits for the
+    // link to be actionable, but only for `actionTimeout` (10 s), and an
+    // independent verifier saw this click time out once at load averages of
+    // 76-92 inside demonstration d11f, which runs the whole lane. Waiting for
+    // the network to settle and the link to be visible first moves the wait
+    // onto the page load it depends on, where the navigation timeout applies.
+    // It asserts nothing new and relaxes nothing: the same link must be there.
+    await page.waitForLoadState("networkidle");
+    const healthLink = page.getByRole("link", { name: "/health" });
+    await expect(healthLink).toBeVisible();
+    await healthLink.click();
     await expect(page).toHaveURL(/\/health$/);
     await expect(page.getByTestId("health-status")).toHaveText("ok");
   });

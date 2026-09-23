@@ -23,7 +23,7 @@ See e2e/harness/worker-guard.ts.
 Failed worker ran 1 test:
 [desktop-chromium-1440] › e2e/specs/__guard.spec.ts:4:5 › a perfectly clean test
     at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
-    at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:155:17)
+    at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
   1 passed (<time>)
   1 error was not a part of any test, see above for details

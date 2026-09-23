@@ -10,16 +10,16 @@ Running 1 test using 1 worker
 
     Error: vizra harness: the worker-scoped guard `vizraWorkerGuard` was replaced. That fixture is where the browser-error listeners and the creation guard are installed, for the whole worker — which is what covers a page opened in `beforeAll`, before any per-test fixture exists. Replacing it would keep the runtime stamp and lose the guard, so this test refuses to stamp itself and fails instead. See e2e/harness/worker-guard.ts.
 
-       at ../harness/test.ts:202
+       at ../harness/test.ts:230
 
-      200 |       // stamp and both floor checks refuse the run.
-      201 |       if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
-    > 202 |         throw new Error(REPLACED_WORKER_GUARD);
+      228 |       // stamp and both floor checks refuse the run.
+      229 |       if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
+    > 230 |         throw new Error(REPLACED_WORKER_GUARD);
           |               ^
-      203 |       }
-      204 |       const worker = vizraWorkerGuard;
-      205 |       const guard = worker.guard;
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:202:15)
+      231 |       }
+      232 |       const worker = vizraWorkerGuard;
+      233 |       const guard = worker.guard;
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:230:15)
 
     Error Context: test-results/__guard-keep-the-stamp-lose-the-listeners-desktop-chromium-1440/error-context.md
 

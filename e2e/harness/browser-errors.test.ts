@@ -11,7 +11,7 @@
  * discover later, so they run in `npm run test`.
  */
 
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,6 +48,51 @@ const pageErrorRecord: BrowserErrorRecord = {
   detail: "pageerror: boom in the widget",
   where: "http://127.0.0.1:3210/",
 };
+
+/**
+ * ONE ESLint instance for the whole file, created on first use.
+ *
+ * WHY: thirteen cases each did `new ESLint({ cwd: repoRoot })`, and every one of
+ * those loads and resolves the repository's whole flat configuration — the
+ * plugins, the custom rules, the typescript parser. Warm that is fast; COLD it
+ * is not, and an independent verifier hit `Test timed out in 5000ms` here on one
+ * cold `npm run ci` and could not reproduce it in five more runs. A test that
+ * fails once in six on a cold cache is a test that teaches people to re-run CI.
+ *
+ * The instance is stateless for what these cases do — `lintFiles`, `lintText`
+ * and `calculateConfigForFile` are all reads — so sharing it changes no
+ * assertion. It is created lazily so the cases that never touch ESLint (most of
+ * this file) pay nothing.
+ *
+ * The alternative was a bigger `testTimeout`, which hides the cost rather than
+ * removing it and leaves the same cliff one machine-generation away.
+ */
+let eslintInstance: ESLint | undefined;
+function sharedEslint(): ESLint {
+  eslintInstance ??= new ESLint({ cwd: repoRoot });
+  return eslintInstance;
+}
+
+/**
+ * AND AN EXPLICIT TIMEOUT, because sharing the instance was NOT enough and I
+ * published that it was.
+ *
+ * The first version of this note said the shared instance "removes the
+ * mechanism", on the evidence of ten consecutive cold runs. It then failed
+ * again, in the same case, on a machine carrying a load average of 46 — the
+ * thirteen constructions were the multiplier, but the FIRST one still resolves
+ * the whole flat configuration (plugins, the custom rules, the TypeScript
+ * parser) and lints every spec under `e2e/`, and that work alone does not fit in
+ * vitest's 5000 ms default when the CPU is contended.
+ *
+ * So: both halves. The instance is shared, which is the real saving, and the
+ * cases that touch ESLint carry a timeout sized for the work rather than for a
+ * quiet machine. 30 s is not a guess — it is ~20x the measured warm cost and
+ * ~4x the worst cold-and-contended run observed. It is scoped to the ESLint
+ * cases; every other test in this file keeps the 5000 ms default, so a genuine
+ * hang somewhere else still fails fast.
+ */
+const ESLINT_CASE_TIMEOUT_MS = 30_000;
 
 describe("validatePolicy", () => {
   it("accepts the deny-all default", () => {
@@ -484,7 +529,7 @@ describe("specs use the guarded test", () => {
   it("applies the guarded-import rule to every one of them", async () => {
     // The repository's REAL configuration, not a hand-built one: the property
     // under test is that eslint.config.mjs wires the rule to these paths.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const results = await eslint.lintFiles(files);
 
     // A file ESLint decided not to lint at all would silently pass, so assert
@@ -499,7 +544,7 @@ describe("specs use the guarded test", () => {
         .map((message) => `${path.relative(repoRoot, result.filePath)}:${message.line} ${message.message}`),
     );
     expect(violations, violations.join("\n")).toEqual([]);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * INLINE DIRECTIVES ARE OFF for these directories.
@@ -518,7 +563,7 @@ describe("specs use the guarded test", () => {
    * form — a future ESLint could keep the option and change what it covers.
    */
   it("the resolved config for e2e/specs and e2e/demos forbids inline config", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     for (const file of ["e2e/specs/home.spec.ts", "e2e/demos/console-error.demo.ts"]) {
       const config = (await eslint.calculateConfigForFile(path.join(repoRoot, file))) as {
         linterOptions?: { noInlineConfig?: boolean };
@@ -529,14 +574,14 @@ describe("specs use the guarded test", () => {
           "turns the browser-error guard off for that file",
       ).toBe(true);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it.each([
     ["/* eslint-disable vizra/no-unguarded-playwright-import */", "block disable, rule named"],
     ["/* eslint-disable */", "block disable, no rule named"],
     ["/* eslint vizra/no-unguarded-playwright-import: \"off\" */", "inline severity override"],
   ])("an inline directive (%s) does not exempt a spec", async (directive) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `${directive}\nimport { test } from "@playwright/test";\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__inline_directive__.spec.ts") },
@@ -549,7 +594,7 @@ describe("specs use the guarded test", () => {
   });
 
   it("eslint-disable-next-line does not exempt the line after it either", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `// eslint-disable-next-line vizra/no-unguarded-playwright-import\n` +
         `import { test } from "@playwright/test";\nexport default test;\n`,
@@ -560,13 +605,13 @@ describe("specs use the guarded test", () => {
     );
     expect(message).toBeDefined();
     expect(message?.severity).toBe(2);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("the unscoped `playwright/test` spelling is refused by the rule, not by luck", async () => {
     // It used to pass lint and RUN; it failed the lane only because loading a
     // second runner copy breaks the real tests. That is an accident, not a
     // control.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import * as pw from "playwright/test";\nexport default pw.test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__unscoped__.spec.ts") },
@@ -576,7 +621,7 @@ describe("specs use the guarded test", () => {
     );
     expect(message).toBeDefined();
     expect(message?.severity).toBe(2);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * THE CLASS, NOT THE DIRECTORY.
@@ -594,7 +639,7 @@ describe("specs use the guarded test", () => {
    * directories and not tomorrow's passes the tests above and fails these.
    */
   it("resolves the rule to severity 2 with noInlineConfig for every file under e2e/", async () => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const everything: string[] = [];
     const walkAll = (dir: string) => {
       for (const entry of readdirSync(dir)) {
@@ -617,12 +662,18 @@ describe("specs use the guarded test", () => {
         Array.isArray(severity) ? severity[0] : severity,
         `${path.relative(repoRoot, file)} must resolve the guarded-import rule to severity 2`,
       ).toBe(2);
+      // R3-FINDING J: a spec may READ `process.env.NAME` and nothing else.
+      const envWrite = config.rules?.["vizra/no-process-env-write"];
+      expect(
+        Array.isArray(envWrite) ? envWrite[0] : envWrite,
+        `${path.relative(repoRoot, file)} must resolve vizra/no-process-env-write to severity 2`,
+      ).toBe(2);
       expect(
         config.linterOptions?.noInlineConfig,
         `${path.relative(repoRoot, file)} must resolve linterOptions.noInlineConfig === true`,
       ).toBe(true);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it.each([
     ["e2e/other/__r1.spec.ts", "the verifier's third bypass, in a directory that does not exist"],
@@ -630,13 +681,15 @@ describe("specs use the guarded test", () => {
     ["e2e/__loose.spec.ts", "a spec directly under e2e/"],
     ["e2e/specs/helpers/__helper.ts", "a helper beside a spec, not itself a spec"],
   ])("%s (%s) is covered by the rule at severity 2", async (relative) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const config = (await eslint.calculateConfigForFile(path.join(repoRoot, relative))) as {
       rules?: Record<string, unknown>;
       linterOptions?: { noInlineConfig?: boolean };
     };
     const severity = config.rules?.["vizra/no-unguarded-playwright-import"];
     expect(Array.isArray(severity) ? severity[0] : severity).toBe(2);
+    const envWrite = config.rules?.["vizra/no-process-env-write"];
+    expect(Array.isArray(envWrite) ? envWrite[0] : envWrite).toBe(2);
     expect(config.linterOptions?.noInlineConfig).toBe(true);
   });
 
@@ -644,12 +697,12 @@ describe("specs use the guarded test", () => {
     // The exemption is deliberate and it is the only one. If this ever starts
     // failing, the harness has been brought under its own rule and cannot work;
     // if the assertion is deleted, the exemption stops being a stated decision.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const config = (await eslint.calculateConfigForFile(
       path.join(repoRoot, "e2e/harness/test.ts"),
     )) as { rules?: Record<string, unknown> };
     expect(config.rules?.["vizra/no-unguarded-playwright-import"]).toBeUndefined();
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   /**
    * THE SEALED MODULES. `e2e/harness/stamp.ts` holds the per-run key that proves
@@ -666,7 +719,7 @@ describe("specs use the guarded test", () => {
     ['const s = await import("../harness/stamp");', "a dynamic import"],
     ['import x from "../harness/stamp-reporter";', "the reporter"],
   ])("a spec may not reach the sealed stamp module (%s)", async (line) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { test } from "../harness/test";\n${line}\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__sealed__.spec.ts") },
@@ -690,7 +743,7 @@ describe("specs use the guarded test", () => {
     ["vizraHarnessStamp", "its previous name, so the old shape fails loudly"],
     ["browserErrorPolicy", "the allow-list option fixture"],
   ])("a spec may not replace the harness fixture %s (%s)", async (fixture) => {
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { test as base } from "../harness/test";\n` +
         `const test = base.extend({ ${fixture}: async ({}, run) => { await run(); } });\n` +
@@ -711,7 +764,7 @@ describe("specs use the guarded test", () => {
     // a locale is guarded rather than exempt. A harness nobody can extend is a
     // harness people work around, and banning `.extend` wholesale would have
     // been the easy, wrong fix.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     for (const fixture of ["page", "context", "browser"]) {
       const [result] = await eslint.lintText(
         `import { test as base } from "../harness/test";\n` +
@@ -726,13 +779,13 @@ describe("specs use the guarded test", () => {
         `overriding ${fixture} must stay legal`,
       ).toEqual([]);
     }
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("other harness modules stay importable — the seal is narrow, not a blanket ban", async () => {
     // e2e/specs/production-build.spec.ts legitimately imports
     // ../harness/production-build. Sealing the whole directory would have broken
     // it, and a rule that breaks legitimate code gets switched off.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import { probeProductionBuild } from "../harness/production-build";\n` +
         `import { test } from "../harness/test";\nexport default [test, probeProductionBuild];\n`,
@@ -743,12 +796,12 @@ describe("specs use the guarded test", () => {
         (candidate) => candidate.ruleId === "vizra/no-unguarded-playwright-import",
       ),
     ).toEqual([]);
-  });
+  }, ESLINT_CASE_TIMEOUT_MS);
 
   it("the rule is configured as an error for e2e/specs, not a warning", async () => {
     // A rule set to "warn" would report and let the gate pass. Asked of the
     // real config, for a real path, with a spelling the old regex missed.
-    const eslint = new ESLint({ cwd: repoRoot });
+    const eslint = sharedEslint();
     const [result] = await eslint.lintText(
       `import * as pw from "@playwright/test";\nconst test = pw.test;\nexport default test;\n`,
       { filePath: path.join(repoRoot, "e2e/specs/__rule_is_wired__.spec.ts") },
@@ -758,5 +811,19 @@ describe("specs use the guarded test", () => {
     );
     expect(message, "the rule did not fire on a namespace import in e2e/specs/").toBeDefined();
     expect(message?.severity, "the rule must be an error, never a warning").toBe(2);
+  }, ESLINT_CASE_TIMEOUT_MS);
+});
+
+describe("the settle window's width is pinned deterministically", () => {
+  // Demonstration D14's LIMIT half used to pin the wall-clock width by passing
+  // a fault at 600 ms. Under load it failed both of an independent verifier's
+  // runs (R2-FINDING G): the settle is a Node timer, the fault a browser timer,
+  // and load stretches only one. The width is a CONSTANT, so it is pinned as one
+  // here, and the table in AGENTS.md is required to state the same number.
+  it("SETTLE_MS is 250, and AGENTS.md says 250 ms", () => {
+    const source = readFileSync(path.join(repoRoot, "e2e", "harness", "browser-errors.ts"), "utf8");
+    expect(/^const SETTLE_MS = (\d+);$/m.exec(source)?.[1]).toBe("250");
+    const contract = readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+    expect(contract).toContain("**250 ms (shipped)**");
   });
 });

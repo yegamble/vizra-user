@@ -18,16 +18,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:324
+       at ../harness/test.ts:365
 
-      322 |         );
-      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 324 |           throw new Error(
+      363 |         );
+      364 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 365 |           throw new Error(
           |                 ^
-      325 |             formatPhasedFailure(
-      326 |               unallowedBefore,
-      327 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+      366 |             formatPhasedFailure(
+      367 |               unallowedBefore,
+      368 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/console-error.demo.ts-RED--4513c-s-nothing-about-the-console-desktop-chromium-1440/video<n>.webm

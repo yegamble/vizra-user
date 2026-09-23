@@ -47,12 +47,37 @@
 # value, binary files included, so this exclusion is verified rather than
 # assumed.
 #
+# A DIRECTORY THAT DOES NOT EXIST IS REFUSED - exit 3 - and never "nothing to
+# redact". This used to print "does not exist, nothing to redact there" and carry
+# on, so `redact-artifacts.sh test-result playwright-reports` (a typo) or
+# `redact-artifacts.sh /tmp/empty` exited 0 having redacted and gated nothing,
+# and the upload gated on this step's SUCCESS published the real tree (PR #8,
+# R3-FINDING H). The CI step's bytes are now pinned
+# (`.github/e2e-pinned-steps.yml`), and this is the second half: no argument can
+# empty the gate.
+#
+# The case this makes red on purpose: the step runs only `if: failure()`, and when
+# the failure came BEFORE the lane (the image did not build, the container did not
+# start) neither directory exists. Then this exits 3, the upload is skipped, and
+# nothing is published - which is correct, because there is nothing the lane wrote
+# to diagnose, and a gate that reports success over an absent tree is the defect
+# being fixed. The build or start step's own log carries that failure.
+#
 # Usage:  bash scripts/ci/redact-artifacts.sh [dir ...]
 # Default: test-results playwright-report
 set -euo pipefail
 
 dirs=("$@")
 [ ${#dirs[@]} -gt 0 ] || dirs=(test-results playwright-report)
+
+for dir in "${dirs[@]}"; do
+  if [ ! -d "$dir" ]; then
+    echo "::error::redact-artifacts: '$dir' is not a directory. Every directory named here must exist:" \
+      "a missing or mistyped one would otherwise be redacted and gated by nothing while this step" \
+      "reports success. Nothing will be uploaded." >&2
+    exit 3
+  fi
+done
 
 for tool in perl unzip zip; do
   command -v "$tool" > /dev/null 2>&1 || {
@@ -61,35 +86,55 @@ for tool in perl unzip zip; do
   }
 done
 
-# The substitution, applied to raw bytes. `$1` below is PERL's capture group,
-# not a shell parameter, which is why the program is single-quoted and why
-# SC2016 is suppressed on the line rather than "fixed" by switching to double
-# quotes — double quotes would make the shell expand `$1` to this script's
-# first argument and silently delete the host and path from every URL.
-# (A comment line here may not begin with the linter's own name, or the linter
-# reads the prose as a malformed directive.)
+# THE URL PROGRAMS ARE SHARED WITH e2e/harness/redact.ts, NOT COPIED.
 #
-#   ((?:https?|wss?|ftp)://[^\s"'<>\\)\]]*?)   scheme, host and path, non-greedy
-#   [?#][^\s"'<>\\)\]]*                        the query and/or fragment
+# This script used to carry its own four perl programs, and AGENTS.md said they
+# were "the same four programs" as the harness redactor. An independent verifier
+# showed otherwise (PR #8, R2-FINDING C): a fully slash-escaped
+# `https:\/\/host\/p?sig=...` was redacted by the harness and SURVIVED here, and
+# the double-escaped form Playwright writes when a spec prints a slash-escaped URL
+# survived both - into `results.json` and `trace.zip::test.trace`, both uploaded,
+# after this script reported OK.
 #
-# The terminator class includes the characters that end a URL inside JSON, HTML
-# and log prose, so a match stops at the URL rather than running to end of line.
-# shellcheck disable=SC2016
-ABSOLUTE_PROGRAM='s{((?:https?|wss?|ftp)://[^\s"'"'"'<>\\)\]]*?)[?\#][^\s"'"'"'<>\\)\]]*}{$1?<redacted>}g'
+# So both redactors read `e2e/harness/redaction-patterns.json`, and
+# `e2e/harness/redaction-corpus.test.ts` runs THIS script and the harness over one
+# corpus and checks every output byte for byte. Each pattern has exactly one
+# capture group - the kept prefix (boundary, scheme, authority, path) - and what
+# it matches after that is replaced with `?<redacted>`. The history of how each
+# shape was found - relative URLs (D9), the scheme-less step subtitle (PR #3
+# F13), protocol-relative / IPv6 / uppercase / escaped (PR #8 F4), fully and
+# double escaped and `&` (PR #8 R2-C) - is in AGENTS.md § Artifact privacy.
+patterns=$(cd "$(dirname "$0")/../.." && pwd)/e2e/harness/redaction-patterns.json
+[ -r "$patterns" ] || {
+  echo "::error::redact-artifacts: $patterns is missing; there is nothing to redact WITH. BLOCKED, not a pass." >&2
+  exit 2
+}
+perl -MJSON::PP -e 1 2> /dev/null || {
+  echo "::error::redact-artifacts: perl's core JSON::PP module is not available; BLOCKED, not a pass." >&2
+  exit 2
+}
+export VZ_REDACTION_PATTERNS=$patterns
 
-# RELATIVE URLs need the same treatment, and the first version of this script
-# missed them. The demonstration caught it: the trace recorded
-# `/__vizra_e2e_fixture__/media/photo.jpg?X-Amz-Signature=...` as the ARGUMENT
-# of a page call, with no scheme and no host, so the absolute pattern above did
-# not match and the sentinel survived into `1-trace.network` and
-# `1-trace.trace`. A Next application emits relative URLs everywhere — this is
-# the common case, not the exotic one.
-#
-#   (^|[\s"'(\[=,>])      a boundary, so ordinary prose is not rewritten
-#   (/[A-Za-z0-9._~%/+-]*)  a URL PATH and nothing else
-#   [?#]…                   the query and/or fragment
+# One perl process per file: load the shared programs, apply them in order, then
+# the HAR program below. `$1` is PERL's capture group - hence single quotes.
 # shellcheck disable=SC2016
-RELATIVE_PROGRAM='s{(^|[\s"'"'"'(\[=,>])(/[A-Za-z0-9._~%/+-]*)[?\#][^\s"'"'"'<>\\)\]]*}{$1$2?<redacted>}g'
+URL_PROGRAMS='BEGIN {
+  open(my $fh, "<", $ENV{VZ_REDACTION_PATTERNS}) or die "redaction patterns: $!";
+  local $/; my $doc = JSON::PP::decode_json(<$fh>);
+  # `<<NAME>>` is the fragment of that name, declared above its first use;
+  # e2e/harness/redact.ts expands them the same way. Unknown names die.
+  my %frag;
+  my $expand = sub {
+    my $p = shift;
+    $p =~ s/<<([A-Za-z0-9_]+)>>/exists $frag{$1} ? $frag{$1} : die "redaction patterns: unknown fragment $1\n"/ge;
+    die "redaction patterns: unexpanded placeholder in $p\n" if index($p, "<<") >= 0;
+    $p;
+  };
+  $frag{ $_->{name} } = $expand->($_->{pattern}) for @{ $doc->{fragments} // [] };
+  @VZ_PROGRAMS = map { my $p = $expand->($_->{pattern}); ($_->{flags} // "") =~ /i/ ? qr/$p/i : qr/$p/ } @{ $doc->{programs} };
+  die "redaction patterns: no programs" unless @VZ_PROGRAMS;
+}
+for my $re (@VZ_PROGRAMS) { s/$re/$1?<redacted>/g }'
 
 # AND THE STRUCTURED COPY. A trace's `*.network` member is HAR-shaped, and HAR
 # stores the query a SECOND time, parsed into fields:
@@ -115,23 +160,46 @@ redact_tree() {
   shift
   local count=0 file
   while IFS= read -r -d '' file; do
-    perl -0777 -pi -e "$ABSOLUTE_PROGRAM" "$file"
-    perl -0777 -pi -e "$RELATIVE_PROGRAM" "$file"
+    perl -MJSON::PP -0777 -pi -e "$URL_PROGRAMS" "$file"
     perl -0777 -pi -e "$HAR_QUERY_PROGRAM" "$file"
     count=$((count + 1))
   done < <(find "$root" -type f ! \( "${BINARY_PRUNE[@]}" \) "$@" -print0)
   printf '%s' "$count"
 }
 
+# THE UPLOAD GATE FOR THE PAGE SNAPSHOT.
+#
+# `error-context.md`'s `# Page snapshot` section is an aria snapshot of the LIVE
+# page - every DOM text node and every input's current value. The `e2e` job sets
+# PLAYWRIGHT_NO_COPY_PROMPT=1 so Playwright never writes it, the lane guard
+# refuses every route to change that it can read, and the harness asserts the
+# value inside the Playwright worker. An independent verifier still turned the
+# snapshot back on twice, by routes the static guard could not see (a step-level
+# `env:`, then a committed `.npmrc`).
+#
+# So the last gate before upload does not ask HOW the variable was changed. If
+# any file - or any member of any archive - carries that section heading, this
+# script exits non-zero, and the upload step, which is gated on this step having
+# SUCCEEDED, publishes nothing. The heading is Playwright's literal
+# (`playwright/lib/errorContext.js`); `e2e/harness/redaction-corpus.test.ts` pins
+# that it still is, so a Playwright bump that renames it is a red unit test
+# rather than a silently blind gate.
+PAGE_SNAPSHOT_HEADING='# Page snapshot'
+refuse_page_snapshots() {
+  local root=$1 label=$2 hits
+  hits=$(grep -rlxF -- "$PAGE_SNAPSHOT_HEADING" "$root" 2> /dev/null || true)
+  [ -z "$hits" ] && return 0
+  echo "::error::redact-artifacts: a PAGE SNAPSHOT is present in $label - an aria snapshot of the" \
+    "live page, carrying every DOM text node and input value. Nothing will be uploaded." >&2
+  printf '%s\n' "$hits" | sed "s|^$root|  <$label>|" >&2
+  echo "  PLAYWRIGHT_NO_COPY_PROMPT was not \"1\" in the Playwright process; see AGENTS.md § Artifact privacy." >&2
+  exit 1
+}
+
 total_files=0
 total_zips=0
 
 for dir in "${dirs[@]}"; do
-  if [ ! -d "$dir" ]; then
-    echo "redact-artifacts: $dir does not exist, nothing to redact there."
-    continue
-  fi
-
   # 1. Zip members first: unzip, redact the tree, repack in place. Done before
   #    the plain-file pass, which then skips `*.zip` — running the byte
   #    substitution over a compressed archive could corrupt it.
@@ -145,6 +213,7 @@ for dir in "${dirs[@]}"; do
       continue
     fi
     redact_tree "$work" > /dev/null
+    refuse_page_snapshots "$work" "$archive"
     rm -f "$absolute"
     # Repack from inside the tree so member paths stay relative, as Playwright
     # expects. `-X` drops extra file attributes; `-r` recurses; `-q` is quiet.
@@ -161,6 +230,7 @@ for dir in "${dirs[@]}"; do
   #    stdout/stderr captures, the recorded browser revision.
   n=$(redact_tree "$dir" ! -name '*.zip')
   total_files=$((total_files + n))
+  refuse_page_snapshots "$dir" "$dir"
 done
 
-echo "OK: redacted URL query strings in ${total_files} file(s) and ${total_zips} archive(s) across: ${dirs[*]}"
+echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, across: ${dirs[*]}"

@@ -33,6 +33,7 @@ import process from "node:process";
 
 import type { FullConfig, FullResult, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
 
+import { takeEnvironmentChange } from "./ci-environment";
 import { reporterKeyHex, specPath, STAMP_ANNOTATION, STAMP_KEY_FILE, verifyStamp } from "./stamp";
 
 /** Does this result count as a success for the run? */
@@ -45,11 +46,27 @@ class StampReporter implements Reporter {
   private rootDir = process.cwd();
   private keyHex = "";
   private readonly problems: string[] = [];
+  private readonly environmentProblems: string[] = [];
   private verified = 0;
 
   onBegin(config: FullConfig): void {
     this.rootDir = config.rootDir;
     this.keyHex = reporterKeyHex();
+
+    // THE MAIN PROCESS'S HALF OF R3-FINDING J. `npx playwright test` collects
+    // spec files IN THIS PROCESS (`loadFileSuites` with an in-process loader
+    // host), so a spec's module scope — `delete process.env.CI` — runs here,
+    // after the configuration captured the environment and before any worker is
+    // forked. Workers inherit this process's environment when they are forked
+    // (`{ ...process.env }`), which happens after `onBegin`. So the change is
+    // RESTORED here, before any worker exists, and the run fails by name.
+    const change = takeEnvironmentChange(
+      "in the Playwright main process, after the spec files were collected and before any worker started",
+    );
+    if (change !== undefined) {
+      this.environmentProblems.push(change);
+      process.stderr.write(`\n::error::${change}\n`);
+    }
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
@@ -119,6 +136,15 @@ class StampReporter implements Reporter {
           `${error instanceof Error ? error.message : String(error)}. The out-of-process ` +
           "check cannot verify the stamps without it.",
       );
+    }
+
+    if (this.environmentProblems.length > 0) {
+      process.stderr.write(
+        "\n::error::the page-snapshot environment was changed by a spec during collection:\n" +
+          this.environmentProblems.map((problem) => `  ${problem}`).join("\n") +
+          "\n",
+      );
+      if (this.problems.length === 0) return { status: "failed" };
     }
 
     if (this.problems.length === 0) {

@@ -517,3 +517,102 @@ rewriting is verified rather than assumed.
   step can execute. `check-e2e-lane.mjs` closes uploader *actions*, including
   ones that are not `actions/upload-artifact`; it cannot close `run:`, and does
   not claim to.
+
+## CORRECTION (2026-09-21) — what the redaction measurements did NOT search
+
+Recorded here because a measurement whose blind spot is unstated is a
+measurement people over-trust, and this one was cited in `AGENTS.md` as
+end-to-end proof.
+
+Every redaction figure in this directory — the local "3 members -> 0" of D9, and
+the "239 `?<redacted>`, zero live queries" counted in the real uploaded CI
+artifact from run 35536837315 — was produced by a search that **could not read
+`playwright-report/index.html`'s base64-embedded archive.**
+
+`playwright/lib/runner/index.js:3704-3712` (`_writeReportData`) appends
+
+    <template id="playwrightReportBase64">data:application/zip;base64,...</template>
+
+to that file. The payload decodes (magic `504b0304`) to a ZIP of the whole report
+dataset; on a failing run its members carry the error messages, the step titles
+and subtitles, and the attachment bodies. `scripts/ci/redact-artifacts.sh` runs
+perl over `index.html` as TEXT — it rewrites the plaintext and cannot touch the
+payload — and it unpacks `*.zip` FILES only. `scripts/e2e/sweep-artifacts.sh`
+greped raw bytes of a copy with `.zip` files unpacked, and could not decode
+base64 either.
+
+Measured on a deliberately failing probe run (macOS arm64, `@playwright/test`
+1.63.0, markers minted at runtime by `crypto.randomBytes`, nothing committed):
+
+    decoded bytes: 2612   magic: 504b0304
+    markers surviving ONLY inside that payload:
+      the scheme-less signed URL, the typed password, the assertion's value
+    raw grep of index.html for those markers:  NOTHING FOUND
+    after `bash scripts/ci/redact-artifacts.sh test-results playwright-report`
+    (which reported OK: ... 23 file(s) and 2 archive(s)):
+      STILL LIVE: all three
+
+So those figures are **true of the channels that were searched and unproven for
+this one**. Nothing private existed in any of those runs — no spec authenticates
+and there is no vizra-core — so this is not a disclosure, it is a fifth URL shape
+after four rounds.
+
+Closed two ways, both in the `fix/m0-artifact-privacy-a` pull request:
+
+1. `playwright-report/` is no longer in the `e2e` workflow's upload paths, which
+   are now an allowlist enforced across every job of the file. `test-results/`
+   still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
+   `playwright-report/data/` was a byte-identical second copy of the same traces.
+2. `scripts/e2e/sweep-artifacts.sh` decodes every `;base64,` payload and recurses
+   into it when the magic says ZIP or gzip. Verified against the probe tree: the
+   old raw grep found the marker in 1 member; the new sweep finds it in 5,
+   including `.decoded-0.bin.unzipped/<sha>.json`, the member a raw grep cannot
+   see.
+
+## NOTE on the digest ledger's commit ordering (PR #8 review, FINDING 7)
+
+Recorded rather than fixed by rewriting history, because the history is the
+honest record and the ledger is correct at the head.
+
+`mutation-digests.txt` was committed at `5553142` — the commit that corrects
+`e2e/harness/worker-guard.ts`, where the chair's rule required the ledger to land
+with the byte-pinned file it describes. The ledger in that commit records a
+`browser-errors.ts` digest of `f336c5ca…`, which is the value that file acquires
+two commits later at `5dcb123` (the sanitiser change). So at `5553142` the ledger
+describes a tree that did not yet exist; **at the head it matches**, and an
+independent verifier confirmed that.
+
+Why: the demonstration suite is run ONCE, on the final tree, and its ledger is
+then placed in the commit that owns the pinned file. Regenerating it per commit
+would mean six full `npm run e2e:demos` runs of an already-long suite, each
+producing transcripts for a tree no one will ever check out.
+
+What changed as a result: `scripts/ci/check-source-hygiene.mjs` now verifies
+every `BEFORE`/`RESTORED` digest against the file at the current revision, in the
+required `frontend` lane. So the head is checked mechanically from now on, and
+the intermediate-commit skew is a stated property of how the suite is run rather
+than something a reader has to discover.
+
+## Round 2 of PR #8 (re-verification at `4158b10`) — what changed in this directory
+
+- **`d14-late-fault-600ms-is-the-LIMIT-GREEN.txt` is removed** and replaced by
+  `d14-late-fault-after-the-window-is-not-charged-GREEN.txt`. The 600 ms fault
+  was caught in both of an independent verifier's runs at load averages of
+  76–92 (R2-FINDING G): the 250 ms settle is a Node timer and the fault a browser
+  timer, and load stretches only one of them. The LIMIT half now schedules its
+  fault 20 s after the body and asserts only the invariant that survives load;
+  the window's width is pinned by a unit test on `SETTLE_MS` instead. The old
+  file is deleted rather than kept, so no transcript in this directory describes
+  a half the suite no longer runs.
+- **`d16*` are new.** They are the page-snapshot variable demonstrated at all
+  three layers — the upload gate (d16a, which is also round-1 finding 9(b)'s F10
+  red/green pair), the verifier's `.npmrc` line refused by the lane guard and at
+  runtime (d16b), the environment a `$GITHUB_ENV` write produces, SIMULATED
+  because Actions cannot run here, refused at runtime with the whole lane green as
+  the inverse control (d16c) — and a slash-escaped URL printed by a spec, which
+  reaches `results.json` and `trace.zip::test.trace` double-escaped (the positive
+  control, red) and is gone after the shipped redactor (green) (d16d).
+- **`mutation-digests.txt` is regenerated in the same commit that changes
+  `e2e/harness/test.ts`**, a byte-pinned file, and `check-source-hygiene.mjs` now
+  also refuses a ledger that is missing a line `demonstrate.sh` records — an
+  emptied or trimmed ledger passed before (R2-FINDING D).

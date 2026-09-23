@@ -67,8 +67,34 @@
  * `scripts/ci/check-e2e-lane.mjs` proves the lane runs exactly `npm run e2e`
  * with no exit-code laundering, so a non-zero exit IS a red lane. What that
  * costs is that the out-of-process check does not independently see this one
- * case; `check-e2e-lane.mjs` therefore greps for the assertion by call, so
- * deleting it is not silent.
+ * case; `check-e2e-lane.mjs` therefore asserts that `formatOrphans` is CALLED.
+ *
+ * WHAT THAT ASSERTION IS WORTH, stated accurately because it was overstated
+ * here for three rounds. This comment used to end "so deleting it is not
+ * silent". THAT WAS FALSE while the assertion was a regex over source with
+ * comments crudely stripped: two independent verifiers measured three ways
+ * through it with the call deleted — a TRAILING line comment
+ * (`void 0; // formatOrphans(a, b)`), a STRING literal
+ * (`const s = "formatOrphans(";`) and call-and-discard
+ * (`void formatOrphans(a, b);`) each returned the guard to green. The first was
+ * driven end to end: `tsc` 0, `check-e2e-lane.sh` 0, the canary 0, and an
+ * `afterAll` that breaks a page PASSING. This is the one control the canary
+ * cannot exercise and the out-of-process check does not see, so for the late
+ * edge it was the only compensating control, and it was weaker than the
+ * sentence claimed.
+ *
+ * The assertion now reads a PARSED TypeScript tree
+ * (`scripts/ci/ts-source-facts.mjs`): a comment is not a node and a string
+ * literal is not a call, so the first two defeats are gone by construction
+ * rather than by a better regex; `void f()` and a SHADOWED callee are refused
+ * explicitly; and `scripts/ci/require-checks_test.sh` drives all five shapes
+ * red against a throwaway tree, with an unapplied mutation refused as "a
+ * demonstration that does not mutate proves nothing".
+ *
+ * What it STILL cannot decide is whether the call's RESULT is used in a way
+ * that matters: `const _ = formatOrphans(…)` and a call in unreachable code
+ * both satisfy it. That needs a type checker and a reachability analysis, and
+ * the general case is REVIEW-ONLY. See `AGENTS.md` § Residuals.
  *
  * STAMPED STILL IMPLIES GUARDED. Moving the listening into a second fixture
  * would otherwise have re-opened FINDING 11 one level up: a spec could

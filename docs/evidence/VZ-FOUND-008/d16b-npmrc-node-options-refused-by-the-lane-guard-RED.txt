@@ -1,0 +1,7 @@
+$ bash scripts/ci/check-e2e-lane.sh
+
+::error::the e2e lane no longer tests what it claims to test:
+  .npmrc sets `node-options`, and a committed `.npmrc` is default-deny (the allowlist is empty). npm reads it for every `npm run` in this lane: `node-options` becomes NODE_OPTIONS, which is how an independent verifier blanked PLAYWRIGHT_NO_COPY_PROMPT inside the Playwright process with every workflow declaration still reading "1". Adding a key is a reviewed change to ALLOWED_NPMRC_KEYS in scripts/ci/check-e2e-lane.mjs.
+  These properties are invisible in a green run, which is why they are asserted here.
+
+[exit 1]

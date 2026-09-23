@@ -1,0 +1,11 @@
+$ demos e2e/demos/late-fault.demo.ts --grep LIMIT:
+
+
+Running 1 test using 1 worker
+
+  ✓ <n> [desktop-chromium-1440] › e2e/demos/late-fault.demo.ts:80:7 › LIMIT: a fault 20 s after the body returns › is MISSED, and this passing test is the documented limit (<time>)
+
+  1 passed (<time>)
+e2e harness stamp: OK (1 succeeding result(s) verified).
+
+[exit 0]

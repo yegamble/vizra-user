@@ -68,6 +68,12 @@ const eslintConfig = defineConfig([
     // `@playwright/test` at all.
     linterOptions: { noInlineConfig: true },
     rules: {
+      // A spec may READ `process.env.NAME` and nothing else. `CI` and
+      // `PLAYWRIGHT_NO_COPY_PROMPT` decide whether a live page snapshot is
+      // uploaded, and a verifier switched both off with two lines in a spec
+      // (PR #8, R3-FINDING J). The early warning; the control is the runtime
+      // capture-and-compare in `e2e/harness/ci-environment.ts`.
+      "vizra/no-process-env-write": "error",
       "vizra/no-unguarded-playwright-import": [
         "error",
         {

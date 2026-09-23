@@ -17,7 +17,8 @@
     "e2e:demos": "bash scripts/e2e/demonstrate.sh",
     "codegen": "node scripts/codegen.mjs",
     "check:contract": "node scripts/check-contract.mjs",
-    "ci": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "ci": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:hygiene",
+    "check:hygiene": "node scripts/ci/check-source-hygiene.mjs"
   },
   "dependencies": {
     "next": "16.3.5",

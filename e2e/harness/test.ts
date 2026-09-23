@@ -53,6 +53,7 @@ import {
   type BrowserErrorPolicy,
   type BrowserGuard,
 } from "./browser-errors";
+import { assertEnvironmentUnchanged, assertPageSnapshotSuppressed, takeEnvironmentChange } from "./ci-environment";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
 import {
   createWorkerHarness,
@@ -137,6 +138,16 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
     // reads a call to `use(...)` inside a try/catch as a misplaced React hook,
     // and the try/catch is load-bearing here.
     async ({ browser }, provide) => {
+      // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variables, in the
+      // process that takes the snapshot. Two checks. The values CAPTURED when the
+      // configuration loaded must satisfy the policy — a worker whose environment
+      // was rewritten on the way here (`.npmrc` `node-options`, `NODE_OPTIONS`,
+      // `$GITHUB_ENV`) fails. And the LIVE values must still equal that capture —
+      // a spec's module scope runs when the worker loads the spec file, after
+      // the capture and before this line; a change is restored and fails here,
+      // before any `beforeAll` or test opens a page, so there is nothing to
+      // snapshot (R3-FINDING J). See ./ci-environment.ts.
+      assertPageSnapshotSuppressed("at worker start, before any hook or test");
       const harness = createWorkerHarness(browser);
       try {
         await provide(harness);
@@ -151,9 +162,26 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
         const orphanViolations = harness.violations.slice(
           harness.claimedViolations,
         );
-        if (orphanRecords.length > 0 || orphanViolations.length > 0) {
-          throw new Error(formatOrphans(orphanRecords, orphanViolations));
+        // AND THE LATE EDGE FOR THE ENVIRONMENT: `afterAll`, or the teardown of
+        // a fixture the harness fixture depends on (an overridden `context`),
+        // which runs after the last per-test check. Restored and red by name;
+        // this one DETECTS rather than prevents, because the context may already
+        // have closed (see ./ci-environment.ts).
+        const environmentChange = takeEnvironmentChange(
+          "at worker teardown, after the last test",
+        );
+        try {
+          if (orphanRecords.length > 0 || orphanViolations.length > 0) {
+            throw new Error(formatOrphans(orphanRecords, orphanViolations));
+          }
+        } catch (error) {
+          // Both at once: the environment change is named FIRST, not lost.
+          if (environmentChange !== undefined && error instanceof Error) {
+            error.message = `${environmentChange}\n\n${error.message}`;
+          }
+          throw error;
         }
+        if (environmentChange !== undefined) throw new Error(environmentChange);
       } finally {
         // The browser is shared by every test in this worker and outlives the
         // guard, so the wrapping and the listeners are restored however this
@@ -204,6 +232,10 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
       const worker = vizraWorkerGuard;
       const guard = worker.guard;
 
+      // A change since the last check — in `beforeAll`, or late in the previous
+      // test — is restored before this test opens anything, and fails it by name.
+      assertEnvironmentUnchanged("before this test, since the previous check");
+
       const policyProblems = validatePolicy(browserErrorPolicy);
       if (policyProblems.length > 0) {
         throw new Error(policyProblems.join("\n"));
@@ -241,8 +273,17 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
         }),
       });
 
+      let failure: unknown;
       try {
         await runTest(guard);
+
+        // AND AGAIN AFTER THE BODY, before this test's context is closed —
+        // Playwright's recorder reads the variable during that close. A spec
+        // that rewrote `process.env` in its body, `beforeEach` or `afterEach`
+        // (or a `test.extend` fixture torn down before this one) is RESTORED
+        // here and fails by name, so the close that follows reads the captured
+        // value and writes no snapshot.
+        assertPageSnapshotSuppressed("after the test body, before its context closes");
 
         // The page is still OPEN here — measured, not assumed (`pages=1`).
         // The settle lives in here too; see `flushGuardedPages`.
@@ -329,6 +370,8 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
             ),
           );
         }
+      } catch (error) {
+        failure = error;
       } finally {
         // Charge everything up to here to this test, so the next test starts
         // from a correct cursor even if this one timed out or threw. The
@@ -337,6 +380,22 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
         worker.claimedRecords = guard.cursor();
         worker.claimedViolations = worker.violations.length;
       }
+
+      // LAST, before this fixture hands back and the context closes: a change
+      // made while the guard flushed the page (a page event handler) is
+      // restored, and named — ahead of whatever else this test failed on,
+      // rather than instead of it.
+      const lateChange = takeEnvironmentChange(
+        "at the end of the test, before its context closes",
+      );
+      if (lateChange !== undefined) {
+        const also =
+          failure === undefined
+            ? ""
+            : `\n\n${failure instanceof Error ? failure.message : String(failure)}`;
+        throw new Error(`${lateChange}${also}`);
+      }
+      if (failure !== undefined) throw failure;
     },
     { auto: true },
   ],

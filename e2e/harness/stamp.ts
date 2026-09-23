@@ -24,10 +24,15 @@
  * any directory, with any lint suppression — produces no stamp and is RED, with
  * its file named.
  *
- * WHERE THE KEY LIVES, AND WHY A SPEC CANNOT READ IT.
+ * WHERE THE KEY LIVES, AND WHY A SPEC IN A WORKER CANNOT READ IT.
  *
  *   - The Playwright MAIN process mints 32 random bytes at config load and
  *     keeps them in `VIZRA_E2E_STAMP_KEY` so that forked workers inherit them.
+ *     NOT CLOSED: `npx playwright test` collects spec files IN the main process
+ *     (`InProcessLoaderHost`), after config load, so by reading, a spec's module
+ *     scope can read the key there during collection. Whether that is a working
+ *     forgery was not established and no probe was built (PR #8 verifier finding
+ *     V-D; pre-existing since PR #7). The fix is queued for PR B.
  *   - In a WORKER (`TEST_WORKER_INDEX` is set), this module captures the value
  *     and immediately `delete`s it from `process.env`. That happens while the
  *     configuration is being loaded — `WorkerMain.runTestGroup` calls
@@ -56,7 +61,8 @@
  *
  *   a. recovering the 32-byte per-run key from inside a spec — it is not in the
  *      worker's environment, not on disk while any test is running, and not
- *      derivable from anything in the report; or
+ *      derivable from anything in the report; it IS in the main process's
+ *      environment while spec files are collected there (above); or
  *   b. importing `e2e/harness/stamp` (or the reporter) from a spec and calling
  *      the signer — which `claimSigner()` already refuses in a worker, and which
  *      `vizra/no-unguarded-playwright-import` refuses at lint time as a sealed

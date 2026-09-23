@@ -1,0 +1,62 @@
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv995932522e9a7796 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
+
+
+Running 1 test using 1 worker
+
+  ✘ <n> [desktop-chromium-1440] › e2e/specs/__envwrite.spec.ts:6:5 › a blank in afterEach (<time>)
+
+
+  1) [desktop-chromium-1440] › e2e/specs/__envwrite.spec.ts:6:5 › a blank in afterEach ─────────────
+
+    Error: this demonstration fails on purpose
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 1
+
+      12 |   });
+      13 |   await page.getByLabel("demonstration field").pressSequentially(String(process.env.VZ_DEMO_TYPED));
+    > 14 |   expect(1, "this demonstration fails on purpose").toBe(2);
+         |                                                    ^
+      15 | });
+      16 |
+        at <repo>/e2e/specs/__envwrite.spec.ts:14:52
+
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected after the test body, before its context closes]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+
+       at ../harness/ci-environment.ts:264
+
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+          |                                  ^
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:286:37)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/__envwrite-a-blank-in-afterEach-desktop-chromium-1440/test-failed-<n>.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/__envwrite-a-blank-in-afterEach-desktop-chromium-1440/video<n>.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/__envwrite-a-blank-in-afterEach-desktop-chromium-1440/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/__envwrite-a-blank-in-afterEach-desktop-chromium-1440/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/__envwrite-a-blank-in-afterEach-desktop-chromium-1440/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium-1440] › e2e/specs/__envwrite.spec.ts:6:5 › a blank in afterEach ──────────────
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (0 succeeding result(s) verified).
+
+[exit 1]

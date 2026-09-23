@@ -1,7 +1,9 @@
 $ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
-  the harness-canary step carries an `if:`. A conditional self-test is one expression away from never running, and its absence is invisible in a green lane.
+  no step runs `node scripts/ci/harness-canary.mjs` exactly as pinned. Without it, neutering e2e/harness/browser-errors.ts while leaving its identifiers in place is silent: every other check in this lane stays green, because a guard that has stopped looking finds nothing to fail on.
+  step 11 (The harness still fails a broken page (canary)) sets `env:` (E2E_BASE_URL). A step that is not pinned may set no environment: the lane guard allowlists env keys, and this step's list is empty.
+  job `e2e` step 11 (The harness still fails a broken page (canary)) mentions `E2E_BASE_URL`, `harness-canary.mjs` but is not byte-equal to the pinned `canary` step in .github/e2e-pinned-steps.yml: `if` not in the pin — the harness-canary step carries an `if:`. A conditional self-test is one expression away from never running, and its absence is invisible in a green lane.
   These properties are invisible in a green run, which is why they are asserted here.
 
 [exit 1]

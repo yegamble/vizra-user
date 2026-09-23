@@ -708,6 +708,172 @@ else
   record 0
 fi
 
+# --- THE HARNESS CHECKS: parsed source, not a grep -------------------------
+# The guard's harness assertions used to run a regex over the source with
+# comments crudely removed, and its header claimed that could "only make the
+# patterns match LESS, i.e. fail closed". THAT WAS FALSE. Two independent
+# verifiers measured three ways through it with the CALL deleted in each case:
+#
+#     `void 0; // formatOrphans(a, b)`   a TRAILING line comment   -> GREEN
+#     `const s = "formatOrphans(";`      a STRING literal          -> GREEN
+#     `void formatOrphans(a, b);`        call-and-discard          -> GREEN
+#
+# and the first was driven end to end on the ONE control the canary cannot
+# reach — the `formatOrphans` worker-teardown assertion — giving `tsc` 0, the
+# lane guard 0, the canary 0, and an `afterAll` that breaks a page PASSING.
+#
+# The guard now parses. These cases keep it parsed: each drives the REAL guard
+# against a throwaway tree in which exactly one harness file is mutated, so a
+# future "simplification" back to a regex is red here rather than in a verifier's
+# report six weeks later. The shadowed-callee case is the defeat an AST matcher
+# would otherwise have INTRODUCED — matching "a call to something named X"
+# without asking which X trades a string defeat for a scope defeat.
+
+# harness_tree: a throwaway repo root holding only what the lane guard reads.
+# The guard resolves its repo root from its own location, so copying the script
+# beside a copy of the harness is all it takes — no environment override, and
+# therefore no testing backdoor in a gate script.
+harness_tree() {
+  local root=$1
+  mkdir -p "$root/scripts/ci" "$root/e2e/harness"
+  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" "$root/scripts/ci/"
+  cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" \
+    "$here/../../e2e/harness/stamp-reporter.ts" "$root/e2e/harness/"
+  cp "$here/../../playwright.config.ts" "$here/../../playwright.demos.config.ts" \
+    "$here/../../package.json" "$root/"
+  ln -s "$here/../../node_modules" "$root/node_modules"
+  # The `.vizra-e2e` deny-list sweep reads every workflow in the repository, so
+  # the throwaway tree needs them too. Symlinked, not copied: the sweep is about
+  # the real workflows, and a stale copy would assert nothing.
+  mkdir -p "$root/.github"
+  ln -s "$here/../../.github/workflows" "$root/.github/workflows"
+  # The pinned step bodies the guard compares the workflow with. COPIED, not
+  # symlinked: the round-3 cases below mutate it.
+  cp "$here/../../.github/e2e-pinned-steps.yml" "$root/.github/e2e-pinned-steps.yml"
+}
+
+# harness_expect WANT_RC PATTERN FILE PERL_PROGRAM
+harness_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 file=$3 program=$4 rc=0
+  local root=$tmp/harness-$cases
+  harness_tree "$root"
+  if [ -n "$program" ]; then
+    perl -0pi -e "$program" "$root/$file" || { record 1 "mutation failed to apply"; return; }
+    if cmp -s "$root/$file" "$here/../../$file"; then
+      record 1 "THE MUTATION DID NOT CHANGE $file — a demonstration that does not mutate proves nothing"
+      return
+    fi
+  fi
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$real_workflow" >"$tmp/harness-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/harness-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+orphan_call='throw new Error\(formatOrphans\(orphanRecords, orphanViolations\)\);'
+guard_call='guardBrowser\(browser\)'
+
+title="the unmutated harness tree passes (the inverse control)"
+harness_expect 0 'still drives the built image' e2e/harness/test.ts ''
+
+title="formatOrphans: the call removed fails by name"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s/$orphan_call/throw new Error(\"orphans\");/"
+
+title="formatOrphans: a TRAILING comment does not satisfy the check"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s|$orphan_call|throw new Error(\"orphans\"); // formatOrphans(orphanRecords, orphanViolations)|"
+
+title="formatOrphans: a STRING literal does not satisfy the check"
+harness_expect 1 'no longer CALLS .formatOrphans' e2e/harness/test.ts \
+  "s|$orphan_call|const decoy = \"formatOrphans(\"; throw new Error(decoy);|"
+
+title="formatOrphans: call-and-discard via void does not satisfy the check"
+harness_expect 1 'DISCARDS with .void' e2e/harness/test.ts \
+  "s|$orphan_call|void formatOrphans(orphanRecords, orphanViolations);|"
+
+title="formatOrphans: a SHADOWED callee does not satisfy the check"
+harness_expect 1 'shadows' e2e/harness/test.ts \
+  "s|$orphan_call|const formatOrphans = () => \"x\"; throw new Error(formatOrphans());|"
+
+title="guardBrowser: the call removed fails by name"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s/$guard_call/({} as never)/"
+
+title="guardBrowser: a TRAILING comment does not satisfy the check"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s|$guard_call|({} as never) /* guardBrowser(browser) */|"
+
+title="guardBrowser: a STRING literal does not satisfy the check"
+harness_expect 1 'no longer CALLS .guardBrowser' e2e/harness/worker-guard.ts \
+  "s|$guard_call|JSON.parse(\"guardBrowser(\") as never|"
+
+title="guardBrowser: call-and-discard via void does not satisfy the check"
+harness_expect 1 'DISCARDS with .void' e2e/harness/worker-guard.ts \
+  "s|$guard_call|(void guardBrowser(browser)) as never|"
+
+title="guardBrowser: a SHADOWED callee does not satisfy the check"
+harness_expect 1 'shadows' e2e/harness/worker-guard.ts \
+  "s|const guard = $guard_call|const guardBrowser = (_b: unknown) => ({}) as never; const guard = guardBrowser(browser)|"
+
+# The eleventh check demanded only the PRESENCE of `STAMP_ANNOTATION`. A verifier
+# measured at `f0ee8f1` that deleting the whole annotation push leaves that green,
+# because the identifier survives on its own import line. Parsing makes the fix
+# free, so the case is pinned here.
+title="STAMP_ANNOTATION surviving only on an import line fails by name"
+harness_expect 1 'stamp annotation' e2e/harness/test.ts \
+  's/type: STAMP_ANNOTATION,/type: "vizra-harness-stamp",/'
+
+# --- globalSetup / globalTeardown are REFUSED ------------------------------
+# An independent verifier measured the hole (PR #7 review, FINDING 6): the
+# listening starts at WORKER setup, while `globalSetup` runs in the Playwright
+# main process before any worker exists. A `globalSetup` that launched its own
+# Chromium and opened a page which 404s a sub-resource and throws gave
+# `npx playwright test` exit 0, `3 passed`, with no guard message; the module
+# provably ran (it wrote a marker file); and `check-e2e-lane.sh` exited 0 too.
+# Nothing here needs one, so the key is refused rather than guarded.
+title="globalSetup in playwright.config.ts fails by name"
+harness_expect 1 'declares .globalSetup' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  globalSetup: "./e2e/harness/vz-globalsetup.ts",\n  testDir: "./e2e/specs",|'
+
+title="globalTeardown in playwright.config.ts fails by name"
+harness_expect 1 'declares .globalTeardown' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  globalTeardown: "./e2e/harness/vz-globalteardown.ts",\n  testDir: "./e2e/specs",|'
+
+title="globalSetup in the DEMOS config fails by name too"
+harness_expect 1 'playwright.demos.config.ts declares .globalSetup' playwright.demos.config.ts \
+  's|  testDir: "./e2e/demos",|  globalSetup: "./e2e/harness/vz-globalsetup.ts",\n  testDir: "./e2e/demos",|'
+
+title="globalSetup named only in a COMMENT does not trip the refusal"
+harness_expect 0 'still drives the built image' playwright.config.ts \
+  's|  testDir: "./e2e/specs",|  // globalSetup is refused here; see AGENTS.md\n  testDir: "./e2e/specs",|'
+
+title="globalSetup named only in a STRING does not trip the refusal"
+harness_expect 0 'still drives the built image' playwright.config.ts \
+  's|  outputDir: "test-results",|  outputDir: "test-results",\n  metadata: { note: "globalSetup: none" },|'
+
+title="a config whose default export cannot be read fails CLOSED"
+harness_expect 1 'unreadable-default-export' playwright.config.ts \
+  's|export default defineConfig\(\{|const built = buildIt(1);\nexport default built;\nconst unusedConfig = defineConfig({|'
+
+# The stamp wiring, now read from the tree rather than from a substring.
+title="a reporter specifier named only in a comment does not satisfy the check"
+harness_expect 1 'stamp-reporter' playwright.config.ts \
+  's|\["\./e2e/harness/stamp-reporter\.ts"\],|// ["./e2e/harness/stamp-reporter.ts"],|'
+
+title="the harness import named only in a comment does not satisfy the check"
+harness_expect 1 'no longer imports' playwright.config.ts \
+  's|import "\./e2e/harness/test";|/* import "./e2e/harness/test"; */ const decoy = 1;|'
+
+title="testDir widened to ./e2e fails by name"
+harness_expect 1 'restricts .testDir' playwright.config.ts \
+  's|  testDir: "\./e2e/specs",|  testDir: "./e2e",|'
+
 # --- EVERY upload step, not the first one ----------------------------------
 # The parser located the upload with `steps.find(...)` and asserted the gate on
 # that one step. An independent verifier appended a SECOND
@@ -744,8 +910,8 @@ lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
         with:
           name: playwright-artifacts-second
           path: |
-            playwright-report/
             test-results/
+          retention-days: 3
           if-no-files-found: error
 YAML
 
@@ -771,16 +937,22 @@ lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
           path: test-results/
 YAML
 
-title="a second upload step that IS correctly gated passes"
-lane_append 0 'still drives the built image' <<'YAML'
+# THIS CASE WAS GREEN UNTIL ROUND 3, AND IS RED ON PURPOSE NOW. A second upload
+# step that carried the right gate used to pass, because the guard judged each
+# uploader by a list of properties. Since R3-FINDING H every step the guard relies
+# on must be BYTE-EQUAL to its pin in .github/e2e-pinned-steps.yml, and the upload
+# is exactly one step. A second uploader is a change to what leaves the runner; it
+# lands as a reviewed change to the pin, not as a step the guard waves through.
+title="a second upload step, even one correctly gated, is refused: the upload is pinned"
+lane_append 1 'not byte-equal to the pinned .upload. step' <<'YAML'
       - name: Upload Playwright artifacts (second, correctly gated)
         if: failure() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-artifacts-second
           path: |
-            playwright-report/
             test-results/
+          retention-days: 3
           if-no-files-found: error
 YAML
 
@@ -807,6 +979,207 @@ lane_expect 1 'harness-canary step sets .continue-on-error' 's|^        run: nod
 
 title="pinning the per-run stamp key in the workflow fails by name"
 lane_expect 1 'VIZRA_E2E_STAMP_KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          VIZRA_E2E_STAMP_KEY: deadbeef|'
+
+# ---------------------------------------------------------------------------
+# ROUND 3 (PR #8, R3-FINDING H): THE STEPS THE GUARD RELIES ON ARE PINNED.
+#
+# The guard found the redaction step with `run.includes("redact-artifacts.sh")`,
+# and an independent verifier showed eight spellings that each left it green
+# while `steps.redact.outcome == 'success'` let the upload publish with no URL
+# redaction and no page-snapshot gate. Each is below, red BY NAME, followed by one
+# case per other pinned step, the environment routes that change what a
+# byte-equal body does, and the pins file's own invariants.
+# ---------------------------------------------------------------------------
+redact_line='^        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report$'
+redact_spellings=(
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report || true'
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report; exit 0'
+  'set +e; bash scripts/ci/redact-artifacts.sh test-results playwright-report; true'
+  'bash scripts/ci/redact-artifacts.sh test-results playwright-report > /dev/null 2>&1 || echo skipped'
+  'bash scripts/ci/redact-artifacts.sh test-result playwright-reports'
+  'bash scripts/ci/redact-artifacts.sh test-results'
+  'bash scripts/ci/redact-artifacts.sh /tmp/empty'
+  'echo redact-artifacts.sh'
+)
+for spelling in "${redact_spellings[@]}"; do
+  title="R3-H: the redaction step as \`$spelling\` fails by name"
+  lane_expect 1 'not byte-equal to the pinned .redact. step.*run. differs' \
+    "s#$redact_line#        run: ${spelling//&/\\&}#"
+done
+
+title="R3-H: the real redaction step BESIDE a laundered copy fails by name"
+lane_append 1 'mentions .redact-artifacts.sh.* but is not byte-equal to the pinned .redact. step' <<'YAML'
+      - name: Redact again, quietly
+        if: failure()
+        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report || true
+YAML
+
+title="R3-H: build_image with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .build_image. step' \
+  's#^        run: docker build --tag vizra-user:e2e .$#        run: docker build --tag vizra-user:e2e . || true#'
+
+title="R3-H: fixture_free with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .fixture_free. step' \
+  's#^        run: bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e$#&; exit 0#'
+
+title="R3-H: start_image marked continue-on-error fails by name"
+lane_expect 1 'not byte-equal to the pinned .start_image. step' \
+  's#^      - name: Start the production image$#&\n        continue-on-error: true#'
+
+title="R3-H: the lane step run from another working-directory fails by name"
+lane_expect 1 'not byte-equal to the pinned .lane. step.*working-directory. not in the pin' \
+  's#^        run: npm run e2e$#        working-directory: e2e\n&#'
+
+title="R3-H: the floor step with its exit code laundered fails by name"
+lane_expect 1 'not byte-equal to the pinned .floor. step' \
+  's#^        run: node scripts/ci/check-coverage-floor-ran.mjs$#& || true#'
+
+title="R3-H: the canary with a step timeout fails by name"
+lane_expect 1 'not byte-equal to the pinned .canary. step.*timeout-minutes. not in the pin' \
+  's#^        run: node scripts/ci/harness-canary.mjs$#        timeout-minutes: 1\n&#'
+
+title="R3-H: the browser-revision step writing more into the uploaded file fails by name"
+lane_expect 1 'not byte-equal to the pinned .record_browsers. step' \
+  's#^          npx playwright install --dry-run chromium | tee playwright-browsers.txt$#&\n          cat test-results/*/error-context.md >> playwright-browsers.txt || true#'
+
+title="R3-H: the upload step with hidden files switched on fails by name"
+lane_expect 1 'not byte-equal to the pinned .upload. step.*include-hidden-files' \
+  's#^          if-no-files-found: error$#&\n          include-hidden-files: true#'
+
+title="R3-H: a step between the redaction and the upload fails by name"
+lane_expect 1 'must IMMEDIATELY follow the redaction' \
+  's#^      - name: Upload Playwright artifacts$#      - name: Between\n        if: failure()\n        run: echo between\n\n&#'
+
+# The environment a byte-equal body runs in.
+title="R3-H: workflow-level defaults.run.shell fails by name"
+lane_expect 1 'declares .defaults:. at top level' \
+  "s#^permissions:\$#defaults:\n  run:\n    shell: bash --noprofile --norc {0} || true\n&#"
+
+title="R3-H: job-level defaults fails by name"
+lane_expect 1 'the .e2e. job declares .defaults:.' \
+  's#^    timeout-minutes: 30$#&\n    defaults:\n      run:\n        working-directory: e2e#'
+
+title="R3-H: a job container fails by name"
+lane_expect 1 'the .e2e. job declares .container:.' \
+  's#^    timeout-minutes: 30$#&\n    container: node:22#'
+
+title="R3-H: a self-hosted runner fails by name"
+lane_expect 1 'must run on .ubuntu-24.04.' \
+  's#^    runs-on: ubuntu-24.04$#    runs-on: self-hosted#'
+
+title="R3-H: BASH_ENV in the job env fails by name (default-deny)"
+lane_expect 1 'sets .BASH_ENV.. Env at this scope is DEFAULT-DENY' \
+  's#^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$#&\n      BASH_ENV: scripts/ci/redact-artifacts.sh#'
+
+title="R3-H: PATH in the workflow env fails by name (default-deny)"
+lane_expect 1 'sets .PATH.. Env at this scope is DEFAULT-DENY' \
+  "s#^permissions:\$#env:\n  PATH: ./bin:/usr/bin:/bin\n&#"
+
+title="R3-H: env on an UNPINNED step fails by name (default-deny)"
+lane_expect 1 'may set no environment' \
+  's#^        run: npm ci$#        env:\n          FOO: bar\n&#'
+
+title="R3-K: HOME in the job env fails by name"
+lane_expect 1 'sets .HOME., which is refused at every scope' \
+  's#^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$#&\n      HOME: /home/runner/work/.ci-home#'
+
+title="R3-K: HOME at step level fails by name"
+lane_expect 1 'sets .HOME., which is refused at every scope' \
+  's#^          E2E_BASE_URL: http://127.0.0.1:3000$#&\n          HOME: /tmp/elsewhere#'
+
+# THE PINS FILE'S OWN INVARIANTS. The same edit applied to the workflow step AND
+# its pin is deep-equal, so without these the pins file would only move the
+# weakness. Each case mutates both, in a throwaway tree.
+pinned_pair_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 program=$3 rc=0
+  local root=$tmp/pinpair-$cases
+  harness_tree "$root"
+  cp "$real_workflow" "$root/mutated-e2e.yml"
+  perl -0pi -e "$program" "$root/mutated-e2e.yml" "$root/.github/e2e-pinned-steps.yml" \
+    || { record 1 "mutation failed to apply"; return; }
+  if cmp -s "$root/.github/e2e-pinned-steps.yml" "$here/../../.github/e2e-pinned-steps.yml"; then
+    record 1 "THE MUTATION DID NOT CHANGE the pins file — a demonstration that does not mutate proves nothing"
+    return
+  fi
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$root/mutated-e2e.yml" >"$tmp/pinpair-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/pinpair-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/pinpair-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/pinpair-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="R3-H pins: renaming the redaction step in BOTH files passes (the inverse control)"
+pinned_pair_expect 0 'still drives the built image' \
+  's/name: Redact URL query strings in the artifacts$/name: Redact the artifacts/m'
+
+title="R3-H pins: \`|| true\` on the redaction in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 is PERL's capture group, not a shell expansion
+pinned_pair_expect 1 'the .redact. pin runs .* and must run exactly' \
+  's/(run: bash scripts\/ci\/redact-artifacts\.sh test-results playwright-report)$/$1 || true/m'
+
+title="R3-H pins: the upload gated on bare failure() in BOTH files fails by name"
+pinned_pair_expect 1 'the .upload. pin is not gated on the redaction having SUCCEEDED' \
+  "s/if: failure\\(\\) && steps\\.redact\\.outcome == 'success'\$/if: failure()/m"
+
+title="R3-H pins: a working-directory on the lane in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 is PERL's capture group, not a shell expansion
+pinned_pair_expect 1 'the .lane. pin carries .working-directory.' \
+  's/^(\s+)(run: npm run e2e)$/$1working-directory: e2e\n$1$2/m'
+
+title="R3-H pins: retention above the ceiling in BOTH files fails by name"
+pinned_pair_expect 1 'the ceiling is 3' \
+  's/retention-days: 3$/retention-days: 30/m'
+
+title="R3-H pins: the lane pointed at another port in BOTH files fails by name"
+pinned_pair_expect 1 'does not match any port' \
+  's#E2E_BASE_URL: http://127\.0\.0\.1:3000$#E2E_BASE_URL: http://127.0.0.1:3999#mg'
+
+title="R3-H pins: a pin this guard has no rule for fails by name"
+pinned_pair_expect 1 'has no rule for' \
+  's/^steps:\n/steps:\n  extra:\n    name: Extra\n    run: echo extra\n/m'
+
+# ---------------------------------------------------------------------------
+# PR #8 CLOSING ROUND (verifier V-B, V-C, V-E).
+# ---------------------------------------------------------------------------
+# V-B: npm runs the ROOT package's install lifecycle scripts inside the unpinned
+# `npm ci` step, before every pinned step. `pree2e` was refused; these were not.
+for hook in preinstall install postinstall prepublish preprepare prepare postprepare dependencies; do
+  title="V-B: a root \`$hook\` lifecycle script fails by name"
+  harness_expect 1 "scripts.$hook" package.json \
+    "s|\"dev\": \"next dev\",|\"$hook\": \"echo hello\",\n    \"dev\": \"next dev\",|"
+done
+
+title="V-B: an ordinary extra script passes (the inverse control)"
+harness_expect 0 'still drives the built image' package.json \
+  's|"dev": "next dev",|"extra-noop": "echo hello",\n    "dev": "next dev",|'
+
+# V-C: the one pinned step whose output is uploaded from OUTSIDE the redacted
+# directories had no invariant, so editing its pin and the workflow together passed.
+title="V-C: appending to playwright-browsers.txt in BOTH files fails by name"
+# shellcheck disable=SC2016 # $1 and $2 are PERL's capture groups
+pinned_pair_expect 1 'the .record_browsers. pin runs' \
+  's/^([ ]+)(npx playwright install --dry-run chromium \| tee playwright-browsers\.txt)$/$1$2\n$1uname -a >> playwright-browsers.txt/m'
+
+# V-E: the `with:` inputs of the unpinned allowlisted actions are pinned too.
+title="V-E: actions/checkout pointed at another ref fails by name"
+lane_expect 1 'actions/checkout.* .with:. must be exactly' \
+  's#^          persist-credentials: false$#&\n          ref: 0000000000000000000000000000000000000000#'
+
+title="V-E: actions/checkout persisting credentials fails by name"
+lane_expect 1 'actions/checkout.* .with:. must be exactly' \
+  's#^          persist-credentials: false$#          persist-credentials: true#'
+
+title="V-E: actions/setup-node with another node version fails by name"
+lane_expect 1 'actions/setup-node.* .with:. must be exactly' \
+  's#^          node-version-file: .nvmrc$#          node-version: "20"#'
+
+title="V-E: workflow-level permissions widened fails by name"
+lane_expect 1 'workflow.s .permissions:. must be exactly' \
+  's#^  contents: read$#  contents: write#'
 
 # ---------------------------------------------------------------------------
 # The IMAGE-PIN guard (scripts/ci/check-image-pins.sh).
@@ -905,6 +1278,370 @@ if bash "$pin_script" "$here/../../Dockerfile" "$here/../../.nvmrc" >"$tmp/pin-r
 else
   record 1 "the committed Dockerfile is not immutably pinned: $(tr '\n' ' ' <"$tmp/pin-real.out" | cut -c1-300)"
 fi
+
+# --- UPLOAD SCOPE IS DEFAULT-DENY (the security seat's FINDING 8) ----------
+# Deriving "what leaves the runner" from the paths the uploaders happen to name
+# is not default-deny: `actions/cache` matches neither `upload` nor `artifact`
+# and publishes a blob other runs can read; `path:` takes globs and `${{ }}`;
+# `$GITHUB_STEP_SUMMARY` publishes with no `path:` at all; and a second job is
+# somewhere a single-job parser never looks. The scope is an allowlist, and
+# these are the six mutations that prove it.
+
+title="a GLOB in an upload path fails by name"
+lane_expect 1 'glob or exclusion metacharacter' 's|^            test-results/$|            test-*/|'
+
+title="a \${{ }} expression in an upload path fails by name"
+# The `${{ }}` must reach the sed program LITERALLY — that is the mutation under
+# test. Double quotes would make the shell try to expand it.
+# shellcheck disable=SC2016
+lane_expect 1 'expression' 's|^            test-results/$|            ${{ runner.temp }}/|'
+
+title="include-hidden-files: true fails by name"
+lane_expect 1 'include-hidden-files' 's|^          retention-days: 3$|          retention-days: 3\n          include-hidden-files: true|'
+
+title="an upload path outside the allowlist fails by name"
+lane_expect 1 'not on the allowlist' 's|^            test-results/$|            test-results/\n            playwright-report/index.html|'
+
+title="a \$GITHUB_STEP_SUMMARY write in the e2e job fails by name"
+# `$GITHUB_STEP_SUMMARY` is the text being injected into the workflow, not a
+# variable this script should expand.
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      - name: Container logs$|      - name: Summary\n        run: echo hi >> $GITHUB_STEP_SUMMARY\n      - name: Container logs|'
+
+title="an actions/cache step caching .vizra-e2e fails by name"
+lane_append 1 'pinned action allowlist' <<'YAML'
+      - name: Cache the harness directory
+        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        with:
+          path: .vizra-e2e
+          key: vizra-e2e-${{ github.sha }}
+YAML
+
+title="a SECOND JOB in e2e.yml with an uploader is seen by the guard"
+lane_append 1 'job .publish. step 1 has the path' <<'YAML'
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: everything
+          path: .
+          retention-days: 3
+YAML
+
+title="a reusable workflow job fails by name"
+lane_append 1 'REUSABLE WORKFLOW' <<'YAML'
+  delegated:
+    uses: ./.github/workflows/frontend-ci.yml
+YAML
+
+# --- FINDING 19: the retention ceiling -------------------------------------
+title="retention-days above the ceiling fails by name"
+lane_expect 1 'above the ceiling' 's|^          retention-days: 3$|          retention-days: 14|'
+
+title="an uploader with no retention-days fails by name"
+lane_expect 1 'inherits the repository default' '/^          retention-days: 3$/d'
+
+# --- FINDING 10: the page snapshot is off in CI ----------------------------
+# `error-context.md` is written whenever a test has errors and no Playwright
+# CONFIG option gates the file. `PLAYWRIGHT_NO_COPY_PROMPT` gates its worst
+# section — an aria snapshot of the live page carrying every DOM text node and
+# every input's current value (playwright/lib/index.js:657-658).
+title="removing PLAYWRIGHT_NO_COPY_PROMPT from the job fails by name"
+lane_expect 1 'PLAYWRIGHT_NO_COPY_PROMPT' '/^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$/d'
+
+title="setting PLAYWRIGHT_NO_COPY_PROMPT to 0 fails by name"
+lane_expect 1 'PLAYWRIGHT_NO_COPY_PROMPT' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "0"|'
+
+title="a DEBUG env key in a lane step fails by name"
+lane_expect 1 'refused in this lane' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          DEBUG: pw:api|'
+
+title="an unlisted PLAYWRIGHT_* env key fails by name"
+lane_expect 1 'refused in this lane' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      PLAYWRIGHT_HTML_REPORT: uploads|'
+
+# --- FINDING 9: what `npm run e2e` actually expands to ---------------------
+# The guard's strongest assertion is that a step's `run` is exactly
+# `npm run e2e`. What that expands to lives in package.json, which the guard
+# never opened — so `--trace on --output test-results` was a one-word edit to a
+# file no gate read.
+title="appending --trace on to scripts.e2e fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --trace on"|'
+
+title="appending --output to scripts.e2e fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --output test-results"|'
+
+title="pointing scripts.e2e at another config fails by name"
+harness_expect 1 'scripts.e2e' package.json \
+  's|"e2e": "playwright test"|"e2e": "playwright test --config=other.config.ts"|'
+
+title="changing scripts.e2e:demos fails by name"
+harness_expect 1 'e2e:demos' package.json \
+  's|"e2e:demos": "bash scripts/e2e/demonstrate.sh"|"e2e:demos": "true"|'
+
+# --- THE EFFECTIVE ENV VALUE (PR #8 review, FINDING 2 - BLOCKING) ----------
+# The first version required PLAYWRIGHT_NO_COPY_PROMPT: "1" in the JOB env and
+# separately EXEMPTED that key from the PLAYWRIGHT_* refusal, so a step-level
+# entry was neither required-to-be-"1" nor refused. A verifier added one line -
+# `PLAYWRIGHT_NO_COPY_PROMPT: ""` on the lane step - and the guard stayed at
+# exit 0 while the page snapshot came back carrying a page.fill value verbatim.
+# A step env OVERRIDES the job's, and Playwright gates on truthiness.
+title="PLAYWRIGHT_NO_COPY_PROMPT empty at STEP level fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          PLAYWRIGHT_NO_COPY_PROMPT: ""|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT at STEP level, even as \"1\", fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          PLAYWRIGHT_NO_COPY_PROMPT: "1"|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT at WORKFLOW level fails by name"
+lane_expect 1 'may appear at JOB level and nowhere else' 's|^permissions:$|env:\n  PLAYWRIGHT_NO_COPY_PROMPT: "1"\npermissions:|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT set to the empty string at job level fails by name"
+lane_expect 1 'must be\s+exactly' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: ""|'
+
+title="PLAYWRIGHT_NO_COPY_PROMPT set to 0 at job level fails by name"
+lane_expect 1 'must be\s+exactly' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "0"|'
+
+# ...and a `run:` line that clears it, in the four spellings someone would reach
+# for. A grep, and § Residuals says so - a script can compute the name.
+title="a run: step that unsets the variable fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: unset PLAYWRIGHT_NO_COPY_PROMPT; npm run e2e|'
+
+title="a run: step with an empty export fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: export PLAYWRIGHT_NO_COPY_PROMPT=; npm run e2e|'
+
+title="a run: step using env -u fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: env -u PLAYWRIGHT_NO_COPY_PROMPT npm run e2e|'
+
+title="a run: step with a VAR= command prefix fails by name"
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: PLAYWRIGHT_NO_COPY_PROMPT= npm run e2e|'
+
+# --- ALL THREE ENV SCOPES (FINDING 3) --------------------------------------
+# job and step level were red; the WORKFLOW-level block was never read.
+title="DEBUG at WORKFLOW level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^permissions:$|env:\n  DEBUG: pw:api\npermissions:|'
+
+title="an npm_config_ override at WORKFLOW level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^permissions:$|env:\n  npm_config_script_shell: /bin/sh\npermissions:|'
+
+title="NODE_OPTIONS at job level fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      NODE_OPTIONS: --require ./x.js|'
+
+# --- npm LIFECYCLE HOOKS (FINDING 10) --------------------------------------
+# `npm run e2e` is `pree2e && e2e && poste2e`. The guard pinned one third, and a
+# verifier confirmed empirically that a pree2e with `--trace on --output
+# test-results` runs and writes into the uploaded directory.
+title="a pree2e lifecycle hook fails by name"
+harness_expect 1 'scripts.pree2e' package.json \
+  's|"e2e": "playwright test"|"pree2e": "playwright test --trace on --output test-results",\n    "e2e": "playwright test"|'
+
+title="a poste2e lifecycle hook fails by name"
+harness_expect 1 'scripts.poste2e' package.json \
+  's|"e2e": "playwright test"|"poste2e": "playwright test --trace on",\n    "e2e": "playwright test"|'
+
+title="a pre-hook on e2e:demos fails by name"
+harness_expect 1 'scripts.pree2e:demos' package.json \
+  's|"e2e:demos": "bash scripts/e2e/demonstrate.sh"|"pree2e:demos": "echo x",\n    "e2e:demos": "bash scripts/e2e/demonstrate.sh"|'
+
+# --- THE UPLOAD ALLOWLIST HOLDS NOTHING SPECULATIVE ------------------------
+title="the upload allowlist names only paths a step produces today"
+cases=$((cases + 1))
+if grep -qE '^\s*"e2e-failure-summary/",' "$here/check-e2e-lane.mjs"; then
+  record 1 "ALLOWED_UPLOAD_PATHS still carries e2e-failure-summary/, which no step in this PR writes"
+else
+  record 0
+fi
+
+# --- SOURCE HYGIENE (PR #8 review, FINDING 6) ------------------------------
+# Two incidents, not hypotheticals. A tool's JSON encoding turned the \uXXXX
+# escapes in a regex character class into LITERAL control bytes in a committed
+# source, and every lane stayed green - tsc, ESLint and vitest all accept a raw
+# NUL inside a character class. And the digest ledger, whose whole value is that
+# a verifier can confirm the tree from the evidence alone, was read by nothing.
+hygiene_script=$here/check-source-hygiene.mjs
+[ -r "$hygiene_script" ] || { echo "require-checks_test: $hygiene_script is missing" >&2; exit 1; }
+
+# hygiene_expect WANT_RC PATTERN FILE PERL_PROGRAM  (empty program = unmutated)
+# Mutates the REAL tree, runs the check, and restores - so the case is about this
+# repository rather than a fixture that can drift away from it.
+hygiene_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 file=$3 program=$4 rc=0
+  local repo=$here/../..
+  local backup=$tmp/hygiene-$cases.bak
+  if [ -n "$program" ]; then
+    cp "$repo/$file" "$backup"
+    perl -0pi -e "$program" "$repo/$file"
+    if cmp -s "$repo/$file" "$backup"; then
+      cp "$backup" "$repo/$file"
+      record 1 "THE MUTATION DID NOT CHANGE $file - a demonstration that does not mutate proves nothing"
+      return
+    fi
+  fi
+  node "$hygiene_script" >"$tmp/hygiene-$cases.out" 2>&1 || rc=$?
+  [ -n "$program" ] && cp "$backup" "$repo/$file"
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/hygiene-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/hygiene-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/hygiene-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+title="the committed tree passes source hygiene (the inverse control)"
+hygiene_expect 0 'carry no literal control bytes' e2e/harness/redact.ts ''
+
+# `\x00` in the perl program writes a REAL NUL byte into the file - the exact
+# incident, reproduced rather than described.
+title="a literal NUL byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' e2e/harness/redact.ts \
+  's/export function redactUrl/\x00export function redactUrl/'
+
+title="a literal DEL byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' e2e/harness/redact.ts \
+  's/export function redactUrl/\x7Fexport function redactUrl/'
+
+title="a literal ESC byte in a source fails by name"
+hygiene_expect 1 'literal control bytes' scripts/ci/check-e2e-lane.mjs \
+  's/const repoRoot/\x1Bconst repoRoot/'
+
+title="a stale BEFORE digest in the ledger fails by name"
+hygiene_expect 1 'describes a tree' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE  [0-9a-f]{8}/D12 browser-errors.ts BEFORE  deadbeef/m'
+
+title="a ledger line naming a file that does not exist fails by name"
+hygiene_expect 1 'does not exist in this tree' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's|e2e/harness/browser-errors\.ts|e2e/harness/no-such-file.ts|'
+
+title="a malformed ledger line fails by name"
+hygiene_expect 1 'is not "<label>' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE.*$/D12 browser-errors.ts BEFORE nodigest/m'
+
+# --- ROUND 2 (PR #8 re-verification at 4158b10) ---------------------------
+# harness_with_file WANT_RC PATTERN RELPATH CONTENT
+# A throwaway tree with ONE extra file written into it - for the cases where the
+# attack is a file that does not exist in the repository today (`.npmrc`, a
+# second workflow), so there is nothing to mutate.
+harness_with_file() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 relative=$3 content=$4 rc=0
+  local root=$tmp/harness-$cases
+  harness_tree "$root"
+  if [ "${relative#.github/workflows/}" != "$relative" ]; then
+    # The tree symlinks the REAL workflows; copy them so this case can add one
+    # without touching the repository.
+    rm "$root/.github/workflows"
+    cp -R "$here/../../.github/workflows" "$root/.github/workflows"
+  fi
+  mkdir -p "$(dirname "$root/$relative")"
+  printf '%s\n' "$content" > "$root/$relative"
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$real_workflow" >"$tmp/harness-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/harness-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+# R2-FINDING E (BLOCKING). One committed `.npmrc` line blanked the variable in
+# the Playwright process with every workflow declaration still reading "1", and
+# the guard refused only two named keys. It is default-deny now: EMPTY allowlist.
+title="the verifier's .npmrc node-options line fails by name"
+# shellcheck disable=SC2016
+harness_with_file 1 '.npmrc sets .node-options.' .npmrc \
+  'node-options=--import=data:text/javascript,process.env.PLAYWRIGHT_NO_COPY_PROMPT=%22%22'
+
+title="a .npmrc node-options that --require's a preload fails by name"
+harness_with_file 1 '.npmrc sets .node-options.' .npmrc 'node-options=--require ./preload.cjs'
+
+title="ANY unlisted .npmrc key fails - the allowlist is empty, not a list of bad keys"
+harness_with_file 1 '.npmrc sets .fund.' .npmrc 'fund=false'
+
+title="a .npmrc of comments and blank lines only passes (the inverse control)"
+harness_with_file 0 'still drives the built image' .npmrc '# nothing configured here'
+
+title="npm_config_userconfig pointing at another .npmrc fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      npm_config_userconfig: ./other.npmrc|'
+
+# The runtime assertion only fires when CI is set, so CI may not be declared.
+title="CI declared in a step env fails by name"
+lane_expect 1 'sets .CI.' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          CI: ""|'
+
+title="CI declared at workflow level fails by name"
+lane_expect 1 'sets .CI.' 's|^permissions:$|env:\n  CI: "false"\npermissions:|'
+
+# R2-FINDING B: $GITHUB_ENV / $GITHUB_PATH cross into the lane step.
+title="a GITHUB_ENV write in an earlier step fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_ENV' 's|^      - name: Build the production image (linux/amd64)$|      - name: Tamper\n        run: echo "NODE_OPTIONS=--require ./p.cjs" >> "$GITHUB_ENV"\n      - name: Build the production image (linux/amd64)|'
+
+title="a GITHUB_PATH write in an earlier step fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_PATH' 's|^      - name: Build the production image (linux/amd64)$|      - name: Tamper\n        run: echo "$PWD/shim" >> "$GITHUB_PATH"\n      - name: Build the production image (linux/amd64)|'
+
+# R2-FINDING A: $GITHUB_STEP_SUMMARY through an env MAP, not the run: text.
+title="GITHUB_STEP_SUMMARY through a STEP env map fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      - name: Container logs$|      - name: Summary\n        env:\n          S: ${{ env.GITHUB_STEP_SUMMARY }}\n        run: echo hi >> "$S"\n      - name: Container logs|'
+
+title="GITHUB_STEP_SUMMARY through the JOB env map fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      S: ${{ env.GITHUB_STEP_SUMMARY }}|'
+
+# YAML merge keys: the guard's parser does not expand them, so it cannot see
+# what they merge. A verifier injected PLAYWRIGHT_NO_COPY_PROMPT: "" that way.
+title="a YAML merge key in the lane step's env fails by name"
+lane_expect 1 'MERGE KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          <<: {PLAYWRIGHT_NO_COPY_PROMPT: ""}|'
+
+title="a YAML merge key in ANOTHER workflow file fails by name"
+harness_with_file 1 'zz-merge.yml uses a YAML MERGE KEY' .github/workflows/zz-merge.yml \
+'name: zz
+on: [push]
+jobs:
+  x:
+    runs-on: ubuntu-24.04
+    env:
+      <<: {A: b}
+    steps:
+      - run: "true"'
+
+title="a DUPLICATE key in the workflow fails the parse"
+lane_expect 1 'could not parse' 's|^    timeout-minutes: 30$|    timeout-minutes: 30\n    timeout-minutes: 5|'
+
+# The harness entry must CALL the runtime assertion, like every other guard call.
+title="assertPageSnapshotSuppressed removed from the harness fails by name"
+harness_expect 1 'no longer CALLS .assertPageSnapshotSuppressed' e2e/harness/test.ts \
+  's/assertPageSnapshotSuppressed\("at worker start, before any hook or test"\);//; s/assertPageSnapshotSuppressed\("after the test body, before its context closes"\);//'
+
+# R3-FINDING J: the capture-and-compare calls. String-level early warning like
+# the one above; the control is the runtime check, demonstrated in D17.
+title="R3-J: assertEnvironmentUnchanged removed from the harness entry fails by name"
+harness_expect 1 'no longer CALLS .assertEnvironmentUnchanged' e2e/harness/test.ts \
+  's/assertEnvironmentUnchanged\("before this test, since the previous check"\);/void 0;/'
+
+title="R3-J: takeEnvironmentChange removed from the harness entry fails by name"
+harness_expect 1 'no longer CALLS .takeEnvironmentChange' e2e/harness/test.ts \
+  's/takeEnvironmentChange\(/NOT_CALLED(/g'
+
+title="R3-J: the main-process check removed from the stamp reporter fails by name"
+harness_expect 1 'stamp-reporter.ts no longer CALLS .takeEnvironmentChange' e2e/harness/stamp-reporter.ts \
+  's/const change = takeEnvironmentChange\(/const change = NOT_CALLED(/'
+
+
+# R2-FINDING D: the ledger must be COMPLETE, not merely consistent.
+title="an EMPTIED digest ledger fails by name"
+hygiene_expect 1 'has no "D12 browser-errors' docs/evidence/VZ-FOUND-008/mutation-digests.txt 's/.*//s'
+
+title="a ledger with ONE line deleted fails by name"
+hygiene_expect 1 'has no "D12 browser-errors.ts BEFORE" line' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE [^\n]*\n//m'
+
+title="a ledger label the suite no longer records fails by name"
+hygiene_expect 1 'no longer records' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE/D99 browser-errors.ts BEFORE/m'
 
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]
