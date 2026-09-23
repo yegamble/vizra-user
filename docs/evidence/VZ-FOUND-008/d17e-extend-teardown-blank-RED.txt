@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv77a91ca60216f288 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv995932522e9a7796 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
 
 
 Running 1 test using 1 worker
@@ -23,17 +23,17 @@ Running 1 test using 1 worker
       22 |
         at <repo>/e2e/specs/__envwrite.spec.ts:20:52
 
-    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected after the test body, before its context closes]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected after the test body, before its context closes]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
-       at ../harness/ci-environment.ts:242
+       at ../harness/ci-environment.ts:264
 
-      240 |     (message): message is string => message !== undefined,
-      241 |   );
-    > 242 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      243 | }
-      244 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:242:34)
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:286:37)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────

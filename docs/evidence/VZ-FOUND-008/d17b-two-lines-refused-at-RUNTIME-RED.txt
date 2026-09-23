@@ -1,10 +1,10 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv77a91ca60216f288 npx playwright test
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv995932522e9a7796 npx playwright test
 
 
 Running 20 tests using 2 workers
 
 
-::error::the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected in the Playwright main process, after the spec files were collected and before any worker started]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+::error::the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected in the Playwright main process, after the spec files were collected and before any worker started]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
   ✓ <n> [desktop-chromium-1440] › e2e/specs/health.spec.ts:16:7 › health page › reports liveness for vizra-user (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache (<time>)
@@ -31,17 +31,17 @@ Running 20 tests using 2 workers
 
   1) [desktop-chromium-1440] › e2e/specs/__envwrite.spec.ts:8:5 › the verifier's two lines, then a failing test on a page whose field holds a typed value 
 
-    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
-       at ../harness/ci-environment.ts:242
+       at ../harness/ci-environment.ts:264
 
-      240 |     (message): message is string => message !== undefined,
-      241 |   );
-    > 242 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      243 | }
-      244 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:242:34)
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
@@ -54,17 +54,17 @@ Running 20 tests using 2 workers
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
-       at ../harness/ci-environment.ts:242
+       at ../harness/ci-environment.ts:264
 
-      240 |     (message): message is string => message !== undefined,
-      241 |   );
-    > 242 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      243 | }
-      244 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:242:34)
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
@@ -77,17 +77,17 @@ Running 20 tests using 2 workers
 
   2) [mobile-chromium-390] › e2e/specs/__envwrite.spec.ts:8:5 › the verifier's two lines, then a failing test on a page whose field holds a typed value 
 
-    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
-       at ../harness/ci-environment.ts:242
+       at ../harness/ci-environment.ts:264
 
-      240 |     (message): message is string => message !== undefined,
-      241 |   );
-    > 242 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      243 | }
-      244 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:242:34)
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
@@ -100,17 +100,17 @@ Running 20 tests using 2 workers
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+    Error: the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected at worker start, before any hook or test]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
-       at ../harness/ci-environment.ts:242
+       at ../harness/ci-environment.ts:264
 
-      240 |     (message): message is string => message !== undefined,
-      241 |   );
-    > 242 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      262 |     (message): message is string => message !== undefined,
+      263 |   );
+    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      243 | }
-      244 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:242:34)
+      265 | }
+      266 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
@@ -128,6 +128,6 @@ Running 20 tests using 2 workers
 e2e coverage floor: OK (desktop-chromium-1440=9/9 mobile-chromium-390=9/9).
 
 ::error::the page-snapshot environment was changed by a spec during collection:
-  the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected in the Playwright main process, after the spec files were collected and before any worker started]. Both decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
+  the page-snapshot environment was CHANGED after the Playwright configuration loaded: `CI` (set at configuration load, unset now), `PLAYWRIGHT_NO_COPY_PROMPT` (set at configuration load, a different value now) [detected in the Playwright main process, after the spec files were collected and before any worker started]. These decide whether Playwright writes an aria snapshot of the live page — every DOM text node and every input's value — into an uploaded `error-context.md`. They have been RESTORED to the values captured at configuration load, and this run fails. A spec may read `process.env.NAME` and nothing else (`vizra/no-process-env-write`); see AGENTS.md, § Artifact privacy.
 
 [exit 1]

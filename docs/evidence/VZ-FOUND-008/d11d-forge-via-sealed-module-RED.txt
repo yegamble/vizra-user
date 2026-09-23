@@ -29,16 +29,16 @@ Running 20 tests using 4 workers
 
     Error: the browser harness's stamp key has already been claimed in this worker. `e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any test file is evaluated, so this call comes from something that is not the harness entry — a spec importing e2e/harness/stamp to sign itself, for example. Import { test, expect } from e2e/harness/test.
 
-       at ../harness/stamp.ts:191
+       at ../harness/stamp.ts:197
 
-      189 |   }
-      190 |   if (claimed || workerKey === undefined) {
-    > 191 |     throw new Error(
+      195 |   }
+      196 |   if (claimed || workerKey === undefined) {
+    > 197 |     throw new Error(
           |           ^
-      192 |       "the browser harness's stamp key has already been claimed in this worker. " +
-      193 |         "`e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any " +
-      194 |         "test file is evaluated, so this call comes from something that is not the harness " +
-        at claimSigner (<repo>/e2e/harness/stamp.ts:191:11)
+      198 |       "the browser harness's stamp key has already been claimed in this worker. " +
+      199 |         "`e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any " +
+      200 |         "test file is evaluated, so this call comes from something that is not the harness " +
+        at claimSigner (<repo>/e2e/harness/stamp.ts:197:11)
         at <repo>/e2e/specs/__stamp.spec.ts:6:27
 
     Error Context: test-results/__stamp-a-page-that-404s-a-10374-s-with-the-harness-bypassed-desktop-chromium-1440/error-context.md
@@ -55,16 +55,16 @@ Running 20 tests using 4 workers
 
     Error: the browser harness's stamp key has already been claimed in this worker. `e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any test file is evaluated, so this call comes from something that is not the harness entry — a spec importing e2e/harness/stamp to sign itself, for example. Import { test, expect } from e2e/harness/test.
 
-       at ../harness/stamp.ts:191
+       at ../harness/stamp.ts:197
 
-      189 |   }
-      190 |   if (claimed || workerKey === undefined) {
-    > 191 |     throw new Error(
+      195 |   }
+      196 |   if (claimed || workerKey === undefined) {
+    > 197 |     throw new Error(
           |           ^
-      192 |       "the browser harness's stamp key has already been claimed in this worker. " +
-      193 |         "`e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any " +
-      194 |         "test file is evaluated, so this call comes from something that is not the harness " +
-        at claimSigner (<repo>/e2e/harness/stamp.ts:191:11)
+      198 |       "the browser harness's stamp key has already been claimed in this worker. " +
+      199 |         "`e2e/harness/test.ts` claims it while playwright.config.ts is loaded, before any " +
+      200 |         "test file is evaluated, so this call comes from something that is not the harness " +
+        at claimSigner (<repo>/e2e/harness/stamp.ts:197:11)
         at <repo>/e2e/specs/__stamp.spec.ts:6:27
 
     Error Context: test-results/__stamp-a-page-that-404s-a-10374-s-with-the-harness-bypassed-mobile-chromium-390/error-context.md

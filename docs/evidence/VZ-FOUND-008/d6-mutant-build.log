@@ -1,37 +1,32 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile.fixtures-mutant
-#1 transferring dockerfile: 380B 0.1s done
+#1 transferring dockerfile: 380B done
 #1 DONE <time>
 
 #2 [internal] load metadata for docker.io/library/pr8close-a7x:demonstrate
 #2 DONE <time>
 
-#3 [1/2] FROM docker.io/library/pr8close-a7x:demonstrate@sha256:a99aa9d4439cc10c60578090c9745da971e5292348a655a09552c93bbd63505d
-#3 resolve docker.io/library/pr8close-a7x:demonstrate@sha256:a99aa9d4439cc10c60578090c9745da971e5292348a655a09552c93bbd63505d 0.1s done
+#3 [internal] load build context
+#3 transferring context: 283.06kB 0.0s done
 #3 DONE <time>
 
-#4 [internal] load build context
-#4 transferring context: 23B
-#4 transferring context: 279.50kB 0.1s done
+#4 [1/2] FROM docker.io/library/pr8close-a7x:demonstrate@sha256:833bdbe024e278fc06f394b8c63140c3d7a7a3aad4183d34eb82c2925d43da28
+#4 resolve docker.io/library/pr8close-a7x:demonstrate@sha256:833bdbe024e278fc06f394b8c63140c3d7a7a3aad4183d34eb82c2925d43da28 0.0s done
 #4 DONE <time>
-
-#3 [1/2] FROM docker.io/library/pr8close-a7x:demonstrate@sha256:a99aa9d4439cc10c60578090c9745da971e5292348a655a09552c93bbd63505d
-#3 DONE <time>
 
 #5 [2/2] COPY e2e ./e2e
 #5 DONE <time>
 
 #6 exporting to image
-#6 exporting layers
-#6 exporting layers 0.4s done
-#6 exporting manifest sha256:e5611e7b7c12868f13a277cc870815f80648c709ffd8eda5341f46c1c7692843 0.0s done
-#6 exporting config sha256:45e378d748ced7ad330ebb226e5c59ae17ab5b260d2d43b430341953baa0f2fd 0.0s done
-#6 exporting attestation manifest sha256:318e90a1d1ae721bcb07805b96c4ea6751611ad58ce78d6604f53b2e4b9c90fb 0.0s done
-#6 exporting manifest list sha256:ae623f81138bc9f1ec27a8002c2a27c1331d90a2a4253a2be3961e51a5b03ce1
-#6 exporting manifest list sha256:ae623f81138bc9f1ec27a8002c2a27c1331d90a2a4253a2be3961e51a5b03ce1 0.0s done
+#6 exporting layers 0.1s done
+#6 exporting manifest sha256:1a841ca1e2274b212b57769af6300bb598695ac986783078d17e884e20ce84aa done
+#6 exporting config sha256:935f915ee28537970ed17114d491632b059987173340fe30b4eb5e51be765941
+#6 exporting config sha256:935f915ee28537970ed17114d491632b059987173340fe30b4eb5e51be765941 done
+#6 exporting attestation manifest sha256:9167dcebf344beed123ed23ebaed1f962b281ca0994cb7d2acedb6d1d422c414 done
+#6 exporting manifest list sha256:9a71271f70ba4c08df7e4bba143d1d816b470d7151d7020548415f831132263a done
 #6 naming to docker.io/library/pr8close-a7x:with-fixtures done
-#6 unpacking to docker.io/library/pr8close-a7x:with-fixtures 0.1s done
+#6 unpacking to docker.io/library/pr8close-a7x:with-fixtures 0.0s done
 #6 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/kelzwigsx7un17kcbwwaqxcot
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/mswg683mqcyn025055zvfxg81

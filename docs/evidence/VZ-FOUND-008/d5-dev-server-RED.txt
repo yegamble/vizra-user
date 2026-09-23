@@ -188,18 +188,15 @@ Running 4 tests using 4 workers
       53 |
         at <repo>/e2e/specs/production-build.spec.ts:50:43
 
-    Error: The page produced 2 browser error(s) that no allow-list entry covers.
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    2 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
+    1 DURING THE TEST:
       [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
@@ -303,20 +300,31 @@ Running 4 tests using 4 workers
       41 |   test("the same markers hold on a dynamic route", async ({ page }) => {
         at <repo>/e2e/specs/production-build.spec.ts:38:7
 
-    Error: The page produced 2 browser error(s) that no allow-list entry covers.
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    2 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/
+    1 DURING THE TEST:
       [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
+
+    Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3212/
+
+    A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
+    legitimately produces a signal, do that work in `beforeAll` — where the first test of the
+    group owns it — or in a test.
+
+    See e2e/harness/worker-guard.ts.
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/test-failed-<n>.png
@@ -403,20 +411,31 @@ Running 4 tests using 4 workers
       53 |
         at <repo>/e2e/specs/production-build.spec.ts:50:43
 
-    Error: The page produced 2 browser error(s) that no allow-list entry covers.
+    Error: The page produced 1 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    2 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
+    1 DURING THE TEST:
       [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
+
+    Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
+    AGENTS.md: console and network errors are failures, not noise.
+
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3212/health
+
+    A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
+    legitimately produces a signal, do that work in `beforeAll` — where the first test of the
+    group owns it — or in a test.
+
+    See e2e/harness/worker-guard.ts.
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/test-failed-<n>.png
