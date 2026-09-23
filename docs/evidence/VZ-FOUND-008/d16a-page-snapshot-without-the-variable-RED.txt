@@ -1,7 +1,7 @@
 $ bash scripts/ci/redact-artifacts.sh test-results playwright-report
 
 ::error::redact-artifacts: a PAGE SNAPSHOT is present in test-results/__snapshot-a-failing-test--e1053-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip - an aria snapshot of the live page, carrying every DOM text node and input value. Nothing will be uploaded.
-  <test-results/__snapshot-a-failing-test--e1053-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip>/attachments/6492dd93dc28af008f2f5501660df7aaf0cfd578
+  <test-results/__snapshot-a-failing-test--e1053-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip>/attachments/5bfe84acd6027e1686c9baef360352bf37bc0a70
   PLAYWRIGHT_NO_COPY_PROMPT was not "1" in the Playwright process; see AGENTS.md § Artifact privacy.
 
 [exit 1]

@@ -1,7 +1,9 @@
 $ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
-  the browser-lane step carries an `if:`; it must run unconditionally on every pull request.
+  no step runs the browser lane. Exactly one step must be byte-equal to the pinned `lane` step in .github/e2e-pinned-steps.yml (`run: npm run e2e` and nothing else) — a superstring such as `npm run e2e || true` launders the exit code, and deleting the step is silent.
+  step 9 (Browser lane (desktop 1440, mobile 390)) sets `env:` (E2E_BASE_URL). A step that is not pinned may set no environment: the lane guard allowlists env keys, and this step's list is empty.
+  job `e2e` step 9 (Browser lane (desktop 1440, mobile 390)) mentions `npm run e2e`, `E2E_BASE_URL` but is not byte-equal to the pinned `lane` step in .github/e2e-pinned-steps.yml: `if` not in the pin — the browser lane must run unconditionally on every pull request.
   These properties are invisible in a green run, which is why they are asserted here.
 
 [exit 1]

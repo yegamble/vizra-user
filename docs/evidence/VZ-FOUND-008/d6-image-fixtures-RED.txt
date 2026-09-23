@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with-fixtures
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/

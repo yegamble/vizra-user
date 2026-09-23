@@ -1,7 +1,9 @@
 $ bash scripts/ci/check-e2e-lane.sh <repo>/docs/evidence/VZ-FOUND-008/e2e-mutant.yml
 
 ::error::the e2e lane no longer tests what it claims to test:
-  no step runs `node scripts/ci/harness-canary.mjs`. Without it, neutering e2e/harness/browser-errors.ts while leaving its identifiers in place is silent: every other check in this lane stays green, because a guard that has stopped looking finds nothing to fail on.
+  no step runs `node scripts/ci/harness-canary.mjs` exactly as pinned. Without it, neutering e2e/harness/browser-errors.ts while leaving its identifiers in place is silent: every other check in this lane stays green, because a guard that has stopped looking finds nothing to fail on.
+  step 11 (The harness still fails a broken page (canary)) sets `env:` (E2E_BASE_URL). A step that is not pinned may set no environment: the lane guard allowlists env keys, and this step's list is empty.
+  job `e2e` step 11 (The harness still fails a broken page (canary)) mentions `E2E_BASE_URL` but is not byte-equal to the pinned `canary` step in .github/e2e-pinned-steps.yml: `run` missing — its `run:` must be exactly `node scripts/ci/harness-canary.mjs`; anything else launders the exit code.
   These properties are invisible in a green run, which is why they are asserted here.
 
 [exit 1]

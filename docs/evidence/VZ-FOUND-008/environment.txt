@@ -1,6 +1,6 @@
 branch:     fix/m0-artifact-privacy-a
-head sha:   4158b10f8291e23cd726e2499db760aead195f4a
-node:       v24.4.1
+head sha:   547ec56f2f8206d4ce44b6634414843988a45c4b
+node:       v22.14.0
 playwright: Version 1.63.0
 project:    desktop-chromium-1440
 uname:      Darwin arm64

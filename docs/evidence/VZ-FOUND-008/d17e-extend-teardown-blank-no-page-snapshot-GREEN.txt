@@ -1,0 +1,5 @@
+$ page_snapshot_count <repo>/test-results <repo>/playwright-report/results.json
+
+files or archives with a page-snapshot heading in the upload set: 0
+
+[exit 0]

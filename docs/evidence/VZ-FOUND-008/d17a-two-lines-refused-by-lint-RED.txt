@@ -1,0 +1,11 @@
+$ npx eslint e2e/specs/__envwrite.spec.ts
+
+
+<repo>/e2e/specs/__envwrite.spec.ts
+  5:8  error  vizra/no-process-env-write: this WRITES `process.env` (delete process.env.CI). A spec may not change its own environment: `CI` and `PLAYWRIGHT_NO_COPY_PROMPT` decide whether a live page snapshot is uploaded, and a verifier switched both off from a spec (PR #8, R3-FINDING J). The harness also refuses it at runtime                                                        vizra/no-process-env-write
+  6:1  error  vizra/no-process-env-write: this WRITES `process.env` (process.env.PLAYWRIGHT_NO_COPY_PROMPT as the target of AssignmentExpression). A spec may not change its own environment: `CI` and `PLAYWRIGHT_NO_COPY_PROMPT` decide whether a live page snapshot is uploaded, and a verifier switched both off from a spec (PR #8, R3-FINDING J). The harness also refuses it at runtime  vizra/no-process-env-write
+
+✖ 2 problems (2 errors, 0 warnings)
+
+
+[exit 1]

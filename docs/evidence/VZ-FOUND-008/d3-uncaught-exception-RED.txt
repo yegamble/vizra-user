@@ -19,16 +19,16 @@ Running 2 tests using 2 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:336
+       at ../harness/test.ts:365
 
-      334 |         );
-      335 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 336 |           throw new Error(
+      363 |         );
+      364 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 365 |           throw new Error(
           |                 ^
-      337 |             formatPhasedFailure(
-      338 |               unallowedBefore,
-      339 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
+      366 |             formatPhasedFailure(
+      367 |               unallowedBefore,
+      368 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/video<n>.webm

@@ -1,5 +1,5 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:demonstrate
 
-OK: 'vizra-user:demonstrate' contains no browser-harness path and no fixture token.
+OK: 'pr8close-a7x:demonstrate' contains no browser-harness path and no fixture token.
 
 [exit 0]

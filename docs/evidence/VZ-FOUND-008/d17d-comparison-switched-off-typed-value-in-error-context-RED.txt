@@ -1,0 +1,5 @@
+$ bash -c n=$(grep -rlF --include=error-context.md -- "$1" "$2" | wc -l | tr -d " "); echo "error-context.md files carrying the typed value: $n"; [ "$n" -eq 0 ] _ vzenv77a91ca60216f288 <repo>/test-results
+
+error-context.md files carrying the typed value: 4
+
+[exit 1]

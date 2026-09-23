@@ -21,7 +21,7 @@ Running 2 tests using 2 workers
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: net::ERR_CONNECTION_REFUSED (http://127.0.0.1:3211/__vizra_e2e_fixture__/aborted-on-purpose.bin:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/video<n>.webm
