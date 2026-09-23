@@ -114,8 +114,15 @@ cleanup() {
     "$repo/e2e/specs/__guard.spec.ts" \
     "$repo/eslint.config.no-inline-config.mjs" \
     "$repo/eslint.config.no-banned-methods.mjs" \
-    "$repo/playwright.config.no-stamp-reporter.ts"
+    "$repo/playwright.config.no-stamp-reporter.ts" \
+    "$repo/e2e/specs/__snapshot.spec.ts" \
+    "$repo/e2e/specs/__escaped.spec.ts"
   rm -rf "$repo/e2e/other"
+  # D16 writes a `.npmrc` into the repository root; remove it only if D16 wrote
+  # it, never one that was here before the script ran.
+  if [ -f "$repo/.vizra-demo-npmrc-created" ]; then
+    rm -f "$repo/.npmrc" "$repo/.vizra-demo-npmrc-created"
+  fi
   # D12e swaps the console fixture's fault type; restore it whatever happens.
   if [ -f "$repo/.console-error.demo.ts.bak" ]; then
     cp "$repo/.console-error.demo.ts.bak" "$repo/e2e/demos/console-error.demo.ts"
@@ -735,7 +742,15 @@ sentinel="SENTINEL-SIGNATURE-DO-NOT-SHIP"
 readable="__vizra_e2e_fixture__/media/photo.jpg"
 
 rm -rf "$repo/test-results"
-E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
+# PLAYWRIGHT_NO_COPY_PROMPT=1, exactly as the `e2e` job sets it. Without it the
+# failing run writes a `# Page snapshot` into error-context.md — and into the
+# copy inside trace.zip — and the redactor now REFUSES that tree outright, so
+# nothing is uploaded. The first round-2 run of this suite hit exactly that:
+# d9-redaction-runs-GREEN exited 1 naming `trace.zip/attachments/<sha>`, which is
+# the upload gate working on a real trace, not D9 failing. D16a is the half that
+# demonstrates the gate on purpose; D9 demonstrates URL redaction, so it runs the
+# way CI does.
+PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" \
   npx playwright test --config playwright.demos.config.ts --project="$project" \
   e2e/demos/signed-url-artifact.demo.ts > "$evidence/d9-failing-run.log" 2>&1 || true
 
@@ -1622,7 +1637,12 @@ rm -f "$guard_spec"
 log "D14 — how late a fault can fire and still be caught"
 half d14-late-fault-150ms-RED 1 "late fault demonstration (D14)" \
   -- demos e2e/demos/late-fault.demo.ts --grep "RED:"
-half d14-late-fault-600ms-is-the-LIMIT-GREEN 0 "1 passed" \
+# The LIMIT half schedules its fault 20 s after the body, not 600 ms: at 600 ms
+# it failed 2 of 2 runs at load averages of 76-92 (the settle is a Node timer,
+# the fault a browser timer, and load stretches only one of them). The window's
+# wall-clock width is pinned by a unit test on SETTLE_MS instead. See the header
+# of e2e/demos/late-fault.demo.ts.
+half d14-late-fault-after-the-window-is-not-charged-GREEN 0 "1 passed" \
   -- demos e2e/demos/late-fault.demo.ts --grep "LIMIT:"
 
 # --- D15 THE EARLY EDGE: hooks, shared pages, and the worker-scoped guard ---
@@ -1933,6 +1953,118 @@ log "verdict"
 for raw in "$evidence"/*.log; do
   [ -f "$raw" ] && node "$repo/scripts/e2e/normalise-transcript.mjs" "$raw" "$repo"
 done
+# --- D16 ARTIFACT PRIVACY (PR #8): the page snapshot and a slash-escaped URL --
+# Three things a verifier broke, each demonstrated through the SHIPPED path.
+#
+#   (a) F10, committed as a demonstration at last: without
+#       PLAYWRIGHT_NO_COPY_PROMPT, a failing test's error-context.md carries a
+#       `# Page snapshot` with a typed value in it, and the shipped redactor now
+#       REFUSES the tree - so the upload step, gated on it, publishes nothing.
+#       With the variable, there is no snapshot and the redactor passes.
+#   (b) R2-FINDING E: a committed `.npmrc` line blanks the variable inside the
+#       Playwright process. RED at both layers - the lane guard refuses the file,
+#       and the runtime assertion refuses to start a worker.
+#   (c) The $GITHUB_ENV route, SIMULATED: this script cannot run Actions, so it
+#       reproduces the environment such a write produces - the variable blank,
+#       or unset - and the runtime assertion refuses it. The inverse control, the
+#       variable exactly "1" with CI set, runs the whole lane green.
+#   (d) R2-FINDING C through the real lane: a spec prints a slash-escaped URL,
+#       Playwright JSON-encodes it to the DOUBLE-escaped form, and it reaches
+#       `results.json` and `trace.zip::test.trace` - both uploaded. RED before the
+#       shipped redactor (the positive control), 0 members after it.
+#
+# (c) and (b) run the WHOLE lane, so they come first, before any throwaway spec
+# exists in e2e/specs.
+log "D16 — the page snapshot, its runtime assertion, and an escaped URL through the real lane"
+
+half d16c-variable-blank-in-the-environment-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is not" \
+  -- env CI=1 PLAYWRIGHT_NO_COPY_PROMPT= E2E_BASE_URL="$prod_url" npx playwright test
+half d16c-variable-unset-in-the-environment-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is not" \
+  -- env -u PLAYWRIGHT_NO_COPY_PROMPT CI=1 E2E_BASE_URL="$prod_url" npx playwright test
+half d16c-variable-exactly-1-with-CI-set-GREEN 0 "harness stamp: OK" \
+  -- env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL="$prod_url" npx playwright test
+
+# (b) The verifier's `.npmrc` line, verbatim.
+if [ -e "$repo/.npmrc" ]; then
+  echo "BLOCKED d16b: $repo/.npmrc already exists; refusing to overwrite a file this script did not write."
+  blocked=$((blocked + 1))
+else
+  printf '%s\n' 'node-options=--import=data:text/javascript,process.env.PLAYWRIGHT_NO_COPY_PROMPT=%22%22' > "$repo/.npmrc"
+  touch "$repo/.vizra-demo-npmrc-created"
+  half d16b-npmrc-node-options-refused-by-the-lane-guard-RED 1 ".npmrc sets \`node-options\`" \
+    -- bash scripts/ci/check-e2e-lane.sh
+  half d16b-npmrc-node-options-refused-at-RUNTIME-RED 1 "PLAYWRIGHT_NO_COPY_PROMPT is not" \
+    -- env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL="$prod_url" npm run e2e
+  rm -f "$repo/.npmrc" "$repo/.vizra-demo-npmrc-created"
+fi
+
+# (a) F10. The spec types into a field the page does not have, so the aria
+# snapshot, when it is taken, carries a typed value.
+typed_marker=$(node -e 'process.stdout.write("vztyped" + require("crypto").randomBytes(8).toString("hex"))')
+cat > "$repo/e2e/specs/__snapshot.spec.ts" <<'SNAPSHOT'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { expect, test } from "../harness/test";
+
+test("a failing test on a page whose field holds a typed value", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const field = document.createElement("input");
+    field.setAttribute("aria-label", "demonstration field");
+    document.body.appendChild(field);
+  });
+  await page.getByLabel("demonstration field").pressSequentially(String(process.env.VZ_DEMO_TYPED));
+  expect(1, "this demonstration fails on purpose").toBe(2);
+});
+SNAPSHOT
+run_snapshot_spec() {
+  rm -rf "$repo/test-results" "$repo/playwright-report"
+  env -u CI "$@" E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" VZ_DEMO_TYPED="$typed_marker" \
+    npx playwright test e2e/specs/__snapshot.spec.ts --project="$project" > /dev/null 2>&1 || true
+}
+run_snapshot_spec -u PLAYWRIGHT_NO_COPY_PROMPT
+half d16a-page-snapshot-without-the-variable-RED 1 "PAGE SNAPSHOT is present" \
+  -- bash scripts/ci/redact-artifacts.sh test-results playwright-report
+run_snapshot_spec PLAYWRIGHT_NO_COPY_PROMPT=1
+half d16a-no-page-snapshot-with-the-variable-GREEN 0 "and no page snapshot is present" \
+  -- bash -c 'ls test-results/*/error-context.md > /dev/null && echo "error-context.md written: yes" && bash scripts/ci/redact-artifacts.sh test-results playwright-report'
+rm -f "$repo/e2e/specs/__snapshot.spec.ts"
+
+# (d) The escaped URL. The marker is minted here; nothing credential-shaped is a
+# literal in this file. The upload set is rebuilt from exactly the paths
+# .github/workflows/e2e.yml uploads.
+escaped_marker=$(node -e 'process.stdout.write("vzesc" + require("crypto").randomBytes(8).toString("hex"))')
+cat > "$repo/e2e/specs/__escaped.spec.ts" <<'ESCAPED'
+// GENERATED BY scripts/e2e/demonstrate.sh — deleted when the script exits.
+import { expect, test } from "../harness/test";
+
+test("prints a slash-escaped signed-URL-shaped string, as PHP's json_encode would, and fails", async ({ page }) => {
+  await page.goto("/");
+  const url = ["https:", "", "host.example", "media", "p.jpg"].join("/") + "?X-Amz-Signature=" + String(process.env.VZ_ESCAPED_MARKER);
+  console.log(JSON.stringify({ u: url }).replace(/\//g, "\\/"));
+  expect(1, "this demonstration fails on purpose").toBe(2);
+});
+ESCAPED
+upload_set=$(mktemp -d)
+build_upload_set() {
+  rm -rf "$upload_set" && mkdir -p "$upload_set"
+  cp -R "$repo/test-results" "$upload_set/"
+  cp "$repo/playwright-report/results.json" "$upload_set/"
+}
+rm -rf "$repo/test-results" "$repo/playwright-report"
+env -u CI PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" VZ_ESCAPED_MARKER="$escaped_marker" \
+  npx playwright test e2e/specs/__escaped.spec.ts --project="$project" > /dev/null 2>&1 || true
+build_upload_set
+half d16d-escaped-url-reaches-the-upload-set-RED 1 "members containing the sentinel:" \
+  -- bash scripts/e2e/sweep-artifacts.sh "$escaped_marker" "$upload_set" host.example
+half d16d-error-context-carries-test-source-GREEN 0 "# Test source" \
+  -- bash -c 'grep -h "^# " test-results/*/error-context.md'
+bash scripts/ci/redact-artifacts.sh test-results playwright-report > /dev/null
+build_upload_set
+half d16d-escaped-url-redacted-by-the-shipped-path-GREEN 0 "members containing the sentinel: 0" \
+  -- bash scripts/e2e/sweep-artifacts.sh "$escaped_marker" "$upload_set" host.example
+rm -rf "$upload_set"
+rm -f "$repo/e2e/specs/__escaped.spec.ts"
+
 printf '%s' "$digest_ledger" > "$evidence/mutation-digests.txt"
 echo "mutation digests: $evidence/mutation-digests.txt"
 echo "halves passed: $pass"

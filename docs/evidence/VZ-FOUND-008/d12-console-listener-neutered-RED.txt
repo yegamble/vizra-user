@@ -29,16 +29,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:324
+       at ../harness/test.ts:336
 
-      322 |         );
-      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 324 |           throw new Error(
+      334 |         );
+      335 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 336 |           throw new Error(
           |                 ^
-      325 |             formatPhasedFailure(
-      326 |               unallowedBefore,
-      327 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+      337 |             formatPhasedFailure(
+      338 |               unallowedBefore,
+      339 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/failed-request.demo.ts-RED-1ae89-ible-page-is-perfectly-fine-desktop-chromium-1440/video<n>.webm
@@ -81,16 +81,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:324
+       at ../harness/test.ts:336
 
-      322 |         );
-      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 324 |           throw new Error(
+      334 |         );
+      335 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 336 |           throw new Error(
           |                 ^
-      325 |             formatPhasedFailure(
-      326 |               unallowedBefore,
-      327 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+      337 |             formatPhasedFailure(
+      338 |               unallowedBefore,
+      339 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/uncaught-exception.demo.ts-5ffd7-ssertion-in-the-body-passes-desktop-chromium-1440/video<n>.webm
@@ -133,16 +133,16 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:324
+       at ../harness/test.ts:336
 
-      322 |         );
-      323 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 324 |           throw new Error(
+      334 |         );
+      335 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 336 |           throw new Error(
           |                 ^
-      325 |             formatPhasedFailure(
-      326 |               unallowedBefore,
-      327 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+      337 |             formatPhasedFailure(
+      338 |               unallowedBefore,
+      339 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
     test-results/aborted-request.demo.ts-RE-98fa8-ing-on-the-page-looks-wrong-desktop-chromium-1440/video<n>.webm

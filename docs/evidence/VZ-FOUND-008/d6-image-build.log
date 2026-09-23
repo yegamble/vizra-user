@@ -1,7 +1,7 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 6.23kB done
+#1 transferring dockerfile: 6.23kB 0.0s done
 #1 DONE <time>
 
 #2 resolve image config for docker-image://docker.io/docker/dockerfile:1
@@ -15,15 +15,15 @@
 #4 DONE <time>
 
 #5 [internal] load .dockerignore
-#5 transferring context: 598B done
+#5 transferring context: 598B 0.0s done
 #5 DONE <time>
 
 #6 [deps 1/4] FROM docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944
-#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.0s done
+#6 resolve docker.io/library/node:22.14.0-alpine@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 0.1s done
 #6 DONE <time>
 
 #7 [internal] load build context
-#7 transferring context: 1.36MB 0.1s done
+#7 transferring context: 1.65MB 0.4s done
 #7 DONE <time>
 
 #8 [deps 2/4] WORKDIR /app
@@ -33,77 +33,77 @@
 #9 DONE <time>
 
 #10 [deps 4/4] RUN npm ci
-#10 1.529 npm warn ERESOLVE overriding peer dependency
-#10 1.530 npm warn While resolving: eslint-plugin-import@2.32.0
-#10 1.530 npm warn Found: eslint@10.11.0
-#10 1.530 npm warn node_modules/eslint
-#10 1.530 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.530 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.530 npm warn
-#10 1.530 npm warn Could not resolve dependency:
-#10 1.530 npm warn peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#10 1.530 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#10 1.530 npm warn   eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
-#10 1.530 npm warn   node_modules/eslint-config-next
-#10 1.530 npm warn   1 more (eslint-import-resolver-typescript)
-#10 1.530 npm warn
-#10 1.530 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.530 npm warn node_modules/eslint
-#10 1.530 npm warn   peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#10 1.530 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#10 1.530 npm warn     eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
-#10 1.530 npm warn     node_modules/eslint-config-next
-#10 1.530 npm warn     1 more (eslint-import-resolver-typescript)
-#10 1.585 npm warn ERESOLVE overriding peer dependency
-#10 1.585 npm warn While resolving: eslint-plugin-jsx-a11y@6.10.2
-#10 1.585 npm warn Found: eslint@10.11.0
-#10 1.585 npm warn node_modules/eslint
-#10 1.585 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.585 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.585 npm warn
-#10 1.585 npm warn Could not resolve dependency:
-#10 1.585 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#10 1.585 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#10 1.585 npm warn   eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
-#10 1.585 npm warn   node_modules/eslint-config-next
-#10 1.585 npm warn
-#10 1.585 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.585 npm warn node_modules/eslint
-#10 1.585 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#10 1.585 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#10 1.585 npm warn     eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
-#10 1.585 npm warn     node_modules/eslint-config-next
-#10 1.630 npm warn ERESOLVE overriding peer dependency
-#10 1.631 npm warn While resolving: eslint-plugin-react@7.37.5
-#10 1.631 npm warn Found: eslint@10.11.0
-#10 1.631 npm warn node_modules/eslint
-#10 1.631 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.631 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.631 npm warn
-#10 1.631 npm warn Could not resolve dependency:
-#10 1.631 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#10 1.631 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#10 1.631 npm warn   eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
-#10 1.631 npm warn   node_modules/eslint-config-next
-#10 1.631 npm warn
-#10 1.631 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.631 npm warn node_modules/eslint
-#10 1.631 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#10 1.631 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#10 1.631 npm warn     eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
-#10 1.631 npm warn     node_modules/eslint-config-next
-#10 26.04 
-#10 26.04 added 422 packages, and audited 423 packages in <time>
-#10 26.04 
-#10 26.04 157 packages are looking for funding
-#10 26.04   run `npm fund` for details
-#10 26.04 
-#10 26.04 found 0 vulnerabilities
-#10 26.04 npm notice
-#10 26.04 npm notice New major version of npm available! 10.9.2 -> 12.0.2
-#10 26.04 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
-#10 26.04 npm notice To update run: npm install -g npm@12.0.2
-#10 26.04 npm notice
+#10 5.670 npm warn ERESOLVE overriding peer dependency
+#10 5.673 npm warn While resolving: eslint-plugin-import@2.32.0
+#10 5.673 npm warn Found: eslint@10.11.0
+#10 5.673 npm warn node_modules/eslint
+#10 5.673 npm warn   dev eslint@"10.11.0" from the root project
+#10 5.673 npm warn   10 more (@eslint-community/eslint-utils, ...)
+#10 5.673 npm warn
+#10 5.673 npm warn Could not resolve dependency:
+#10 5.673 npm warn peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
+#10 5.673 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-import
+#10 5.673 npm warn   eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
+#10 5.673 npm warn   node_modules/eslint-config-next
+#10 5.673 npm warn   1 more (eslint-import-resolver-typescript)
+#10 5.673 npm warn
+#10 5.673 npm warn Conflicting peer dependency: eslint@9.39.5
+#10 5.673 npm warn node_modules/eslint
+#10 5.673 npm warn   peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
+#10 5.673 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-import
+#10 5.673 npm warn     eslint-plugin-import@"^2.32.0" from eslint-config-next@16.3.5
+#10 5.673 npm warn     node_modules/eslint-config-next
+#10 5.673 npm warn     1 more (eslint-import-resolver-typescript)
+#10 5.886 npm warn ERESOLVE overriding peer dependency
+#10 5.886 npm warn While resolving: eslint-plugin-jsx-a11y@6.10.2
+#10 5.886 npm warn Found: eslint@10.11.0
+#10 5.886 npm warn node_modules/eslint
+#10 5.886 npm warn   dev eslint@"10.11.0" from the root project
+#10 5.886 npm warn   10 more (@eslint-community/eslint-utils, ...)
+#10 5.886 npm warn
+#10 5.886 npm warn Could not resolve dependency:
+#10 5.886 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
+#10 5.886 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
+#10 5.886 npm warn   eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
+#10 5.886 npm warn   node_modules/eslint-config-next
+#10 5.886 npm warn
+#10 5.886 npm warn Conflicting peer dependency: eslint@9.39.5
+#10 5.886 npm warn node_modules/eslint
+#10 5.886 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
+#10 5.886 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
+#10 5.886 npm warn     eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.3.5
+#10 5.886 npm warn     node_modules/eslint-config-next
+#10 6.564 npm warn ERESOLVE overriding peer dependency
+#10 6.564 npm warn While resolving: eslint-plugin-react@7.37.5
+#10 6.564 npm warn Found: eslint@10.11.0
+#10 6.564 npm warn node_modules/eslint
+#10 6.564 npm warn   dev eslint@"10.11.0" from the root project
+#10 6.564 npm warn   10 more (@eslint-community/eslint-utils, ...)
+#10 6.564 npm warn
+#10 6.564 npm warn Could not resolve dependency:
+#10 6.564 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
+#10 6.564 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-react
+#10 6.564 npm warn   eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
+#10 6.564 npm warn   node_modules/eslint-config-next
+#10 6.564 npm warn
+#10 6.564 npm warn Conflicting peer dependency: eslint@9.39.5
+#10 6.564 npm warn node_modules/eslint
+#10 6.564 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
+#10 6.564 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-react
+#10 6.564 npm warn     eslint-plugin-react@"^7.37.0" from eslint-config-next@16.3.5
+#10 6.564 npm warn     node_modules/eslint-config-next
+#10 116.7 
+#10 116.7 added 422 packages, and audited 423 packages in 2m
+#10 116.7 
+#10 116.7 157 packages are looking for funding
+#10 116.7   run `npm fund` for details
+#10 116.7 
+#10 116.7 found 0 vulnerabilities
+#10 116.7 npm notice
+#10 116.7 npm notice New major version of npm available! 10.9.2 -> 12.1.0
+#10 116.7 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#10 116.7 npm notice To update run: npm install -g npm@12.1.0
+#10 116.7 npm notice
 #10 DONE <time>
 
 #11 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
@@ -113,36 +113,36 @@
 #12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 0.505 
-#13 0.505 > vizra-user@0.0.0 build
-#13 0.505 > next build
-#13 0.505 
-#13 1.233 ▲ Next.js 16.3.5 (Turbopack)
-#13 1.345 ✓ Running next.config.ts took <time>
-#13 1.360 
-#13 1.394   Creating an optimized production build ...
-#13 8.070 ✓ Compiled successfully in <time>
-#13 8.105   Running TypeScript ...
-#13 11.68   Finished TypeScript in 3.6s ...
-#13 11.68   Collecting page data using 5 workers ...
-#13 12.65   Generating static pages using 5 workers (0/3) ...
-#13 13.30 ✓ Generating static pages using 5 workers (3/3) in <time>
-#13 13.31   Finalizing page optimization ...
-#13 13.81 
-#13 13.82 Route (app)
-#13 13.82 ┌ ○ /
-#13 13.82 ├ ○ /_not-found
-#13 13.82 └ ƒ /health
-#13 13.82 
-#13 13.82 
-#13 13.82 ○  (Static)   prerendered as static content
-#13 13.82 ƒ  (Dynamic)  server-rendered on demand
-#13 13.82 
-#13 13.84 npm notice
-#13 13.84 npm notice New major version of npm available! 10.9.2 -> 12.0.2
-#13 13.84 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
-#13 13.84 npm notice To update run: npm install -g npm@12.0.2
-#13 13.84 npm notice
+#13 4.219 
+#13 4.219 > vizra-user@0.0.0 build
+#13 4.219 > next build
+#13 4.219 
+#13 6.831 ▲ Next.js 16.3.5 (Turbopack)
+#13 7.101 ✓ Running next.config.ts took <time>
+#13 7.165 
+#13 7.436   Creating an optimized production build ...
+#13 92.42 ✓ Compiled successfully in <time>
+#13 92.55   Running TypeScript ...
+#13 113.2   Finished TypeScript in 20.6s ...
+#13 113.2   Collecting page data using 5 workers ...
+#13 118.7   Generating static pages using 5 workers (0/3) ...
+#13 121.9 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 122.1   Finalizing page optimization ...
+#13 127.5 
+#13 127.5 Route (app)
+#13 127.5 ┌ ○ /
+#13 127.5 ├ ○ /_not-found
+#13 127.5 └ ƒ /health
+#13 127.5 
+#13 127.5 
+#13 127.5 ○  (Static)   prerendered as static content
+#13 127.5 ƒ  (Dynamic)  server-rendered on demand
+#13 127.5 
+#13 127.7 npm notice
+#13 127.7 npm notice New major version of npm available! 10.9.2 -> 12.1.0
+#13 127.7 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#13 127.7 npm notice To update run: npm install -g npm@12.1.0
+#13 127.7 npm notice
 #13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
@@ -159,14 +159,19 @@
 
 #18 exporting to image
 #18 exporting layers
-#18 exporting layers 3.2s done
-#18 exporting manifest sha256:2c3477e0296f33ee826a65efe4301e11600fa0b6259c25f989aa7579485f23c4 done
-#18 exporting config sha256:922e468af5bf1a1bc38370c019cc798d57c3dd66d2716c9026cad13d16324d4d done
-#18 exporting attestation manifest sha256:2b46ca30300d0c2cc8367b5f5c45bac025ee1fcd77813d841600aded9d496dbd done
-#18 exporting manifest list sha256:547243cd0db4db5f830957b8d44d81c3f98d2180956f4dd1de9c6428b91e8728 done
-#18 naming to docker.io/library/vizra-user:demonstrate done
+#18 exporting layers 11.6s done
+#18 exporting manifest sha256:84b5693525d93ad0e47f7f253d0b672a5c6d5b0952095d641abbf8c38285abef
+#18 exporting manifest sha256:84b5693525d93ad0e47f7f253d0b672a5c6d5b0952095d641abbf8c38285abef 0.3s done
+#18 exporting config sha256:b7571324ff9bb9ff60b15f3babbd8898720c0d76f6df579bfafe5732eca93c07
+#18 exporting config sha256:b7571324ff9bb9ff60b15f3babbd8898720c0d76f6df579bfafe5732eca93c07 0.1s done
+#18 exporting attestation manifest sha256:cf110ac2da5c2e699b5a02a08818d8677009fb0c592ba958718e814225d99084
+#18 exporting attestation manifest sha256:cf110ac2da5c2e699b5a02a08818d8677009fb0c592ba958718e814225d99084 0.5s done
+#18 exporting manifest list sha256:d342965b4e0853001b169a4252d5002f2c07e7687f77f0402eb92bef49477a81
+#18 exporting manifest list sha256:d342965b4e0853001b169a4252d5002f2c07e7687f77f0402eb92bef49477a81 0.4s done
+#18 naming to docker.io/library/vizra-user:demonstrate
+#18 naming to docker.io/library/vizra-user:demonstrate 0.1s done
 #18 unpacking to docker.io/library/vizra-user:demonstrate
-#18 unpacking to docker.io/library/vizra-user:demonstrate 0.6s done
+#18 unpacking to docker.io/library/vizra-user:demonstrate 12.7s done
 #18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/fazgbiz2f9j3kc8ax3gfblvl1
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/rkawdmuxhfr32xu7az56906g2

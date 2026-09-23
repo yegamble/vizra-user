@@ -7,7 +7,7 @@ Listing tests:
   [desktop-chromium-1440] › home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet
   [desktop-chromium-1440] › home.spec.ts:38:7 › home placeholder › hydrates without the page complaining
   [desktop-chromium-1440] › home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page
-  [desktop-chromium-1440] › home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow
+  [desktop-chromium-1440] › home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow
   [desktop-chromium-1440] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
   [desktop-chromium-1440] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
   [mobile-chromium-390] › health.spec.ts:16:7 › health page › reports liveness for vizra-user
@@ -16,7 +16,7 @@ Listing tests:
   [mobile-chromium-390] › home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet
   [mobile-chromium-390] › home.spec.ts:38:7 › home placeholder › hydrates without the page complaining
   [mobile-chromium-390] › home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page
-  [mobile-chromium-390] › home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow
+  [mobile-chromium-390] › home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow
   [mobile-chromium-390] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
   [mobile-chromium-390] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
 Total: 18 tests in 3 files

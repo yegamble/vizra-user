@@ -11,7 +11,7 @@
  * discover later, so they run in `npm run test`.
  */
 
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -804,4 +804,18 @@ describe("specs use the guarded test", () => {
     expect(message, "the rule did not fire on a namespace import in e2e/specs/").toBeDefined();
     expect(message?.severity, "the rule must be an error, never a warning").toBe(2);
   }, ESLINT_CASE_TIMEOUT_MS);
+});
+
+describe("the settle window's width is pinned deterministically", () => {
+  // Demonstration D14's LIMIT half used to pin the wall-clock width by passing
+  // a fault at 600 ms. Under load it failed both of an independent verifier's
+  // runs (R2-FINDING G): the settle is a Node timer, the fault a browser timer,
+  // and load stretches only one. The width is a CONSTANT, so it is pinned as one
+  // here, and the table in AGENTS.md is required to state the same number.
+  it("SETTLE_MS is 250, and AGENTS.md says 250 ms", () => {
+    const source = readFileSync(path.join(repoRoot, "e2e", "harness", "browser-errors.ts"), "utf8");
+    expect(/^const SETTLE_MS = (\d+);$/m.exec(source)?.[1]).toBe("250");
+    const contract = readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+    expect(contract).toContain("**250 ms (shipped)**");
+  });
 });

@@ -42,7 +42,7 @@ Running 1 test using 1 worker
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
         at   [console] console.error: Failed to load resource: the server responded with a status of 404 (Not Found) (http://127.0.0.1:3211/VERIFIER_F6_MISSING.png:0:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:324:17)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:336:17)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/__guard-a-context-the-harness-never-handed-out-desktop-chromium-1440/test-failed-<n>.png

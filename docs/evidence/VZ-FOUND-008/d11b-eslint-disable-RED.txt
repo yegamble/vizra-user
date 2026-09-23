@@ -10,7 +10,7 @@ Running 20 tests using 4 workers
   ✓ <n> [desktop-chromium-1440] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (<time>)
-  ✓ <n> [desktop-chromium-1440] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (<time>)
+  ✓ <n> [desktop-chromium-1440] › e2e/specs/home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (<time>)
   ✓ <n> [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (<time>)
   ✓ <n> [mobile-chromium-390] › e2e/specs/__stamp.spec.ts:6:1 › a page that 404s and throws, with the harness bypassed (<time>)
@@ -20,7 +20,7 @@ Running 20 tests using 4 workers
   ✓ <n> [mobile-chromium-390] › e2e/specs/home.spec.ts:19:7 › home placeholder › renders the placeholder and says no product surface exists yet (<time>)
   ✓ <n> [mobile-chromium-390] › e2e/specs/home.spec.ts:38:7 › home placeholder › hydrates without the page complaining (<time>)
   ✓ <n> [mobile-chromium-390] › e2e/specs/home.spec.ts:47:7 › home placeholder › the only link on the placeholder reaches the health page (<time>)
-  ✓ <n> [mobile-chromium-390] › e2e/specs/home.spec.ts:56:7 › home placeholder › the layout fits the viewport with no horizontal overflow (<time>)
+  ✓ <n> [mobile-chromium-390] › e2e/specs/home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow (<time>)
   ✓ <n> [mobile-chromium-390] › e2e/specs/production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker (<time>)
   ✓ <n> [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route (<time>)
 

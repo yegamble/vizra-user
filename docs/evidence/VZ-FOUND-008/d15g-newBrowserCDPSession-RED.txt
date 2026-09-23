@@ -28,16 +28,16 @@ Running 1 test using 1 worker
 
       vizra harness: `browser.newBrowserCDPSession` was called during a test, which would produce a browser or context the harness was never handed — and therefore one whose console errors, uncaught exceptions, failed requests and HTTP >= 400 responses nothing is watching. A page created through a raw CDP session belongs to no Playwright BrowserContext, so no listener and no context sweep can ever see it. There is no sanctioned use of it from a spec; if a slice needs CDP, `context.newCDPSession(page)` works on a page the harness already guards. See e2e/harness/creation-guard.ts and AGENTS.md § Residuals.
 
-       at ../harness/test.ts:294
+       at ../harness/test.ts:306
 
-      292 |         const violations = [...beforeBodyViolations, ...duringBodyViolations];
-      293 |         if (violations.length > 0) {
-    > 294 |           throw new Error(
+      304 |         const violations = [...beforeBodyViolations, ...duringBodyViolations];
+      305 |         if (violations.length > 0) {
+    > 306 |           throw new Error(
           |                 ^
-      295 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
-      296 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
-      297 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:294:17)
+      307 |             `${violations.length} attempt(s) to create a browser or context the harness was ` +
+      308 |               "never handed.\nAGENTS.md: a test that passes must have run under the guard.\n\n" +
+      309 |               violations.map((violation) => `  ${violation.detail}`).join("\n\n"),
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:306:17)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     test-results/__guard-a-raw-CDP-target-no-context-owns-desktop-chromium-1440/test-failed-<n>.png

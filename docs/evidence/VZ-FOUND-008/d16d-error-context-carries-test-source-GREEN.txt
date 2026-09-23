@@ -1,0 +1,8 @@
+$ bash -c grep -h "^# " test-results/*/error-context.md
+
+# Instructions
+# Test info
+# Error details
+# Test source
+
+[exit 0]

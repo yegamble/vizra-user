@@ -592,3 +592,27 @@ every `BEFORE`/`RESTORED` digest against the file at the current revision, in th
 required `frontend` lane. So the head is checked mechanically from now on, and
 the intermediate-commit skew is a stated property of how the suite is run rather
 than something a reader has to discover.
+
+## Round 2 of PR #8 (re-verification at `4158b10`) — what changed in this directory
+
+- **`d14-late-fault-600ms-is-the-LIMIT-GREEN.txt` is removed** and replaced by
+  `d14-late-fault-after-the-window-is-not-charged-GREEN.txt`. The 600 ms fault
+  was caught in both of an independent verifier's runs at load averages of
+  76–92 (R2-FINDING G): the 250 ms settle is a Node timer and the fault a browser
+  timer, and load stretches only one of them. The LIMIT half now schedules its
+  fault 20 s after the body and asserts only the invariant that survives load;
+  the window's width is pinned by a unit test on `SETTLE_MS` instead. The old
+  file is deleted rather than kept, so no transcript in this directory describes
+  a half the suite no longer runs.
+- **`d16*` are new.** They are the page-snapshot variable demonstrated at all
+  three layers — the upload gate (d16a, which is also round-1 finding 9(b)'s F10
+  red/green pair), the verifier's `.npmrc` line refused by the lane guard and at
+  runtime (d16b), the environment a `$GITHUB_ENV` write produces, SIMULATED
+  because Actions cannot run here, refused at runtime with the whole lane green as
+  the inverse control (d16c) — and a slash-escaped URL printed by a spec, which
+  reaches `results.json` and `trace.zip::test.trace` double-escaped (the positive
+  control, red) and is gone after the shipped redactor (green) (d16d).
+- **`mutation-digests.txt` is regenerated in the same commit that changes
+  `e2e/harness/test.ts`**, a byte-pinned file, and `check-source-hygiene.mjs` now
+  also refuses a ledger that is missing a line `demonstrate.sh` records — an
+  emptied or trimmed ledger passed before (R2-FINDING D).
