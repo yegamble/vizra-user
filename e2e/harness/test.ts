@@ -53,6 +53,7 @@ import {
   type BrowserErrorPolicy,
   type BrowserGuard,
 } from "./browser-errors";
+import { assertPageSnapshotSuppressed } from "./ci-environment";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
 import {
   createWorkerHarness,
@@ -137,6 +138,12 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
     // reads a call to `use(...)` inside a try/catch as a misplaced React hook,
     // and the try/catch is load-bearing here.
     async ({ browser }, provide) => {
+      // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variable, read in
+      // the process that takes the snapshot. A worker whose environment was
+      // rewritten on the way here — `.npmrc` `node-options`, `NODE_OPTIONS`,
+      // `$GITHUB_ENV`, a preload — fails here, before any `beforeAll` or test
+      // opens a page, so there is nothing to snapshot. See ./ci-environment.ts.
+      assertPageSnapshotSuppressed("at worker start, before any hook or test");
       const harness = createWorkerHarness(browser);
       try {
         await provide(harness);
@@ -243,6 +250,11 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
 
       try {
         await runTest(guard);
+
+        // AND AGAIN AFTER THE BODY, before this test's context is closed —
+        // Playwright's recorder reads the variable during that close. A spec
+        // that rewrote `process.env` in its own body is caught here.
+        assertPageSnapshotSuppressed("after the test body, before its context closes");
 
         // The page is still OPEN here — measured, not assumed (`pages=1`).
         // The settle lives in here too; see `flushGuardedPages`.

@@ -1307,5 +1307,115 @@ title="a malformed ledger line fails by name"
 hygiene_expect 1 'is not "<label>' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
   's/^D12 browser-errors\.ts BEFORE.*$/D12 browser-errors.ts BEFORE nodigest/m'
 
+# --- ROUND 2 (PR #8 re-verification at 4158b10) ---------------------------
+# harness_with_file WANT_RC PATTERN RELPATH CONTENT
+# A throwaway tree with ONE extra file written into it - for the cases where the
+# attack is a file that does not exist in the repository today (`.npmrc`, a
+# second workflow), so there is nothing to mutate.
+harness_with_file() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 relative=$3 content=$4 rc=0
+  local root=$tmp/harness-$cases
+  harness_tree "$root"
+  if [ "${relative#.github/workflows/}" != "$relative" ]; then
+    # The tree symlinks the REAL workflows; copy them so this case can add one
+    # without touching the repository.
+    rm "$root/.github/workflows"
+    cp -R "$here/../../.github/workflows" "$root/.github/workflows"
+  fi
+  mkdir -p "$(dirname "$root/$relative")"
+  printf '%s\n' "$content" > "$root/$relative"
+  bash "$root/scripts/ci/check-e2e-lane.sh" "$real_workflow" >"$tmp/harness-$cases.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  elif ! grep -Eq -- "$pattern" "$tmp/harness-$cases.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/harness-$cases.out" | cut -c1-220)"
+  else
+    record 0
+  fi
+}
+
+# R2-FINDING E (BLOCKING). One committed `.npmrc` line blanked the variable in
+# the Playwright process with every workflow declaration still reading "1", and
+# the guard refused only two named keys. It is default-deny now: EMPTY allowlist.
+title="the verifier's .npmrc node-options line fails by name"
+# shellcheck disable=SC2016
+harness_with_file 1 '.npmrc sets .node-options.' .npmrc \
+  'node-options=--import=data:text/javascript,process.env.PLAYWRIGHT_NO_COPY_PROMPT=%22%22'
+
+title="a .npmrc node-options that --require's a preload fails by name"
+harness_with_file 1 '.npmrc sets .node-options.' .npmrc 'node-options=--require ./preload.cjs'
+
+title="ANY unlisted .npmrc key fails - the allowlist is empty, not a list of bad keys"
+harness_with_file 1 '.npmrc sets .fund.' .npmrc 'fund=false'
+
+title="a .npmrc of comments and blank lines only passes (the inverse control)"
+harness_with_file 0 'still drives the built image' .npmrc '# nothing configured here'
+
+title="npm_config_userconfig pointing at another .npmrc fails by name"
+lane_expect 1 'refused in this lane at every scope' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      npm_config_userconfig: ./other.npmrc|'
+
+# The runtime assertion only fires when CI is set, so CI may not be declared.
+title="CI declared in a step env fails by name"
+lane_expect 1 'sets .CI.' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          CI: ""|'
+
+title="CI declared at workflow level fails by name"
+lane_expect 1 'sets .CI.' 's|^permissions:$|env:\n  CI: "false"\npermissions:|'
+
+# R2-FINDING B: $GITHUB_ENV / $GITHUB_PATH cross into the lane step.
+title="a GITHUB_ENV write in an earlier step fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_ENV' 's|^      - name: Build the production image (linux/amd64)$|      - name: Tamper\n        run: echo "NODE_OPTIONS=--require ./p.cjs" >> "$GITHUB_ENV"\n      - name: Build the production image (linux/amd64)|'
+
+title="a GITHUB_PATH write in an earlier step fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_PATH' 's|^      - name: Build the production image (linux/amd64)$|      - name: Tamper\n        run: echo "$PWD/shim" >> "$GITHUB_PATH"\n      - name: Build the production image (linux/amd64)|'
+
+# R2-FINDING A: $GITHUB_STEP_SUMMARY through an env MAP, not the run: text.
+title="GITHUB_STEP_SUMMARY through a STEP env map fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      - name: Container logs$|      - name: Summary\n        env:\n          S: ${{ env.GITHUB_STEP_SUMMARY }}\n        run: echo hi >> "$S"\n      - name: Container logs|'
+
+title="GITHUB_STEP_SUMMARY through the JOB env map fails by name"
+# shellcheck disable=SC2016
+lane_expect 1 'GITHUB_STEP_SUMMARY' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|      PLAYWRIGHT_NO_COPY_PROMPT: "1"\n      S: ${{ env.GITHUB_STEP_SUMMARY }}|'
+
+# YAML merge keys: the guard's parser does not expand them, so it cannot see
+# what they merge. A verifier injected PLAYWRIGHT_NO_COPY_PROMPT: "" that way.
+title="a YAML merge key in the lane step's env fails by name"
+lane_expect 1 'MERGE KEY' 's|^          E2E_BASE_URL: http://127.0.0.1:3000$|          E2E_BASE_URL: http://127.0.0.1:3000\n          <<: {PLAYWRIGHT_NO_COPY_PROMPT: ""}|'
+
+title="a YAML merge key in ANOTHER workflow file fails by name"
+harness_with_file 1 'zz-merge.yml uses a YAML MERGE KEY' .github/workflows/zz-merge.yml \
+'name: zz
+on: [push]
+jobs:
+  x:
+    runs-on: ubuntu-24.04
+    env:
+      <<: {A: b}
+    steps:
+      - run: "true"'
+
+title="a DUPLICATE key in the workflow fails the parse"
+lane_expect 1 'could not parse' 's|^    timeout-minutes: 30$|    timeout-minutes: 30\n    timeout-minutes: 5|'
+
+# The harness entry must CALL the runtime assertion, like every other guard call.
+title="assertPageSnapshotSuppressed removed from the harness fails by name"
+harness_expect 1 'no longer CALLS .assertPageSnapshotSuppressed' e2e/harness/test.ts \
+  's/assertPageSnapshotSuppressed\("at worker start, before any hook or test"\);//; s/assertPageSnapshotSuppressed\("after the test body, before its context closes"\);//'
+
+# R2-FINDING D: the ledger must be COMPLETE, not merely consistent.
+title="an EMPTIED digest ledger fails by name"
+hygiene_expect 1 'has no "D12 browser-errors' docs/evidence/VZ-FOUND-008/mutation-digests.txt 's/.*//s'
+
+title="a ledger with ONE line deleted fails by name"
+hygiene_expect 1 'has no "D12 browser-errors.ts BEFORE" line' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE [^\n]*\n//m'
+
+title="a ledger label the suite no longer records fails by name"
+hygiene_expect 1 'no longer records' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
+  's/^D12 browser-errors\.ts BEFORE/D99 browser-errors.ts BEFORE/m'
+
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]

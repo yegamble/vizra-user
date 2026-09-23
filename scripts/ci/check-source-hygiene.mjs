@@ -155,7 +155,48 @@ for (const line of ledgerLines) {
   }
 }
 
-if (ledgerLines.length > 0 && checked === 0) {
+// THE LEDGER MUST BE COMPLETE, not merely consistent.
+//
+// The first version refused a line that CONTRADICTED the tree and accepted one
+// that had stopped describing it: an independent verifier emptied the file and
+// got "0 mutation-digest line(s) match this tree", exit 0, and deleted one line
+// and got "12 ... match", exit 0 (R2-FINDING D). Its own vacuity guard read
+// `ledgerLines.length > 0 && checked === 0`, which an empty file skips — so the
+// cheapest way to clear a stale-ledger red was to delete the stale lines.
+//
+// The expected set is not a list kept here, which would drift. It is read from
+// `scripts/e2e/demonstrate.sh` itself: every `digest "<label>" …` call the
+// suite makes is a line the ledger it writes must contain. A label the suite
+// records and the ledger lacks is red, a label the ledger carries and the suite
+// no longer records is red, and zero checked lines is red unconditionally.
+const DEMONSTRATE = path.join(repoRoot, "scripts", "e2e", "demonstrate.sh");
+let expectedLabels = [];
+try {
+  expectedLabels = [...readFileSync(DEMONSTRATE, "utf8").matchAll(/^digest "([^"]+)"/gm)].map((m) => m[1]);
+} catch {
+  add("scripts/e2e/demonstrate.sh is missing, so the ledger's expected contents cannot be known.");
+}
+if (expectedLabels.length === 0) {
+  add("scripts/e2e/demonstrate.sh records no `digest` label; the ledger check would pass vacuously.");
+}
+const ledgerLabels = ledgerLines
+  .map((line) => /^(.*?)\s{2,}[0-9a-f]{64}\s{2,}\S/.exec(line)?.[1])
+  .filter((label) => label !== undefined);
+for (const label of expectedLabels) {
+  if (!ledgerLabels.includes(label)) {
+    add(
+      `mutation-digests.txt has no "${label}" line, which scripts/e2e/demonstrate.sh records. A ` +
+        "ledger with lines deleted confirms nothing about the files those lines described — " +
+        "re-run `npm run e2e:demos` rather than trimming it.",
+    );
+  }
+}
+for (const label of ledgerLabels) {
+  if (!expectedLabels.includes(label)) {
+    add(`mutation-digests.txt carries "${label}", which scripts/e2e/demonstrate.sh no longer records.`);
+  }
+}
+if (checked === 0) {
   add("mutation-digests.txt has no BEFORE/RESTORED line to check; it would have passed vacuously.");
 }
 

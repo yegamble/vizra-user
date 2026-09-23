@@ -129,7 +129,7 @@ const add = (message) => problems.push(message);
 
 let workflow;
 try {
-  workflow = parse(readFileSync(path.resolve(repoRoot, workflowPath), "utf8"));
+  workflow = parse(readFileSync(path.resolve(repoRoot, workflowPath), "utf8"), { uniqueKeys: true });
 } catch (error) {
   console.error(
     `::error::e2e-lane guard: could not parse ${workflowPath}: ` +
@@ -504,6 +504,14 @@ const HARNESS_CALLS = [
   ],
   [
     "entry",
+    "assertPageSnapshotSuppressed",
+    "e2e/harness/test.ts no longer CALLS `assertPageSnapshotSuppressed`, so nothing reads " +
+      "PLAYWRIGHT_NO_COPY_PROMPT in the Playwright WORKER — the only place that sees the value " +
+      "the recorder reads. The static checks read what the workflow DECLARES; a committed " +
+      "`.npmrc` blanked the variable with every declaration still reading \"1\".",
+  ],
+  [
+    "entry",
     "formatOrphans",
     "e2e/harness/test.ts no longer CALLS `formatOrphans`, so signals produced after the last " +
       "test in a worker — an `afterAll` hook on a broken page — belong to no test and fail " +
@@ -824,6 +832,59 @@ const GLOB_METACHARACTERS = /[*?[\]!]/;
 /** Artifacts are retained for at most this many days — FINDING 19. */
 const MAX_RETENTION_DAYS = 3;
 
+/** The runner's command files. Every one is refused anywhere in this workflow. */
+const RUNNER_COMMAND_FILES = [
+  ["GITHUB_STEP_SUMMARY", "publishes to the run page and the Checks API with no `path:`"],
+  ["GITHUB_ENV", "sets environment variables for every LATER step, the lane step included"],
+  ["GITHUB_PATH", "prepends to PATH for every later step, so `npm` or `node` can be replaced"],
+];
+
+// Workflow- and job-level env VALUES are read too; see (d) below for why.
+{
+  const scopes = [["the workflow", workflow?.env]];
+  for (const [jobId, jobNode] of Object.entries(workflow?.jobs ?? {})) {
+    scopes.push([`job \`${jobId}\``, jobNode?.env]);
+  }
+  for (const [scope, env] of scopes) {
+    if (!env || typeof env !== "object") continue;
+    const text = Object.values(env).map((value) => String(value)).join("\n");
+    for (const [name, label] of RUNNER_COMMAND_FILES) {
+      if (text.includes(name)) {
+        add(`${scope}'s env refers to \`$${name}\` (${label}). Refused anywhere in this workflow.`);
+      }
+    }
+  }
+}
+
+// YAML MERGE KEYS ARE REFUSED, and duplicate keys fail the parse.
+//
+// A verifier injected `PLAYWRIGHT_NO_COPY_PROMPT: ""` at step level through
+// `<<: *anchor` and this guard stayed green (R2-FINDING B): the `yaml` package
+// does not expand merge keys under YAML 1.2, so the guard saw a key literally
+// named `<<` and nothing under it. Whether GitHub Actions expands them was not
+// measured, and this guard does not need to know: a workflow whose meaning
+// depends on a feature the guard reads differently from the runner is refused.
+// Duplicate keys are refused by the parser itself (`uniqueKeys`), which is
+// the `yaml` package's default and is set explicitly so it cannot drift.
+function mergeKeyPaths(node, trail, found) {
+  if (Array.isArray(node)) {
+    node.forEach((item, index) => mergeKeyPaths(item, `${trail}[${index}]`, found));
+  } else if (node && typeof node === "object") {
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "<<") found.push(trail || "(root)");
+      mergeKeyPaths(value, trail ? `${trail}.${key}` : key, found);
+    }
+  }
+  return found;
+}
+for (const where of mergeKeyPaths(workflow, "", [])) {
+  add(
+    `the workflow uses a YAML MERGE KEY (\`<<:\`) at ${where}. This guard's parser does not ` +
+      "expand merge keys, so a value merged in that way is invisible to every check here; a " +
+      "verifier used one to set PLAYWRIGHT_NO_COPY_PROMPT at step level with the guard green.",
+  );
+}
+
 const allJobs = Object.entries(workflow?.jobs ?? {});
 if (allJobs.length === 0) add("the workflow declares no jobs at all.");
 
@@ -855,14 +916,34 @@ for (const [jobId, jobNode] of allJobs) {
       );
     }
 
-    // (d) $GITHUB_STEP_SUMMARY publishes to the run page and the Checks API and
-    //     is in no `path:` list.
+    // (d) THE RUNNER'S COMMAND FILES, in `run:` text AND in every env value.
+    //
+    //     `$GITHUB_STEP_SUMMARY` publishes to the run page and the Checks API and
+    //     is in no `path:` list. `$GITHUB_ENV` and `$GITHUB_PATH` are the one
+    //     `run:` channel that CROSSES into later steps — including the lane step,
+    //     whose own `run:` is pinned to exactly `npm run e2e` and cannot be
+    //     touched — so they are how an earlier step would rewrite the lane's
+    //     environment (`NODE_OPTIONS=…` blanking the page-snapshot variable, for
+    //     one). Nothing in this job uses any of the three, so all three are refused
+    //     rather than filtered by what is written to them.
+    //
+    //     The first version grepped `run:` text only, and a verifier reached the
+    //     step summary through an env map instead — `env: { S: ${{ env.
+    //     GITHUB_STEP_SUMMARY }} }` then `echo hi >> "$S"` — green, while this
+    //     file's § Residuals said the indirect form was refused (R2-FINDING A). So
+    //     env VALUES are read too, at step level here and at job and workflow
+    //     level below.
     const runScript = typeof step?.run === "string" ? step.run : "";
-    if (runScript.includes("GITHUB_STEP_SUMMARY")) {
-      add(
-        `${where} writes to \`$GITHUB_STEP_SUMMARY\`, which publishes to the run page and the ` +
-          "Checks API without appearing in any `path:` list. Nothing here needs one.",
-      );
+    const stepEnvText = Object.values(step?.env && typeof step.env === "object" ? step.env : {})
+      .map((value) => String(value))
+      .join("\n");
+    for (const [name, label] of RUNNER_COMMAND_FILES) {
+      if (runScript.includes(name) || stepEnvText.includes(name)) {
+        add(
+          `${where} refers to \`$${name}\` (${label}), in its \`run:\` text or an env value. ` +
+            "Nothing in this workflow needs it, so it is refused rather than inspected.",
+        );
+      }
     }
 
     if (uses === "" || !UPLOADER.test(uses)) return;
@@ -950,10 +1031,16 @@ try {
   for (const name of files) {
     let other;
     try {
-      other = parse(readFileSync(path.join(workflowDir, name), "utf8"));
+      other = parse(readFileSync(path.join(workflowDir, name), "utf8"), { uniqueKeys: true });
     } catch (error) {
       add(`.github/workflows/${name} could not be parsed (${error instanceof Error ? error.message : String(error)}).`);
       continue;
+    }
+    for (const where of mergeKeyPaths(other, "", [])) {
+      add(
+        `.github/workflows/${name} uses a YAML MERGE KEY (\`<<:\`) at ${where}; refused in every ` +
+          "workflow, because this guard's parser does not expand it and so cannot see what it merges.",
+      );
     }
     for (const [jobId, jobNode] of Object.entries(other?.jobs ?? {})) {
       for (const step of Array.isArray(jobNode?.steps) ? jobNode.steps : []) {
@@ -1030,35 +1117,49 @@ try {
   add(`package.json could not be read (${error instanceof Error ? error.message : String(error)}).`);
 }
 
-// THE SHELL npm USES, and the limit of what is checked here.
+// A COMMITTED `.npmrc` IS DEFAULT-DENY: an allowlist of keys, and it is empty.
 //
-// `.npmrc`'s `script-shell` changes the interpreter every `npm run` uses, and
-// the same setting can arrive as `npm_config_script_shell` in the environment.
-// The environment half is covered — `npm_config_*` is refused at every scope
-// alongside the Playwright keys below. The FILE half is checked only for this
-// one key, because a committed `.npmrc` is a reviewed file and enumerating
-// everything npm reads from it is a different job.
+// The first version refused two named keys, `script-shell` and `ignore-scripts`,
+// and an independent verifier switched the page-snapshot control off with a
+// third one (R2-FINDING E):
 //
-// NOT covered, stated rather than implied: a user-level or global `.npmrc` on
-// the runner, `NPM_CONFIG_*` inherited from the runner image, and anything a
-// `run:` step writes into `.npmrc` before the lane. Those are the same
-// unclosable `run:` class AGENTS.md already names.
+//     node-options=--import=data:text/javascript,process.env.PLAYWRIGHT_NO_COPY_PROMPT=%22%22
+//
+// npm turns `node-options` into NODE_OPTIONS for every `npm run`, so the variable
+// was blanked inside the Playwright process while every declaration in the
+// workflow still read "1" — `check-e2e-lane.sh` exit 0, the hygiene check exit 0,
+// and the page snapshot back in `error-context.md` with a `fill()` value verbatim.
+// A list of dangerous npm keys is a list someone forgets to extend; npm reads
+// dozens. This repository has no `.npmrc`, so an allowlist of zero keys costs
+// nothing, and a key that is ever needed arrives with the review that adds it here.
+//
+// What this does NOT reach, and why it no longer has to be the control: a
+// user-level or global `.npmrc` on the runner, or one a `run:` step writes before
+// the lane. `npm_config_userconfig` / `npm_config_globalconfig` pointing at one are
+// refused below with every other `npm_config_*` key. For the rest, the RUNTIME
+// assertion in `e2e/harness/ci-environment.ts` reads the variable inside the
+// Playwright worker, whatever route changed it.
+const ALLOWED_NPMRC_KEYS = new Set();
 try {
-  const npmrcPath = path.join(repoRoot, ".npmrc");
-  const npmrc = readFileSync(npmrcPath, "utf8");
+  const npmrc = readFileSync(path.join(repoRoot, ".npmrc"), "utf8");
   for (const line of npmrc.split("\n")) {
     const trimmed = line.trim();
     if (trimmed === "" || trimmed.startsWith("#") || trimmed.startsWith(";")) continue;
-    const key = trimmed.split("=")[0]?.trim().toLowerCase().replace(/_/g, "-");
-    if (key === "script-shell" || key === "ignore-scripts") {
+    const key = (trimmed.split("=")[0] ?? "").trim().toLowerCase().replace(/_/g, "-");
+    if (!ALLOWED_NPMRC_KEYS.has(key)) {
       add(
-        `.npmrc sets \`${key}\`, which changes how every \`npm run\` in this lane is executed. ` +
-          "The lane guard pins what the scripts SAY; this would change what running them means.",
+        `.npmrc sets \`${key}\`, and a committed \`.npmrc\` is default-deny (the allowlist is ` +
+          "empty). npm reads it for every `npm run` in this lane: `node-options` becomes " +
+          "NODE_OPTIONS, which is how an independent verifier blanked PLAYWRIGHT_NO_COPY_PROMPT " +
+          "inside the Playwright process with every workflow declaration still reading \"1\". " +
+          "Adding a key is a reviewed change to ALLOWED_NPMRC_KEYS in scripts/ci/check-e2e-lane.mjs.",
       );
     }
   }
-} catch {
-  // No `.npmrc` is the normal case and is not a failure.
+} catch (error) {
+  if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) {
+    add(`.npmrc exists but could not be read (${error instanceof Error ? error.message : String(error)}).`);
+  }
 }
 
 // The EFFECTIVE value, computed across all three scopes — not "is it present
@@ -1082,12 +1183,30 @@ try {
 // set"; for that edit it did not.
 //
 // So: the key must appear EXACTLY ONCE, at job level, with the literal "1", and
-// nowhere else at any scope. That is simpler to state, simpler to test, and has
-// no shape where the guard is green and the variable is not "1".
+// nowhere else at any scope.
+//
+// WHAT THIS COMPUTES, AND WHAT IT CANNOT. An earlier version of this comment said
+// the rule "has no shape where the guard is green and the variable is not "1"".
+// That was FALSE, and a verifier showed it within a round: this block computes
+// the value the YAML DECLARES across its three scopes, not the value the
+// Playwright process SEES. A committed `.npmrc` with `node-options` blanked it
+// with every declaration still reading "1". The declared value is one layer; the
+// routes a parser can read are refused one by one (the `.npmrc` allowlist above,
+// `NODE_OPTIONS` / `npm_config_*` / `CI` in every env map, `$GITHUB_ENV` and
+// `$GITHUB_PATH` below). The property itself — the value Playwright actually
+// reads — is asserted at RUNTIME, in the worker, by `e2e/harness/ci-environment.ts`,
+// and the upload gate in `redact-artifacts.sh` refuses any artifact that carries a
+// page snapshot anyway.
 const PAGE_SNAPSHOT_KEY = "PLAYWRIGHT_NO_COPY_PROMPT";
 const PAGE_SNAPSHOT_VALUE = "1";
-/** Refused at EVERY scope: workflow, job and step. */
-const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG", "NODE_OPTIONS"]);
+/**
+ * Refused at EVERY scope: workflow, job and step.
+ *
+ * `CI` is on the list because the runtime page-snapshot assertion only fires when
+ * `CI` is set — so the one env key that could switch that assertion off is the
+ * one this lane may never declare. GitHub sets it for every job.
+ */
+const REFUSED_ENV = new Set(["DEBUG", "PWDEBUG", "NODE_DEBUG", "NODE_OPTIONS", "CI"]);
 
 const laneJob = workflow?.jobs?.e2e;
 const workflowEnv = workflow?.env ?? {};
