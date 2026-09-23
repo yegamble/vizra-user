@@ -68,6 +68,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   defaultExportDeclaresKey,
+  defaultExportLiteralAt,
   defaultExportProperty,
   hasGenuineCall,
   hasNonImportReference,
@@ -77,6 +78,7 @@ import {
   moduleSpecifierStartsWith,
   overridesFixtureWithFunction,
   parseTypeScript,
+  projectsSettingUseKeys,
   UNREADABLE,
 } from "./ts-source-facts.mjs";
 
@@ -1015,6 +1017,66 @@ try {
 }
 
 // ===========================================================================
+// LANE A RECORDS NO PIXELS (security seat, PR B plan review 2026-09-23: Q3, F14).
+//
+// The repositories are PUBLIC, so a red lane's artifact is world-readable. A
+// screenshot, a video or a trace screencast frame of a page is pixels: no
+// redactor rewrites it and no byte scan can read a rendered string out of it.
+// Measured on a failing demo under the old values: 2 PNGs, 2 WebMs, and 3 + 2
+// screencast frames inside the two traces; under these values, none.
+//
+// Asserted as LITERALS on the parsed configuration, because a value this guard
+// cannot read must not pass it. Every project is checked too, since a project's
+// `use` overrides the top-level one; the one spread a project may carry is a
+// `devices["…"]` descriptor, and none of the installed descriptors sets a
+// recorder. The demos configuration inherits `use` and `projects` by spreading
+// this one, so it may declare neither.
+const PIXELS_OFF = [
+  [["use", "screenshot"], "off"],
+  [["use", "video"], "off"],
+  [["use", "trace"], { mode: "retain-on-failure", sources: false, screenshots: false }],
+];
+const RECORDER_KEYS = ["screenshot", "video", "trace"];
+try {
+  const tree = parseTypeScript(mainConfigPath, readFileSync(mainConfigPath, "utf8"));
+  for (const [keyPath, expected] of PIXELS_OFF) {
+    const actual = defaultExportLiteralAt(tree, keyPath);
+    if (canonical(actual) !== canonical(expected)) {
+      add(
+        `playwright.config.ts's \`${keyPath.join(".")}\` must be exactly ${JSON.stringify(expected)} ` +
+          `(read: ${actual === UNREADABLE ? "not a literal this guard can read" : JSON.stringify(actual)}). ` +
+          "Lane A records NO PIXELS: its red-lane artifact is public, and a screenshot, a video or a " +
+          "trace screencast frame is pixels that no redactor or scanner can read.",
+      );
+    }
+  }
+  for (const finding of projectsSettingUseKeys(tree, RECORDER_KEYS)) {
+    add(
+      `playwright.config.ts: ${finding}. A project's \`use\` overrides the top-level recorders, ` +
+        "so Lane A's no-pixels settings would not hold for it.",
+    );
+  }
+} catch {
+  add("playwright.config.ts could not be parsed for the recorder settings.");
+}
+try {
+  const demosPath = path.join(repoRoot, "playwright.demos.config.ts");
+  const demosTree = parseTypeScript(demosPath, readFileSync(demosPath, "utf8"));
+  for (const key of ["use", "projects"]) {
+    const verdict = defaultExportDeclaresKey(demosTree, key);
+    if (verdict.declared) {
+      add(
+        `playwright.demos.config.ts declares \`${key}\` (via ${verdict.via}). It must inherit ` +
+          "the lane configuration's recorders and projects, so that the no-pixels settings hold " +
+          "for the demonstrations too.",
+      );
+    }
+  }
+} catch {
+  add("playwright.demos.config.ts could not be parsed for the recorder settings.");
+}
+
+// ===========================================================================
 // UPLOAD SCOPE IS DEFAULT-DENY, ACROSS THE WHOLE WORKFLOW FILE.
 //
 // The `vizra-security` seat's FINDING 8: deriving the scope of what leaves the
@@ -1059,7 +1121,8 @@ try {
 //
 // Re-encoding it would be a fifth URL-shape prediction after four rounds. It is
 // dropped from the upload instead. Nothing diagnostic is lost: `test-results/`
-// still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
+// still holds `trace.zip` and `error-context.md` (no screenshot or video since the
+// no-pixels change above), and
 // `npx playwright show-trace test-results/<test>/trace.zip` opens the trace
 // without the HTML report at all. `playwright-report/data/` was a second,
 // byte-identical copy of the same traces, so dropping it removes a duplicate

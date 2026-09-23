@@ -21,9 +21,15 @@
  * coverage is labelled as such; Safari not claimed", and nothing here claims
  * WebKit or Firefox.
  *
- * ARTIFACTS. Trace, screenshot and video are retained on failure and published
- * by the workflow, together with the HTML report. They are what makes a red
- * lane diagnosable from the run page alone.
+ * ARTIFACTS. A failing test keeps its TRACE (network, DOM snapshots, console,
+ * step log) and `error-context.md`; the workflow publishes them, redacted, on a
+ * red lane. NO PIXELS are recorded: `screenshot` and `video` are "off", and the
+ * trace records no screencast (`screenshots: false`). The repositories are
+ * PUBLIC, and a screenshot of a page is pixels no redactor or scanner can read
+ * (security seat, PR B plan review, Q3 and F14). `check-e2e-lane.mjs` asserts all
+ * three as literals, here and in every project; the demos configuration inherits
+ * them and may not override `use`. What the trace still carries is listed in
+ * AGENTS.md § Artifact privacy.
  */
 
 import { defineConfig, devices } from "@playwright/test";
@@ -113,9 +119,15 @@ export default defineConfig({
     // demonstration found the sentinel signature value surviving into
     // `src/<sha>.ts` inside trace.zip for exactly that reason — the redactor
     // rewrites URLs, and a bare constant in a spec is not a URL.
-    trace: { mode: "retain-on-failure", sources: false },
-    screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    //
+    // NO PIXELS. `screenshots: false` stops the trace's screencast frames;
+    // `screenshot` and `video` "off" stop the per-test PNG and WebM. Measured on
+    // a failing demo before this change: 2 PNGs, 2 WebMs, and 3 + 2 screencast
+    // frames inside the two traces; after it, none of the three. The lane guard
+    // refuses any other value, and a project that sets one of these keys.
+    trace: { mode: "retain-on-failure", sources: false, screenshots: false },
+    screenshot: "off",
+    video: "off",
     // Bound every action, so a wedged page fails the lane instead of burning
     // the job's whole timeout.
     actionTimeout: 10_000,

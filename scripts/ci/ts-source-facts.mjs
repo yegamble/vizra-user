@@ -524,3 +524,147 @@ export function moduleSpecifierStartsWith(sourceFile, prefix) {
   });
   return found;
 }
+
+/**
+ * The plain value of a literal expression: a string, number, boolean, `null`,
+ * or an object literal of such values with plain keys. Anything else (an
+ * identifier, a call, a spread, a computed key, a template with substitutions)
+ * is `UNREADABLE`, and so is an object containing one: a guard that asserts a
+ * value must be able to read all of it, or it must not say yes.
+ */
+function literalValue(node) {
+  while (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+    node = node.expression;
+  }
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (ts.isNumericLiteral(node)) return Number(node.text.replace(/_/g, ""));
+  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
+  if (node.kind === ts.SyntaxKind.NullKeyword) return null;
+  if (ts.isObjectLiteralExpression(node)) {
+    const value = {};
+    for (const property of node.properties) {
+      if (!ts.isPropertyAssignment(property)) return UNREADABLE;
+      const key = property.name;
+      if (!(ts.isIdentifier(key) || ts.isStringLiteral(key))) return UNREADABLE;
+      const inner = literalValue(property.initializer);
+      if (inner === UNREADABLE) return UNREADABLE;
+      value[key.text] = inner;
+    }
+    return value;
+  }
+  return UNREADABLE;
+}
+
+/**
+ * The property `name` of an object literal, for a key-path walk. A spread or a
+ * computed key could supply or override `name`, so either one makes the answer
+ * `UNREADABLE` rather than "absent". A plain key whose value is not written in
+ * the object (a shorthand `{ baseURL }`) is readable only as "present".
+ */
+function ownProperty(objectLiteral, name) {
+  let found;
+  for (const property of objectLiteral.properties) {
+    if (ts.isSpreadAssignment(property)) return UNREADABLE;
+    const key = property.name;
+    if (!key || ts.isComputedPropertyName(key)) return UNREADABLE;
+    const text = ts.isIdentifier(key) || ts.isStringLiteral(key) ? key.text : undefined;
+    if (text !== name) continue;
+    found = ts.isPropertyAssignment(property) ? property.initializer : UNREADABLE;
+  }
+  return found;
+}
+
+/**
+ * The LITERAL value at a key path inside the module's default-exported
+ * configuration object, e.g. `["use", "screenshot"]`.
+ *
+ * Returns the plain value, `undefined` when the path is absent, or `UNREADABLE`
+ * when any object on the path carries a spread or a computed key (either could
+ * supply the key), or the value is not a literal. A caller asserting a value
+ * must treat both `undefined` and `UNREADABLE` as a failure.
+ */
+export function defaultExportLiteralAt(sourceFile, keyPath) {
+  let node = defaultExportedObject(sourceFile);
+  if (!node) return UNREADABLE;
+  for (const name of keyPath) {
+    while (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+      node = node.expression;
+    }
+    if (!ts.isObjectLiteralExpression(node)) return UNREADABLE;
+    const next = ownProperty(node, name);
+    if (next === undefined || next === UNREADABLE) return next;
+    node = next;
+  }
+  return literalValue(node);
+}
+
+/**
+ * Does any entry of the default-exported configuration's `projects` array set
+ * one of `keys` in its `use`, or hide one where this function cannot see?
+ *
+ * Returns a list of human-readable findings, empty when every project is read in
+ * full and sets none of the keys. The ONE spread a project's `use` may carry is
+ * a Playwright device descriptor, `...devices["<string literal>"]`, with
+ * `devices` imported from `@playwright/test`: the installed 1.63.0 descriptors
+ * were read and none carries `screenshot`, `video` or `trace` (207 descriptors,
+ * 2026-09-23). Every other spread, a computed key, or a `projects` value that is
+ * not an array of object literals is a finding, because the key could be in it.
+ */
+export function projectsSettingUseKeys(sourceFile, keys) {
+  const findings = [];
+  const root = defaultExportedObject(sourceFile);
+  if (!root) return ["the default export could not be read as an object literal"];
+  const projects = ownProperty(root, "projects");
+  if (projects === undefined) return findings;
+  if (projects === UNREADABLE || !ts.isArrayLiteralExpression(projects)) {
+    return ["`projects` is not an array literal this guard can read"];
+  }
+  projects.elements.forEach((element, index) => {
+    if (!ts.isObjectLiteralExpression(element)) {
+      findings.push(`project #${index + 1} is not an object literal`);
+      return;
+    }
+    for (const property of element.properties) {
+      const key = property.name;
+      if (ts.isSpreadAssignment(property) || !key || ts.isComputedPropertyName(key)) {
+        findings.push(`project #${index + 1} has a spread or computed key`);
+        continue;
+      }
+      const text = ts.isIdentifier(key) || ts.isStringLiteral(key) ? key.text : undefined;
+      if (keys.includes(text)) findings.push(`project #${index + 1} sets \`${text}\` outside \`use\``);
+      if (text !== "use") continue;
+      const use = ts.isPropertyAssignment(property) ? property.initializer : undefined;
+      if (!use || !ts.isObjectLiteralExpression(use)) {
+        findings.push(`project #${index + 1}'s \`use\` is not an object literal`);
+        continue;
+      }
+      for (const entry of use.properties) {
+        if (ts.isSpreadAssignment(entry)) {
+          if (isDeviceDescriptor(sourceFile, entry.expression)) continue;
+          findings.push(`project #${index + 1}'s \`use\` spreads something other than a device descriptor`);
+          continue;
+        }
+        const entryKey = entry.name;
+        if (!entryKey || ts.isComputedPropertyName(entryKey)) {
+          findings.push(`project #${index + 1}'s \`use\` has a computed key`);
+          continue;
+        }
+        const entryText = ts.isIdentifier(entryKey) || ts.isStringLiteral(entryKey) ? entryKey.text : undefined;
+        if (keys.includes(entryText)) findings.push(`project #${index + 1}'s \`use\` sets \`${entryText}\``);
+      }
+    }
+  });
+  return findings;
+}
+
+/** `devices["<string literal>"]`, with `devices` imported from `@playwright/test`. */
+function isDeviceDescriptor(sourceFile, expression) {
+  return (
+    ts.isElementAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "devices" &&
+    importedFrom(sourceFile, "devices") === "@playwright/test" &&
+    ts.isStringLiteral(expression.argumentExpression)
+  );
+}

@@ -176,7 +176,7 @@ placeholder row, a control that does nothing — is a defect, not a placeholder
 | `bash scripts/ci/check-required-floor.sh` | the required-check manifest still demands `frontend` and `contract` |
 | `bash scripts/ci/check-image-pins.sh` | every Dockerfile `FROM` is `@sha256`-pinned at the `.nvmrc` version |
 | `bash scripts/ci/check-client-bundle.sh` | no server-side configuration reached `.next/static` (run after a build) |
-| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check, browser-revision record and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the `with:` of `actions/checkout` and `actions/setup-node` exact, and workflow `permissions:` exactly `contents: read`; root install lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare`, `dependencies`) refused; the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion |
+| `bash scripts/ci/check-e2e-lane.sh` | PARSES the `e2e` workflow AND the Playwright configurations AND `package.json`. **Every step it relies on is PINNED, not recognised**: the image build, the fixture-free check, the container start, the lane, the coverage floor, the canary, the browser-revision record, the redaction/upload gate and the upload must each appear EXACTLY ONCE, DEEP-EQUAL to its body in `.github/e2e-pinned-steps.yml` (every key and value; no key the pin lacks); a step anywhere in the workflow that mentions a pinned role's token but is not its pin is refused by name; the pins file itself must satisfy the policy (exact `run:` of lane, floor, canary, fixture check, browser-revision record and redaction; the upload's gate, paths, retention and `if-no-files-found: error`); the `with:` of `actions/checkout` and `actions/setup-node` exact, and workflow `permissions:` exactly `contents: read`; root install lifecycle scripts (`preinstall`, `install`, `postinstall`, `prepublish`, `preprepare`, `prepare`, `postprepare`, `dependencies`) refused; the upload IMMEDIATELY follows the redaction, which follows the lane, floor and canary; env is DEFAULT-DENY (none at workflow level, only `PLAYWRIGHT_NO_COPY_PROMPT` at job level, none on an unpinned step; `HOME` refused by name); no `defaults:`, job keys allowlisted, `runs-on: ubuntu-24.04`; upload `path:` entries are literals from a fixed allowlist across EVERY job; `uses:` is a pinned allowlist; no reusable workflow, no `$GITHUB_STEP_SUMMARY`, no `include-hidden-files: true`, retention &le; 3 days, `.vizra-e2e` in no `path:` of any workflow; `globalSetup`/`globalTeardown` refused; `scripts.e2e*` byte-equal to their documented literals and no pre/post hook; `PLAYWRIGHT_NO_COPY_PROMPT` exactly once, at job level, `"1"`; `DEBUG`/`PWDEBUG`/`NODE_OPTIONS`/`CI`/`npm_config_*`/other `PLAYWRIGHT_*` refused at every env scope; a committed `.npmrc` default-deny; `$GITHUB_ENV`/`$GITHUB_PATH`/`$GITHUB_STEP_SUMMARY` refused in `run:` text and env values; YAML merge keys refused in every workflow; the harness must CALL the runtime page-snapshot assertion; Lane A records NO PIXELS: `use.screenshot` and `use.video` exactly `"off"` and `use.trace` exactly `{ mode: "retain-on-failure", sources: false, screenshots: false }`, read as literals, in no project overridden, and the demos configuration declaring neither `use` nor `projects` |
 | `node scripts/ci/check-coverage-floor-ran.mjs` | the finished JSON report satisfies `e2e/harness/required-projects.json` AND every result that succeeded carries a valid harness stamp (run after the lane) |
 | `node scripts/ci/harness-canary.mjs` | the guard itself still fails a broken page: each of the **four** fault-injection fixtures — one per guarded signal kind — must fail with the exact SET of record kinds it demonstrates and no others (needs a production target, as the lane does) |
 | `bash scripts/ci/redact-artifacts.sh` | strip URL query strings from artifacts, inside `trace.zip` members too, before upload, using the FOUR programs in `e2e/harness/redaction-patterns.json` (shared with the harness redactor); REFUSE — exit 1, so nothing uploads — if any file or member carries a `# Page snapshot`; and REFUSE — exit 3 — a named directory that does not exist, so a mistyped or dropped argument cannot empty the gate |
@@ -638,8 +638,9 @@ one. Two changes, and only one of them is a redactor:
    of the file, with globs, `${{ }}` expressions, `.` and `..` all refused.
    Re-encoding the payload would have been a fifth URL-shape prediction after
    four rounds; not uploading it is not a prediction. Nothing diagnostic is lost:
-   `test-results/` still holds `trace.zip`, the screenshot, the video and
-   `error-context.md`, `npx playwright show-trace test-results/<test>/trace.zip`
+   `test-results/` still holds `trace.zip` and `error-context.md` (there is no
+   screenshot or video: Lane A records no pixels, see below),
+   `npx playwright show-trace test-results/<test>/trace.zip`
    opens the trace without the report, and `playwright-report/data/` was a
    byte-identical second copy of the same traces.
 2. **`sweep-artifacts.sh` decodes then recurses.** Every `;base64,` payload long
@@ -769,8 +770,8 @@ allowlist of three paths; this is what is in them and what is done to each.
 
 | Uploaded | What it carries | Redacted? |
 |---|---|---|
-| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**, screencast frames | URLs, in the shapes above — every other channel is **untouched** |
-| `test-results/**/test-failed-1.png`, `video.webm` | pixels of the rendered page | **not at all** — a byte substitution would corrupt them, and a rendered page is not a greppable string |
+| `test-results/**/trace.zip` | the full trace: request and response HEADERS, request and response BODIES (`resources/*`), DOM snapshots, console messages, **Playwright call parameters including `fill()` values in step titles**. **No screencast frames** (`trace.screenshots: false`), but `resources/*` still holds any image bytes the page fetched, and the trace viewer re-renders a DOM snapshot as a page | URLs, in the shapes above — every other channel is **untouched** |
+| `test-results/**/test-failed-1.png`, `video.webm` | **not produced**: `screenshot` and `video` are `"off"` (below) | — |
 | `test-results/**/error-context.md` | the error message, and a `# Test source` code frame (±100 lines of `errorLocation.file` — the **helper's** source when the error was raised in one) **when the failing error's stack has a readable source location** — measured present for an `expect` failing in a spec (D16d); a harness-raised browser-error failure may have none | URLs, in the shapes above. Its `# Page snapshot` is **suppressed in CI** by `PLAYWRIGHT_NO_COPY_PROMPT`, and a file that carries one anyway is **refused at the upload gate** |
 | `playwright-report/results.json` | test titles, the failure message and **the assertion's received value**, stdout/stderr captured per test, attachment paths | URLs, in the shapes above — including the double-escaped form a printed slash-escaped URL becomes here (D16d). **This file is uploaded and this table did not used to name it** |
 | `playwright-browsers.txt` | `playwright install --dry-run chromium` output | nothing sensitive |
@@ -778,6 +779,37 @@ allowlist of three paths; this is what is in them and what is done to each.
 `playwright-report/` itself is **not** uploaded — see the base64 paragraph above.
 Nothing under `.vizra-e2e/` is uploaded, by any workflow, and the lane guard
 sweeps every workflow file for that name.
+
+**Lane A records NO PIXELS.** A screenshot, a video or a trace screencast frame
+of a page is pixels: no redactor rewrites it and no byte scan can read a rendered
+string out of it, and the repositories are public. So `playwright.config.ts` sets
+`screenshot: "off"`, `video: "off"` and
+`trace: { mode: "retain-on-failure", sources: false, screenshots: false }`
+(security seat, PR B plan review 2026-09-23, Q3 and F14). The demos
+configuration inherits them. Measured on one failing demonstration
+(`failed-request.demo.ts` under `playwright.demos.config.ts`, 2026-09-23):
+
+| | Before | After |
+|---|---|---|
+| `.png` files in `test-results/` | 2 | 0 |
+| `.webm` files | 2 | 0 |
+| screencast frames inside the two `trace.zip` files | 3 and 2 | 0 and 0 |
+| `trace.zip` and `error-context.md` | present | present |
+
+`check-e2e-lane.mjs` reads all three values as LITERALS from the parsed
+configuration and refuses any other value, a value it cannot read (a spread or a
+computed key in `use`), a project whose `use` sets one of the three keys or
+spreads anything but a `devices["…"]` descriptor (none of the 207 installed
+descriptors sets a recorder), and a demos configuration that declares `use` or
+`projects`. Nine cases in `require-checks_test.sh` are red by name.
+
+**What this does NOT stop, stated so it is not assumed:** the trace still
+records the network, so an image the page FETCHED is in `resources/*` as bytes,
+and a DOM snapshot re-renders as the page in the trace viewer. The measured demo
+fetched no image, so the table above does not measure that channel. A spec can
+still call `page.screenshot({ path })` itself and write into `test-results/`;
+nothing refuses that today. From the first slice that renders non-public media,
+those two channels are the ones to close.
 
 **NOT covered. Read this list before you decide a red lane is safe to share.**
 Measured channel by channel against a failing run:
@@ -794,7 +826,7 @@ Measured channel by channel against a failing run:
 | DOM snapshots and attachments | `*-trace.trace` |
 | **Playwright call parameters** — `page.fill` / `page.evaluate` arguments, the channel a login spec uses | `*-trace.trace` |
 | artifact file and directory names (they derive from test titles) | everywhere |
-| `.png` screenshots and `.webm` video (excluded on purpose: a byte substitution corrupts them, and a rendered page is pixels, not a greppable string) | as recorded |
+| image bytes the page fetched, and DOM snapshots the trace viewer re-renders as a page (the pixel channels Lane A still has; screenshots, video and screencast frames are no longer recorded — below) | `resources/*`, `*-trace.trace` |
 
 Earlier wording here offered "keeping origin, path, **headers** and timings
 readable" as a feature. Headers are the uncovered channel; that sentence is
@@ -869,7 +901,8 @@ repository being private, and nothing new is claimed here:
   are redacted, and nothing else is. Every row of the "NOT covered" table is published as
   recorded: header values, request and response bodies, non-URL console tokens,
   DOM snapshots and Playwright call parameters inside `trace.zip`, artifact file
-  names, screenshots and video;
+  names, and image bytes the page fetched (`resources/*` inside `trace.zip`).
+  Screenshots, video and trace screencast frames are no longer recorded at all;
 - the `# Page snapshot` section of `error-context.md` is suppressed in CI by
   `PLAYWRIGHT_NO_COPY_PROMPT` and refused at the upload gate, subject to "What
   still gets through" above;
