@@ -821,8 +821,8 @@ rm -f "$repo/e2e/specs/__cred.spec.ts"
 # was patched where it was found, and the guarantee still rested on LINT.
 #
 # It no longer does. `e2e/harness/test.ts` stamps every test it runs with an
-# HMAC over that test's identity, under a per-run key a spec cannot read, and
-# two checks refuse a run in which a test SUCCEEDED without a valid stamp.
+# HMAC over that test's identity, under a per-run key a spec in a worker cannot
+# read, and two checks refuse a run in which a test SUCCEEDED without a valid stamp.
 # EVERY half below runs Playwright DIRECTLY — no ESLint anywhere in the command —
 # so what is demonstrated is the runtime, not the lint.
 log "D11 — a spec that bypasses the harness is RED at runtime, whatever lint thinks"

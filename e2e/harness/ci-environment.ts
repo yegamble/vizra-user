@@ -223,10 +223,10 @@ export function takeEnvironmentChange(
  * text, and the log line only needs to say that it is wrong.
  */
 export function pageSnapshotProblem(env: Environment = CAPTURED): string | undefined {
-  // In CI when EITHER was set at capture. `GITHUB_ACTIONS` is the anchor a job
-  // cannot take away: GitHub documents that `CI` CAN be overwritten, and that the
-  // `GITHUB_*` defaults cannot (see the header). An in-process route that runs
-  // before the configuration loads can still delete both.
+  // In CI when EITHER was set at capture. `GITHUB_ACTIONS` cannot be changed by a DIRECT
+  // `env:`/`$GITHUB_ENV` assignment; anything that runs before the configuration loads
+  // (an in-process preload, a `BASH_ENV` via `$GITHUB_ENV`, a `$GITHUB_PATH` entry) can
+  // remove both anchors, and then layer 3 holds — see the header.
   if (!env.CI && env.GITHUB_ACTIONS !== "true") return undefined;
   const value = env[PAGE_SNAPSHOT_KEY];
   if (value === PAGE_SNAPSHOT_VALUE) return undefined;
