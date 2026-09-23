@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3212 npx playwright test e2e/specs/production-build.spec.ts
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3392 npx playwright test e2e/specs/production-build.spec.ts
 
 
 Running 4 tests using 4 workers
@@ -13,11 +13,11 @@ Running 4 tests using 4 workers
 
     Error: this is not a production build — the browser lane must never run against `next dev`:
       - the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+        http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
+        ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
       - the RSC flight build id is "development": this server is `next dev`.
       - /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -44,11 +44,11 @@ Running 4 tests using 4 workers
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+    +     http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
+    +     ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -81,39 +81,17 @@ Running 4 tests using 4 workers
     AGENTS.md: console and network errors are failures, not noise.
 
     1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
-
-    Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
-    AGENTS.md: console and network errors are failures, not noise.
-
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/
-
-    A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
-    legitimately produces a signal, do that work in `beforeAll` — where the first test of the
-    group owns it — or in a test.
-
-    See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:382:17)
 
     Error Context: test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/trace.zip
     Usage:
 
@@ -124,11 +102,11 @@ Running 4 tests using 4 workers
   2) [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
 
     Error: the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+        http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
+        ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
     the RSC flight build id is "development": this server is `next dev`.
     /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -155,11 +133,11 @@ Running 4 tests using 4 workers
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+    +     http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
+    +     ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -192,39 +170,31 @@ Running 4 tests using 4 workers
     AGENTS.md: console and network errors are failures, not noise.
 
     1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:382:17)
 
     Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/health
 
     A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
     legitimately produces a signal, do that work in `beforeAll` — where the first test of the
     group owns it — or in a test.
 
     See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:186:19)
 
     Error Context: test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/trace.zip
     Usage:
 
@@ -236,11 +206,11 @@ Running 4 tests using 4 workers
 
     Error: this is not a production build — the browser lane must never run against `next dev`:
       - the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+        http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
+        ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
       - the RSC flight build id is "development": this server is `next dev`.
       - /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -267,11 +237,11 @@ Running 4 tests using 4 workers
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+    +     http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
+    +     ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -300,43 +270,24 @@ Running 4 tests using 4 workers
       41 |   test("the same markers hold on a dynamic route", async ({ page }) => {
         at <repo>/e2e/specs/production-build.spec.ts:38:7
 
-    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    Error: The page produced 2 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/
+    2 DURING THE TEST:
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
-
-    Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
-    AGENTS.md: console and network errors are failures, not noise.
-
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/
-
-    A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
-    legitimately produces a signal, do that work in `beforeAll` — where the first test of the
-    group owns it — or in a test.
-
-    See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:382:17)
 
     Error Context: test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/trace.zip
     Usage:
 
@@ -347,11 +298,11 @@ Running 4 tests using 4 workers
   4) [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
 
     Error: the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+        http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+        http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-        ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
+        ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
     the RSC flight build id is "development": this server is `next dev`.
     /_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -378,11 +329,11 @@ Running 4 tests using 4 workers
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
+    +     http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
+    +     http://127.0.0.1:3392/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
-    +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
+    +     ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
@@ -415,39 +366,17 @@ Running 4 tests using 4 workers
     AGENTS.md: console and network errors are failures, not noise.
 
     1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+          at: http://127.0.0.1:3392/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
-
-    Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
-    AGENTS.md: console and network errors are failures, not noise.
-
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-          at: http://127.0.0.1:3212/health
-
-    A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
-    legitimately produces a signal, do that work in `beforeAll` — where the first test of the
-    group owns it — or in a test.
-
-    See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3392/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3392/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:382:17)
 
     Error Context: test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/trace.zip
     Usage:
 

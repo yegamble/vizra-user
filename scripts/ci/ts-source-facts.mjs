@@ -579,6 +579,15 @@ function ownProperty(objectLiteral, name) {
  * The LITERAL value at a key path inside the module's default-exported
  * configuration object, e.g. `["use", "screenshot"]`.
  *
+ * A SOURCE READER, AND ONLY AN EARLY WARNING. It reads `arguments[0]` of the
+ * exported call and an identifier's initializer, nothing else: a second call
+ * argument, a later assignment, an `Object.assign` on an imported object or a
+ * mutated device descriptor are all invisible to it, and each was measured
+ * turning the recorders back on while it answered OK (PR #10 VERIFY, E1–E5). The
+ * control for the recorder values is the runtime check on the RESOLVED options
+ * (`e2e/harness/recorders.ts`). "Fails closed" below is about what this function
+ * reads, not about the configuration Playwright loads.
+ *
  * Returns the plain value, `undefined` when the path is absent, or `UNREADABLE`
  * when any object on the path carries a spread or a computed key (either could
  * supply the key), or the value is not a literal. A caller asserting a value
@@ -667,4 +676,52 @@ function isDeviceDescriptor(sourceFile, expression) {
     importedFrom(sourceFile, "devices") === "@playwright/test" &&
     ts.isStringLiteral(expression.argumentExpression)
   );
+}
+
+/**
+ * The Playwright configuration a script selects, read from its PARSED source.
+ *
+ * Returns findings (empty when the script selects exactly `expected`): the
+ * script must contain exactly one string literal `--config`, immediately
+ * followed, in the same array literal, by the string literal `expected`; and no
+ * other configuration selector anywhere: no `-c`, no `--config=…`, no second
+ * `--config`, no other string naming a `playwright…config` file, and no template
+ * literal with substitutions that mentions `config`. A non-literal element after
+ * `--config` is a finding, because the value cannot be read.
+ */
+export function configArgumentFindings(sourceFile, expected) {
+  const findings = [];
+  const selectors = [];
+  forEachNode(sourceFile, (node) => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      const text = node.text;
+      if (text === "--config" || text === "-c" || text.startsWith("--config=")) selectors.push(node);
+      else if (/playwright[\w.-]*config/.test(text) && text !== expected) {
+        findings.push(`a second configuration is named (${JSON.stringify(text)})`);
+      }
+    } else if (ts.isTemplateExpression(node) && /config/i.test(node.getText(sourceFile))) {
+      findings.push("a template literal with substitutions mentions `config`, which this guard cannot read");
+    }
+  });
+  if (selectors.length !== 1) {
+    findings.push(`it has ${selectors.length} configuration selector(s); exactly one \`--config\` is required`);
+    return findings;
+  }
+  const [selector] = selectors;
+  if (selector.text !== "--config") {
+    findings.push(`its configuration selector is ${JSON.stringify(selector.text)}, not \`--config\` followed by a literal`);
+    return findings;
+  }
+  const array = selector.parent;
+  if (!array || !ts.isArrayLiteralExpression(array)) {
+    findings.push("`--config` is not an element of an array literal this guard can read");
+    return findings;
+  }
+  const next = array.elements[array.elements.indexOf(selector) + 1];
+  if (!next || !(ts.isStringLiteral(next) || ts.isNoSubstitutionTemplateLiteral(next))) {
+    findings.push("the element after `--config` is not a string literal this guard can read");
+  } else if (next.text !== expected) {
+    findings.push(`\`--config\` selects ${JSON.stringify(next.text)}`);
+  }
+  return findings;
 }

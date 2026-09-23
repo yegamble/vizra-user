@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --list
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test --list
 
 Listing tests:
   [desktop-chromium-1440] › health.spec.ts:16:7 › health page › reports liveness for vizra-user

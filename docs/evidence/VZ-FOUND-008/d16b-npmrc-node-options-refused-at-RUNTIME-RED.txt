@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3211 npm run e2e
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3391 npm run e2e
 
 
 > vizra-user@0.0.0 e2e
@@ -49,16 +49,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-desktop-chromium-1440/trace.zip
@@ -72,16 +72,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-desktop-chromium-1440-retry1/trace.zip
@@ -95,16 +95,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-desktop-chromium-1440/trace.zip
@@ -118,16 +118,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-desktop-chromium-1440-retry1/trace.zip
@@ -141,16 +141,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-desktop-chromium-1440/trace.zip
@@ -164,16 +164,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-desktop-chromium-1440-retry1/trace.zip
@@ -187,16 +187,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-desktop-chromium-1440/trace.zip
@@ -210,16 +210,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-desktop-chromium-1440-retry1/trace.zip
@@ -233,16 +233,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-desktop-chromium-1440/trace.zip
@@ -256,16 +256,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-desktop-chromium-1440-retry1/trace.zip
@@ -279,16 +279,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-desktop-chromium-1440/trace.zip
@@ -302,16 +302,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-desktop-chromium-1440-retry1/trace.zip
@@ -325,16 +325,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-desktop-chromium-1440/trace.zip
@@ -348,16 +348,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-desktop-chromium-1440-retry1/trace.zip
@@ -371,16 +371,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440/trace.zip
@@ -394,16 +394,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-desktop-chromium-1440-retry1/trace.zip
@@ -417,16 +417,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440/trace.zip
@@ -440,16 +440,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-desktop-chromium-1440-retry1/trace.zip
@@ -463,16 +463,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-mobile-chromium-390/trace.zip
@@ -486,16 +486,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-reports-liveness-for-vizra-user-mobile-chromium-390-retry1/trace.zip
@@ -509,16 +509,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-mobile-chromium-390/trace.zip
@@ -532,16 +532,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-does-no-da2c2-and-leaks-no-build-metadata-mobile-chromium-390-retry1/trace.zip
@@ -555,16 +555,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-mobile-chromium-390/trace.zip
@@ -578,16 +578,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/health-health-page-is-rend-89e6f-ved-from-a-build-time-cache-mobile-chromium-390-retry1/trace.zip
@@ -601,16 +601,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-mobile-chromium-390/trace.zip
@@ -624,16 +624,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-rend-3c0be--product-surface-exists-yet-mobile-chromium-390-retry1/trace.zip
@@ -647,16 +647,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-mobile-chromium-390/trace.zip
@@ -670,16 +670,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-hydrates-without-the-page-complaining-mobile-chromium-390-retry1/trace.zip
@@ -693,16 +693,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-mobile-chromium-390/trace.zip
@@ -716,16 +716,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--efce8-der-reaches-the-health-page-mobile-chromium-390-retry1/trace.zip
@@ -739,16 +739,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-mobile-chromium-390/trace.zip
@@ -762,16 +762,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/home-home-placeholder-the--7ce57-with-no-horizontal-overflow-mobile-chromium-390-retry1/trace.zip
@@ -785,16 +785,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390/trace.zip
@@ -808,16 +808,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-51435-r-and-no-development-marker-mobile-chromium-390-retry1/trace.zip
@@ -831,16 +831,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390/trace.zip
@@ -854,16 +854,16 @@ Running 18 tests using 2 workers
 
     Error: PLAYWRIGHT_NO_COPY_PROMPT is not "1" in this Playwright worker (it is set to something else). With it anything but "1", Playwright writes a `# Page snapshot` into `error-context.md` — an aria snapshot of the live page carrying every DOM text node and every input's current value — and that file is uploaded. The `e2e` job sets it at job level; if this fires, something between the workflow and this process changed it before the configuration loaded: a committed `.npmrc` (`node-options`), `NODE_OPTIONS`, a `$GITHUB_ENV` write, or a preload module. See AGENTS.md, § Artifact privacy. [checked at worker start, before any hook or test]
 
-       at ../harness/ci-environment.ts:264
+       at ../harness/ci-environment.ts:268
 
-      262 |     (message): message is string => message !== undefined,
-      263 |   );
-    > 264 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
+      266 |     (message): message is string => message !== undefined,
+      267 |   );
+    > 268 |   if (messages.length > 0) throw new Error(messages.join("\n\n"));
           |                                  ^
-      265 | }
-      266 |
-        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:264:34)
-        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:150:35)
+      269 | }
+      270 |
+        at assertPageSnapshotSuppressed (<repo>/e2e/harness/ci-environment.ts:268:34)
+        at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:161:35)
 
     attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/production-build-the-targe-9739b-ers-hold-on-a-dynamic-route-mobile-chromium-390-retry1/trace.zip

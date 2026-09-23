@@ -1,0 +1,12 @@
+$ run_pixels_spec
+
+
+Running 1 test using 1 worker
+
+  ✓ <n> [desktop-chromium-1440] › e2e/specs/__pixels.spec.ts:7:5 › E6: one test.use line turns the recorders back on (<time>)
+
+  1 passed (<time>)
+e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
+e2e harness stamp: OK (1 succeeding result(s) verified).
+
+[exit 0]

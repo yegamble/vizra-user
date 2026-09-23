@@ -1,5 +1,5 @@
-branch:     fix/m0-artifact-privacy-a
-head sha:   4db7dce8d45031e9cab2cf77af2c12c4c81f27fd
+branch:     fix/lane-a-pixels-off
+head sha:   a01a396bcaa3820e2bd89537461bc587aabc452b
 node:       v22.14.0
 playwright: Version 1.63.0
 project:    desktop-chromium-1440

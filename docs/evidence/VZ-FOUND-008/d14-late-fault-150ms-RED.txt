@@ -13,33 +13,25 @@ Running 1 test using 1 worker
 
     1 DURING THE TEST:
       [pageerror] pageerror: __vizra_e2e_fixture__ late fault demonstration (D14)
-          at: http://127.0.0.1:3211/
+          at: http://127.0.0.1:3391/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
 
-       at ../harness/test.ts:365
+       at ../harness/test.ts:382
 
-      363 |         );
-      364 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
-    > 365 |           throw new Error(
+      380 |         );
+      381 |         if (unallowedBefore.length > 0 || unallowedDuring.length > 0) {
+    > 382 |           throw new Error(
           |                 ^
-      366 |             formatPhasedFailure(
-      367 |               unallowedBefore,
-      368 |               unallowedDuring,
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+      383 |             formatPhasedFailure(
+      384 |               unallowedBefore,
+      385 |               unallowedDuring,
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:382:17)
 
     Error Context: test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/error-context.md
 
-    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/late-fault.demo.ts-RED-a-f-adad2-sh-settles-for-250-ms-first-desktop-chromium-1440/trace.zip
     Usage:
 

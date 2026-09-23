@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
@@ -31,36 +31,24 @@ Running 1 test using 1 worker
     Error: 1 context(s) the harness was never handed are open on this browser at the end of the test.
     AGENTS.md: a test that passes must have run under the guard, over every context it created.
 
-      an unguarded context, 1 page(s): http://127.0.0.1:3211/
+      an unguarded context, 1 page(s): http://127.0.0.1:3391/
 
     See e2e/harness/creation-guard.ts.
 
-       at ../harness/test.ts:342
+       at ../harness/test.ts:359
 
-      340 |         }
-      341 |         if (strays.length > 0) {
-    > 342 |           throw new Error(
+      357 |         }
+      358 |         if (strays.length > 0) {
+    > 359 |           throw new Error(
           |                 ^
-      343 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
-      344 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
-      345 |               "guard, over every context it created.\n\n" +
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:342:17)
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/test-failed-<n>.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/video<n>.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+      360 |             `${strays.length} context(s) the harness was never handed are open on this browser ` +
+      361 |               "at the end of the test.\nAGENTS.md: a test that passes must have run under the " +
+      362 |               "guard, over every context it created.\n\n" +
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:359:17)
 
     Error Context: test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/error-context.md
 
-    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
     test-results/__guard-a-stray-context-left-open-is-named-at-teardown-desktop-chromium-1440/trace.zip
     Usage:
 

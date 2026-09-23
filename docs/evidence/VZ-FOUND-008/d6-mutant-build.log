@@ -1,32 +1,34 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile.fixtures-mutant
-#1 transferring dockerfile: 380B done
+#1 transferring dockerfile: 378B 0.0s done
 #1 DONE <time>
 
-#2 [internal] load metadata for docker.io/library/pr8close-a7x:demonstrate
+#2 [internal] load metadata for docker.io/library/vzb-pr10r1:demonstrate
 #2 DONE <time>
 
 #3 [internal] load build context
-#3 transferring context: 283.06kB 0.0s done
+#3 transferring context: 254.51kB <time>
+#3 transferring context: 291.28kB 0.1s done
 #3 DONE <time>
 
-#4 [1/2] FROM docker.io/library/pr8close-a7x:demonstrate@sha256:833bdbe024e278fc06f394b8c63140c3d7a7a3aad4183d34eb82c2925d43da28
-#4 resolve docker.io/library/pr8close-a7x:demonstrate@sha256:833bdbe024e278fc06f394b8c63140c3d7a7a3aad4183d34eb82c2925d43da28 0.0s done
+#4 [1/2] FROM docker.io/library/vzb-pr10r1:demonstrate@sha256:66979ba9fe1707c549287d77c257a98e6d3e4b44e8008c0fcefa9c2d26445b2b
+#4 resolve docker.io/library/vzb-pr10r1:demonstrate@sha256:66979ba9fe1707c549287d77c257a98e6d3e4b44e8008c0fcefa9c2d26445b2b 0.1s done
 #4 DONE <time>
 
 #5 [2/2] COPY e2e ./e2e
 #5 DONE <time>
 
 #6 exporting to image
-#6 exporting layers 0.1s done
-#6 exporting manifest sha256:1a841ca1e2274b212b57769af6300bb598695ac986783078d17e884e20ce84aa done
-#6 exporting config sha256:935f915ee28537970ed17114d491632b059987173340fe30b4eb5e51be765941
-#6 exporting config sha256:935f915ee28537970ed17114d491632b059987173340fe30b4eb5e51be765941 done
-#6 exporting attestation manifest sha256:9167dcebf344beed123ed23ebaed1f962b281ca0994cb7d2acedb6d1d422c414 done
-#6 exporting manifest list sha256:9a71271f70ba4c08df7e4bba143d1d816b470d7151d7020548415f831132263a done
-#6 naming to docker.io/library/pr8close-a7x:with-fixtures done
-#6 unpacking to docker.io/library/pr8close-a7x:with-fixtures 0.0s done
+#6 exporting layers
+#6 exporting layers 0.2s done
+#6 exporting manifest sha256:47d3c3da2086483ae862acf75b9d64c03783d70c78f7328b086be65db75eba32 0.0s done
+#6 exporting config sha256:11b6ccaa879089acb5a69f187b82fd57c0e4e5e2ab60a404c3321f19a8372a1c 0.0s done
+#6 exporting attestation manifest sha256:357b259c6c30a80bc443816b075d6f960806a5596d13821dbab47d5245dd860c 0.0s done
+#6 exporting manifest list sha256:1872d4ca85952bed5493d5e882c489acb90e2b88ccf0905e7df2d3b7bd3bf6cd
+#6 exporting manifest list sha256:1872d4ca85952bed5493d5e882c489acb90e2b88ccf0905e7df2d3b7bd3bf6cd 0.0s done
+#6 naming to docker.io/library/vzb-pr10r1:demonstrate-mutant done
+#6 unpacking to docker.io/library/vzb-pr10r1:demonstrate-mutant 0.0s done
 #6 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/mswg683mqcyn025055zvfxg81
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/i7k8c4m1qdwutwptrf0g7pebd

@@ -736,7 +736,8 @@ fi
 harness_tree() {
   local root=$1
   mkdir -p "$root/scripts/ci" "$root/e2e/harness"
-  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" "$root/scripts/ci/"
+  cp "$here/check-e2e-lane.sh" "$here/check-e2e-lane.mjs" "$here/ts-source-facts.mjs" \
+    "$here/harness-canary.mjs" "$root/scripts/ci/"
   cp "$here/../../e2e/harness/test.ts" "$here/../../e2e/harness/worker-guard.ts" \
     "$here/../../e2e/harness/stamp-reporter.ts" "$root/e2e/harness/"
   cp "$here/../../playwright.config.ts" "$here/../../playwright.demos.config.ts" \
@@ -910,6 +911,22 @@ harness_expect 1 'spreads something other than a device descriptor' playwright.c
 title="no pixels: the DEMOS config overriding use fails by name"
 harness_expect 1 'playwright.demos.config.ts declares .use.' playwright.demos.config.ts \
   's|  testDir: "\./e2e/demos",|  use: { video: "on" },\n  testDir: "./e2e/demos",|'
+
+title="no pixels, RUNTIME: the harness entry's call to recorderProblems removed fails by name"
+harness_expect 1 'no longer CALLS .recorderProblems' e2e/harness/test.ts \
+  's|      const pixelOptions = recorderProblems\(\{ screenshot, video, trace \}\);\n      if \(pixelOptions.length > 0\) \{\n        throw new Error\(recorderMessage\(pixelOptions, "in this worker"\)\);\n      \}\n||; s|      const pixelOptions = recorderProblems\(\{ screenshot, video, trace \}\);\n      if \(pixelOptions.length > 0\) \{\n        throw new Error\(recorderMessage\(pixelOptions, "for this test"\)\);\n      \}||'
+
+title="S6: the canary pointed at a second configuration fails by name"
+harness_expect 1 'harness-canary.mjs: .*playwright.canary.config.ts' scripts/ci/harness-canary.mjs \
+  's|    "playwright.demos.config.ts",|    "playwright.canary.config.ts",|'
+
+title="S6: the canary's configuration made non-literal fails CLOSED"
+harness_expect 1 'harness-canary.mjs: the element after .--config. is not a string literal' scripts/ci/harness-canary.mjs \
+  's|    "playwright.demos.config.ts",|    canaryConfig,|'
+
+title="S6: a second --config appended to the canary's arguments fails by name"
+harness_expect 1 'harness-canary.mjs: it has 2 configuration selector' scripts/ci/harness-canary.mjs \
+  's|    "--grep",\n    "RED:",|    "--grep",\n    "RED:",\n    "--config",\n    "playwright.demos.config.ts",|'
 
 title="no pixels: a recorder value named only in a COMMENT does not trip the check (inverse control)"
 harness_expect 0 'still drives the built image' playwright.config.ts \

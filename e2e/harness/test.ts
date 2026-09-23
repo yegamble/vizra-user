@@ -54,6 +54,7 @@ import {
   type BrowserGuard,
 } from "./browser-errors";
 import { assertEnvironmentUnchanged, assertPageSnapshotSuppressed, takeEnvironmentChange } from "./ci-environment";
+import { recorderMessage, recorderProblems } from "./recorders";
 import { claimSigner, specPath, STAMP_ANNOTATION } from "./stamp";
 import {
   createWorkerHarness,
@@ -137,7 +138,17 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
     // The callback parameter is `provide`, not `use`: `react-hooks/rules-of-hooks`
     // reads a call to `use(...)` inside a try/catch as a misplaced React hook,
     // and the try/catch is load-bearing here.
-    async ({ browser }, provide) => {
+    async ({ browser, screenshot, video, trace }, provide) => {
+      // LANE A RECORDS NO PIXELS, checked on the RESOLVED values before the
+      // worker's first hook or test (e2e/harness/recorders.ts). A source reader
+      // was green while six spellings turned the recorders back on; this is
+      // checked where Playwright has already resolved every one of them. It
+      // lives in this BRANDED fixture on purpose: replacing the fixture to drop
+      // the check costs the stamp.
+      const pixelOptions = recorderProblems({ screenshot, video, trace });
+      if (pixelOptions.length > 0) {
+        throw new Error(recorderMessage(pixelOptions, "in this worker"));
+      }
       // BEFORE ANYTHING ELSE IN THE WORKER: the page-snapshot variables, in the
       // process that takes the snapshot. Two checks. The values CAPTURED when the
       // configuration loaded must satisfy the policy — a worker whose environment
@@ -214,10 +225,16 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
   // already exists is guarded by the worker fixture, which ran first.
   vizraHarnessGuard: [
     async (
-      { browser, context, browserErrorPolicy, vizraWorkerGuard },
+      { browser, context, browserErrorPolicy, vizraWorkerGuard, screenshot, video, trace },
       runTest,
       testInfo,
     ) => {
+      // The same no-pixels check, per test, before the body: the second of the
+      // two fixtures the harness owns, so dropping one does not drop the check.
+      const pixelOptions = recorderProblems({ screenshot, video, trace });
+      if (pixelOptions.length > 0) {
+        throw new Error(recorderMessage(pixelOptions, "for this test"));
+      }
       // STAMPED IMPLIES GUARDED, one level up. Moving the listening into a
       // second fixture would otherwise let a spec `test.extend` the WORKER
       // fixture with a no-op, keep this one and its stamp, and lose the guard —

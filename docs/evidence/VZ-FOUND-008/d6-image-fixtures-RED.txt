@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh vzb-pr10r1:demonstrate-mutant
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
@@ -20,6 +20,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
   app/e2e/harness/creation-guard.ts
   app/e2e/harness/no-credentials-in-specs.test.ts
   app/e2e/harness/production-build.ts
+  app/e2e/harness/recorders.test.ts
+  app/e2e/harness/recorders.ts
   app/e2e/harness/redact.test.ts
   app/e2e/harness/redact.ts
   app/e2e/harness/redaction-corpus.json

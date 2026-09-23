@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  configArgumentFindings,
   defaultExportDeclaresKey,
   defaultExportLiteralAt,
   defaultExportProperty,
@@ -317,5 +318,32 @@ describe("projectsSettingUseKeys: no project re-enables a recorder", () => {
     expect(projectsSettingUseKeys(cfg(`makeProjects()`), keys)).toHaveLength(1);
     expect(projectsSettingUseKeys(cfg(`[base]`), keys)).toHaveLength(1);
     expect(projectsSettingUseKeys(cfg(`[{ ...base }]`), keys)).toHaveLength(1);
+  });
+});
+
+describe("configArgumentFindings: the canary's --config is pinned (PR #10 VERIFY, S6)", () => {
+  const script = (args) => parse(`const args = [${args}];\nspawnSync("npx", args);`);
+  const want = "playwright.demos.config.ts";
+
+  it("accepts exactly one --config followed by the expected literal (inverse control)", () => {
+    expect(configArgumentFindings(script(`"playwright", "test", "--config", "${want}", "--grep", "RED:"`), want)).toEqual([]);
+  });
+
+  it("refuses a different configuration (the verifier's S6)", () => {
+    expect(configArgumentFindings(script(`"--config", "playwright.canary.config.ts"`), want).join(" ")).toMatch(
+      /second configuration|selects/,
+    );
+  });
+
+  it("refuses a non-literal value, a -c, a --config=, and a second selector", () => {
+    expect(configArgumentFindings(script(`"--config", cfg`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"-c", "${want}"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"--config=${want}"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script(`"--config", "${want}", "--config", "${want}"`), want)).toHaveLength(1);
+  });
+
+  it("refuses a missing selector, and a template literal that builds one", () => {
+    expect(configArgumentFindings(script(`"playwright", "test"`), want)).toHaveLength(1);
+    expect(configArgumentFindings(script("`--config=${name}`"), want).length).toBeGreaterThan(0);
   });
 });

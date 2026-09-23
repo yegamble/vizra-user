@@ -616,3 +616,23 @@ than something a reader has to discover.
   `e2e/harness/test.ts`**, a byte-pinned file, and `check-source-hygiene.mjs` now
   also refuses a ledger that is missing a line `demonstrate.sh` records — an
   emptied or trimmed ledger passed before (R2-FINDING D).
+
+## PR #10 — Lane A records no pixels (fix round 1, 2026-09-23)
+
+- **The transcripts are regenerated** by `npm run e2e:demos` at this fix round.
+  Lane A's recorders are off, so the regenerated transcripts carry no
+  `screenshot (image/png)` or `video (video/webm)` attachment.
+- **Three historical logs the script does not rewrite** each carry a first line
+  reading "HISTORICAL, pre-#10": `round6-lane-local.txt`, `round7-lane-local.txt`
+  and `d12-requestfailed-listener-neutered-GREEN.txt`. Their pixel attachments
+  describe the configuration before PR #10, not this one.
+- **`d23*` are new.** They demonstrate the runtime no-pixels check
+  (`e2e/harness/recorders.ts`):
+  - the verifier's E6 line, planted in a spec, fails by name and leaves no PNG,
+    no WebM and no screencast frame (d23a);
+  - with the check switched off by a controlled mutation, the same spec passes
+    and the pixels come back (d23b);
+  - restored, it fails by name again (d23c).
+- **`mutation-digests.txt` is regenerated in the same commit.** `e2e/harness/test.ts`
+  is hashed there, and this fix round changes it. `D23b recorders.ts` lines are
+  new.

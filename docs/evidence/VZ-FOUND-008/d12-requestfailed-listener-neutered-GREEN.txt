@@ -1,3 +1,5 @@
+HISTORICAL, pre-#10: recorded before vizra-user PR #10 turned Lane A's screenshot, video and trace screencast recorders off. The screenshot (image/png) and video (video/webm) attachments below are not produced by the current configuration. scripts/e2e/demonstrate.sh does not rewrite this file.
+
 $ env E2E_BASE_URL=http://127.0.0.1:3211 node scripts/ci/harness-canary.mjs
 
 

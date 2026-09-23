@@ -1,0 +1,5 @@
+$ pixel_count <repo>/test-results
+
+pixel files: png=0 webm=0 screencast-frames=0
+
+[exit 0]

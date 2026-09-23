@@ -1,4 +1,4 @@
-$ env E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test --grep __no_test_matches_this__
+$ env E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test --grep __no_test_matches_this__
 
 Error: No tests found
 

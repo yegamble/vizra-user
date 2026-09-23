@@ -1,4 +1,4 @@
-$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
+$ env E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3391 npx playwright test <repo>/e2e/specs/__guard.spec.ts --project=desktop-chromium-1440 --workers=1
 
 
 Running 1 test using 1 worker
@@ -10,16 +10,16 @@ Running 1 test using 1 worker
 
     Error: vizra harness: the worker-scoped guard `vizraWorkerGuard` was replaced. That fixture is where the browser-error listeners and the creation guard are installed, for the whole worker — which is what covers a page opened in `beforeAll`, before any per-test fixture exists. Replacing it would keep the runtime stamp and lose the guard, so this test refuses to stamp itself and fails instead. See e2e/harness/worker-guard.ts.
 
-       at ../harness/test.ts:230
+       at ../harness/test.ts:247
 
-      228 |       // stamp and both floor checks refuse the run.
-      229 |       if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
-    > 230 |         throw new Error(REPLACED_WORKER_GUARD);
+      245 |       // stamp and both floor checks refuse the run.
+      246 |       if (!isGenuineWorkerHarness(vizraWorkerGuard)) {
+    > 247 |         throw new Error(REPLACED_WORKER_GUARD);
           |               ^
-      231 |       }
-      232 |       const worker = vizraWorkerGuard;
-      233 |       const guard = worker.guard;
-        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:230:15)
+      248 |       }
+      249 |       const worker = vizraWorkerGuard;
+      250 |       const guard = worker.guard;
+        at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:247:15)
 
     Error Context: test-results/__guard-keep-the-stamp-lose-the-listeners-desktop-chromium-1440/error-context.md
 
