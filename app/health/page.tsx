@@ -12,9 +12,9 @@ export const metadata = {
 export default function HealthPage() {
   const payload = healthPayload();
   return (
-    <main>
-      <h1>Health</h1>
-      <dl>
+    <div className="max-w-180">
+      <h1 className="text-display">Health</h1>
+      <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 [&_dd]:font-mono [&_dd]:text-label [&_dt]:text-ink-3">
         <dt>status</dt>
         <dd data-testid="health-status">{payload.status}</dd>
         <dt>service</dt>
@@ -22,11 +22,11 @@ export default function HealthPage() {
         <dt>scope</dt>
         <dd data-testid="health-scope">{payload.scope}</dd>
       </dl>
-      <p>
+      <p className="mt-6 text-ink-2">
         Liveness only: this process is running and rendering. It says nothing
         about vizra-core, PostgreSQL, the cache or storage — ask core&rsquo;s{" "}
-        <code>/readyz</code> for those.
+        <code className="font-mono text-label">/readyz</code> for those.
       </p>
-    </main>
+    </div>
   );
 }

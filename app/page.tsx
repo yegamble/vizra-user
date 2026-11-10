@@ -1,18 +1,27 @@
+import Link from "next/link";
+
 /**
  * Placeholder root route.
  *
- * This is the M0 skeleton: no app shell, no design tokens, no product surface.
- * The first real page (Search) lands in a later PR and replaces this. It shows
+ * The app shell and the design tokens exist now; a product surface still does
+ * not. The first real page lands in a later PR and replaces this. It shows
  * nothing that could be mistaken for a working feature, and it invents no data.
  */
 export default function Home() {
   return (
-    <main>
-      <h1>Vizra</h1>
-      <p>
+    <div className="max-w-180">
+      <h1 className="text-display">Vizra</h1>
+      <p className="mt-3 text-ink-2">
         Foundation skeleton. No product surface is implemented yet; see{" "}
-        <a href="/health">/health</a>.
+        <Link
+          href="/health"
+          prefetch={false}
+          className="rounded-sm text-accent underline underline-offset-2 hover:text-accent-hover"
+        >
+          /health
+        </Link>
+        .
       </p>
-    </main>
+    </div>
   );
 }

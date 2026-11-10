@@ -1,5 +1,153 @@
-/* Tailwind CSS v4 entry point. Deliberately bare: the design tokens (colour,
- * type scale, spacing, radii, motion) arrive in the tokens PR, which adds a
- * `@theme` block here and nothing else. Do not add ad-hoc colours or fonts
- * before then — see docs/DESIGN_BRIEF.md in the meta repo. */
+/* Tailwind CSS v4 entry point.
+ *
+ * The values live in design/tokens.css as `--vz-*` custom properties. This
+ * file only (1) maps them into Tailwind's theme, so a utility such as
+ * `bg-bg-elevated`, `text-ink-2`, `rounded-md`, `shadow-2` or `text-title-1`
+ * resolves to a token, and (2) sets the three base rules the design requires
+ * of every page: the page surface, the focus ring, and reduced motion.
+ *
+ * Tailwind's stock palette, radii, shadows and type scale are REMOVED
+ * (`--color-*: initial` and friends): `bg-red-500` or `rounded-2xl` generate
+ * nothing, so an unapproved colour cannot be reached by a class name. Do not
+ * add ad-hoc colours or fonts here — see docs/DESIGN_BRIEF.md in the meta repo.
+ */
 @import "tailwindcss";
+@import "../design/tokens.css";
+
+@theme inline {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+
+  /* Semantic colour roles. */
+  --color-bg: var(--vz-bg);
+  --color-bg-elevated: var(--vz-bg-elevated);
+  --color-bg-tint: var(--vz-bg-tint);
+  --color-bg-frost: var(--vz-bg-frost);
+  --color-ink: var(--vz-ink);
+  --color-ink-2: var(--vz-ink-2);
+  --color-ink-3: var(--vz-ink-3);
+  --color-line: var(--vz-line);
+  --color-line-2: var(--vz-line-2);
+  --color-accent: var(--vz-accent);
+  --color-accent-hover: var(--vz-accent-hover);
+  --color-accent-pressed: var(--vz-accent-pressed);
+  --color-accent-soft: var(--vz-accent-soft);
+  --color-accent-ink: var(--vz-accent-ink);
+  --color-on-accent: var(--vz-on-accent);
+  --color-danger: var(--vz-danger);
+  --color-danger-hover: var(--vz-danger-hover);
+  --color-danger-pressed: var(--vz-danger-pressed);
+  --color-danger-soft: var(--vz-danger-soft);
+  --color-danger-ink: var(--vz-danger-ink);
+  --color-on-danger: var(--vz-on-danger);
+  --color-success: var(--vz-success);
+  --color-success-soft: var(--vz-success-soft);
+  --color-success-ink: var(--vz-success-ink);
+  --color-on-success: var(--vz-on-success);
+  --color-warn: var(--vz-warn);
+  --color-warn-soft: var(--vz-warn-soft);
+  --color-warn-ink: var(--vz-warn-ink);
+  --color-on-warn: var(--vz-on-warn);
+  --color-focus-ring: var(--vz-focus-ring);
+  --color-scrim: var(--vz-scrim);
+  --color-on-media-scrim: var(--vz-on-media-scrim);
+  --color-on-media: var(--vz-on-media);
+
+  /* Spacing. Tailwind's numeric scale is a multiple of `--spacing`, and the
+   * design's grid is 4px, so `p-4` is `space/4` (16px) by construction. The
+   * named sizes become `h-control`, `size-touch-min`, `size-icon`, … */
+  --spacing: var(--vz-space-1);
+  --spacing-control-sm: var(--vz-size-control-sm);
+  --spacing-control: var(--vz-size-control);
+  --spacing-control-lg: var(--vz-size-control-lg);
+  --spacing-touch-min: var(--vz-size-touch-min);
+  --spacing-icon-sm: var(--vz-size-icon-sm);
+  --spacing-icon: var(--vz-size-icon);
+  --spacing-icon-lg: var(--vz-size-icon-lg);
+
+  --radius-sm: var(--vz-radius-sm);
+  --radius-md: var(--vz-radius-md);
+  --radius-lg: var(--vz-radius-lg);
+  --radius-xl: var(--vz-radius-xl);
+  --radius-full: var(--vz-radius-full);
+
+  --shadow-1: var(--vz-elevation-1);
+  --shadow-2: var(--vz-elevation-2);
+  --shadow-3: var(--vz-elevation-3);
+
+  --font-sans: var(--vz-font-sans);
+  --font-mono: var(--vz-font-mono);
+
+  /* The type ramp: `text-body`, `text-title-1`, … each carry their size,
+   * line-height, tracking and weight together, as the Figma text styles do. */
+  --text-display: var(--vz-type-display-size);
+  --text-display--line-height: var(--vz-type-display-line-height);
+  --text-display--letter-spacing: var(--vz-type-display-tracking);
+  --text-display--font-weight: 600;
+  --text-title-1: var(--vz-type-title-1-size);
+  --text-title-1--line-height: var(--vz-type-title-1-line-height);
+  --text-title-1--letter-spacing: var(--vz-type-title-1-tracking);
+  --text-title-1--font-weight: 600;
+  --text-title-2: var(--vz-type-title-2-size);
+  --text-title-2--line-height: var(--vz-type-title-2-line-height);
+  --text-title-2--letter-spacing: var(--vz-type-title-2-tracking);
+  --text-title-2--font-weight: 600;
+  --text-title-3: var(--vz-type-title-3-size);
+  --text-title-3--line-height: var(--vz-type-title-3-line-height);
+  --text-title-3--letter-spacing: var(--vz-type-title-3-tracking);
+  --text-title-3--font-weight: 600;
+  --text-body: var(--vz-type-body-size);
+  --text-body--line-height: var(--vz-type-body-line-height);
+  --text-body--letter-spacing: var(--vz-type-body-tracking);
+  --text-body--font-weight: 400;
+  --text-body-strong: var(--vz-type-body-strong-size);
+  --text-body-strong--line-height: var(--vz-type-body-strong-line-height);
+  --text-body-strong--letter-spacing: var(--vz-type-body-strong-tracking);
+  --text-body-strong--font-weight: 600;
+  --text-label: var(--vz-type-label-size);
+  --text-label--line-height: var(--vz-type-label-line-height);
+  --text-label--letter-spacing: var(--vz-type-label-tracking);
+  --text-label--font-weight: 500;
+  --text-caption: var(--vz-type-caption-size);
+  --text-caption--line-height: var(--vz-type-caption-line-height);
+  --text-caption--letter-spacing: var(--vz-type-caption-tracking);
+  --text-caption--font-weight: 400;
+  --text-overline: var(--vz-type-overline-size);
+  --text-overline--line-height: var(--vz-type-overline-line-height);
+  --text-overline--letter-spacing: var(--vz-type-overline-tracking);
+  --text-overline--font-weight: 600;
+}
+
+@layer base {
+  body {
+    background-color: var(--vz-bg);
+    color: var(--vz-ink);
+    font-family: var(--vz-font-sans);
+    font-size: var(--vz-type-body-size);
+    line-height: var(--vz-type-body-line-height);
+    letter-spacing: var(--vz-type-body-tracking);
+  }
+
+  /* ONE focus rule for every interactive element. The 2px offset is
+   * load-bearing: the ring is measured against the page (6.36:1 light,
+   * 7.70:1 dark), not against the control it surrounds. Never remove it with
+   * `outline: none`; a control on a photograph swaps to the dual ring
+   * (`0 0 0 2px on-media-scrim, 0 0 0 4px on-media`). */
+  :focus-visible {
+    outline: var(--vz-stroke-focus) solid var(--vz-focus-ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
