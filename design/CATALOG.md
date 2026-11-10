@@ -47,7 +47,7 @@ Themes: light on `:root`; dark redefines the 36 colour roles for
 
 ## Icons — `components/icons/registry.ts`
 
-One family: `lucide-react` pinned exactly at 1.46.0 (ISC). 42 semantic names,
+One family: `lucide-react` pinned exactly at 1.46.0 (ISC). 40 semantic names,
 each a static named import of the package's canonical export, re-checked
 against the installed package by `components/icons/registry.test.ts`;
 `components/icons/icon.typecheck.tsx` makes an unknown name a compile error.
