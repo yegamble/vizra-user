@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 /**
  * The top bar: Figma `TopNav / M1` (`30:770`) at desktop widths and
  * `AppBar / M1` (`30:814`) at phone widths — one responsive element, because
@@ -25,13 +23,17 @@ export function TopBar() {
         {/* `brand/Wordmark (placeholder)`: the string only, 20/24, -2%,
             semibold. It is not a logo; the brand mark is a separately
             reviewed asset that does not exist yet. */}
-        <Link
+        {/* A plain anchor for now: a `next/link` transition intermittently
+            cancels its own RSC request mid-stream (net::ERR_ABORTED), which
+            the browser lane counts as a failed request. Revisit when the
+            first route that needs client-side transitions lands. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above */}
+        <a
           href="/"
-          prefetch={false}
           className="inline-flex min-h-touch-min items-center rounded-sm text-title-2 leading-6 tracking-[-0.02em] text-ink"
         >
           Vizra
-        </Link>
+        </a>
       </div>
     </header>
   );

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 /**
  * Placeholder root route.
  *
@@ -13,13 +11,21 @@ export default function Home() {
       <h1 className="text-display">Vizra</h1>
       <p className="mt-3 text-ink-2">
         Foundation skeleton. No product surface is implemented yet; see{" "}
-        <Link
+        {/*
+          A plain anchor, on purpose: the health page must be fetched from the
+          server as a document every time (it is `force-dynamic` liveness), and
+          a client-side transition would answer from the router instead. A
+          `next/link` here also made the router cancel its own RSC request
+          mid-stream, which the browser lane rightly reports as a failed
+          request.
+        */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above */}
+        <a
           href="/health"
-          prefetch={false}
           className="rounded-sm text-accent underline underline-offset-2 hover:text-accent-hover"
         >
           /health
-        </Link>
+        </a>
         .
       </p>
     </div>
