@@ -116,6 +116,18 @@ export default defineConfig({
     ["./e2e/harness/stamp-reporter.ts"],
   ],
   outputDir: "test-results",
+  // NO GIT METADATA IN THE REPORT. With this unset, Playwright 1.63.0 writes
+  // `metadata.gitCommit` (author and committer names and emails) and, on a pull
+  // request, `metadata.gitDiff` (the PR's whole diff, up to 100,000 characters)
+  // into `results.json` whenever it runs under CI (`playwright/lib/runner/index.js`,
+  // the git-commit-info plugin). `results.json` is the one file the red-lane
+  // upload publishes, and a lockfile diff alone carries base64 runs longer than
+  // the upload gate's limit (security seat, PR #10 plan review, S-2). The gate
+  // refuses either key; this keeps a normal red run uploadable. `metadata.ci`
+  // (the PR title and links) is not gated by this option and stays: it is text
+  // the PR author wrote. `scripts/ci/check-e2e-lane.mjs` reads this literal as an
+  // early warning.
+  captureGitInfo: { commit: false, diff: false },
 
   use: {
     baseURL,

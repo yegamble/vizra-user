@@ -18,6 +18,10 @@ next-env.d.ts
 # artifacts (uploaded by .github/workflows/e2e.yml on failure) and a committed
 # report would be a stale claim about a run nobody can reproduce.
 /playwright-report
+# The upload gate's staging directory (scripts/ci/redact-artifacts.sh creates it
+# and refuses one that already exists). Never committed: the lane guard refuses a
+# committed one, because every red run would then upload nothing.
+/e2e-artifacts
 # Written and deleted by scripts/e2e/demonstrate.sh (the D4b controlled
 # mutation). It must never be committed: it is a configuration with a required
 # project removed.

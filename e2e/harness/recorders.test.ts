@@ -130,3 +130,74 @@ describe("recorderProblems refuses values that disguise themselves (PR #10 re-ve
     }
   });
 });
+
+describe("recorderProblems: an unknown key standing in for a required one (sentinel F-5)", () => {
+  it("a misspelt key whose value is undefined, with a required key missing, is refused", () => {
+    // Same key COUNT as the literal, so only the unknown-key clause can refuse it. With
+    // `screenshots` absent Playwright falls back to its default and records screencast frames.
+    expect(
+      recorderProblems({ ...shipped, trace: { mode: "retain-on-failure", sources: false, screenshotz: undefined } }),
+    ).toEqual(["trace"]);
+  });
+});
+
+describe("recorderProblems: the EFFECTIVE context options (war-room rule R7, sentinel F-2)", () => {
+  const harPath = "test-results/zz/net.har";
+
+  it("accepts Playwright's effective options for Lane A (inverse control)", () => {
+    const effective = { viewport: { width: 1440, height: 900 }, locale: "en-US", baseURL: "http://127.0.0.1:3000" };
+    expect(recorderProblems({ ...shipped, contextOptions: effective })).toEqual([]);
+    expect(recorderProblems({ ...shipped, contextOptions: {} })).toEqual([]);
+  });
+
+  it("the worker fixture passes no context options, and that is not a refusal", () => {
+    expect(recorderProblems(shipped)).toEqual([]);
+  });
+
+  it("refuses recordHar and recordVideo, whatever their value", () => {
+    expect(recorderProblems({ ...shipped, contextOptions: { recordHar: { path: harPath, content: "embed" } } })).toEqual([
+      "contextOptions",
+    ]);
+    expect(recorderProblems({ ...shipped, contextOptions: { recordVideo: { dir: "test-results/zz" } } })).toEqual([
+      "contextOptions",
+    ]);
+    expect(recorderProblems({ ...shipped, contextOptions: { recordHar: undefined } })).toEqual(["contextOptions"]);
+  });
+
+  it("refuses a getter, a non-enumerable key, a Proxy, a class instance and a null prototype", () => {
+    let reads = 0;
+    const getter = {
+      get recordHar() {
+        reads += 1;
+        return undefined;
+      },
+    };
+    expect(recorderProblems({ ...shipped, contextOptions: getter })).toEqual(["contextOptions"]);
+    expect(reads).toBe(0);
+    const hidden = {};
+    Object.defineProperty(hidden, "recordVideo", { value: { dir: "x" }, enumerable: false });
+    expect(recorderProblems({ ...shipped, contextOptions: hidden })).toEqual(["contextOptions"]);
+    expect(recorderProblems({ ...shipped, contextOptions: new Proxy({}, {}) })).toEqual(["contextOptions"]);
+    class Options {}
+    expect(recorderProblems({ ...shipped, contextOptions: new Options() })).toEqual(["contextOptions"]);
+    expect(recorderProblems({ ...shipped, contextOptions: Object.create(null) })).toEqual(["contextOptions"]);
+    expect(recorderProblems({ ...shipped, contextOptions: "recordHar" })).toEqual(["contextOptions"]);
+  });
+
+  it("refuses when Object.prototype carries recordHar, which a merged options object would inherit", () => {
+    const proto = Object.prototype as Record<string, unknown>;
+    try {
+      proto.recordHar = { path: harPath };
+      expect(recorderProblems({ ...shipped, contextOptions: {} })).toEqual(["contextOptions"]);
+    } finally {
+      delete proto.recordHar;
+    }
+    expect(recorderProblems({ ...shipped, contextOptions: {} })).toEqual([]);
+  });
+
+  it("names contextOptions and what it must be, and echoes nothing the spec supplied", () => {
+    const message = recorderMessage(["contextOptions"], "for this test");
+    expect(message).toContain("`contextOptions` must be a plain object with no `recordHar` and no `recordVideo`");
+    expect(message).not.toContain(harPath);
+  });
+});

@@ -107,25 +107,28 @@ steps:
       E2E_BASE_URL: http://127.0.0.1:3000
     run: node scripts/ci/harness-canary.mjs
 
-  # Its output is uploaded and it is NOT under the directories the redactor
-  # reads, so the step that writes it is pinned and no other step may name it.
+  # The browser revision, printed to the job log. It used to `tee` into
+  # `playwright-browsers.txt`, which was uploaded and never read by the gate, so
+  # a spec could replace it with PNG bytes or a link (PR #10 VERIFY FINDING 12,
+  # sentinel F-1). The file is gone; the pin keeps the text exact.
   record_browsers:
     name: Record the browser revision
     run: |
       set -euo pipefail
       npx playwright --version
-      npx playwright install --dry-run chromium | tee playwright-browsers.txt
+      npx playwright install --dry-run chromium
 
-  # URL redaction AND the page-snapshot upload gate. Exactly these bytes: both
-  # directories, no redirection, no `|| true`, nothing after it.
+  # The upload gate: it stages exactly `playwright-report/results.json` into
+  # `e2e-artifacts/`, checked and URL-redacted. Exactly these bytes: no
+  # argument (it refuses one), no redirection, no `|| true`, nothing after it.
   redact:
-    name: Redact URL query strings in the artifacts
+    name: Stage the one allowlisted artifact file
     id: redact
     if: failure()
-    run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
+    run: bash scripts/ci/redact-artifacts.sh
 
-  # The only upload. Gated on the redaction having SUCCEEDED, literal paths
-  # from the allowlist, retention at the ceiling, a missing path loud.
+  # The only upload. Gated on the gate having SUCCEEDED, exactly the staging
+  # directory, retention at the ceiling, a missing path loud.
   upload:
     name: Upload Playwright artifacts
     if: failure() && steps.redact.outcome == 'success'
@@ -133,8 +136,6 @@ steps:
     with:
       name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
       path: |
-        test-results/
-        playwright-report/results.json
-        playwright-browsers.txt
+        e2e-artifacts/
       retention-days: 3
       if-no-files-found: error

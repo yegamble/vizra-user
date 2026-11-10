@@ -61,7 +61,8 @@
  * what AGENTS.md documents.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -140,22 +141,25 @@ const FLOOR_COMMAND = "node scripts/ci/check-coverage-floor-ran.mjs";
 const CANARY_COMMAND = "node scripts/ci/harness-canary.mjs";
 const FIXTURE_COMMAND = "bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:e2e";
 /**
- * The one pinned step whose OUTPUT is uploaded from outside the directories the
- * redactor reads (`playwright-browsers.txt`). Asserted exactly like the other
- * literal commands — without it, editing the pin and the workflow together to
- * append anything to that file passed (PR #8 closing round, FINDING V-C).
+ * The browser revision, printed to the job log. It used to `tee` into
+ * `playwright-browsers.txt`, which was uploaded and never read by the gate: a spec
+ * could overwrite it with PNG bytes or a link and the gate said OK (PR #10 VERIFY
+ * FINDING 12, sentinel F-1). The file is gone; the text is in the log. Asserted
+ * exactly like the other literal commands (PR #8 closing round, FINDING V-C).
  */
 const RECORD_BROWSERS_COMMAND = [
   "set -euo pipefail",
   "npx playwright --version",
-  "npx playwright install --dry-run chromium | tee playwright-browsers.txt",
+  "npx playwright install --dry-run chromium",
 ].join("\n");
 /**
- * The redaction AND the page-snapshot upload gate. Both directories: `results.json`
- * is uploaded and lives in `playwright-report/`. The script itself refuses a
- * directory that does not exist (exit 3), so no argument can empty the gate.
+ * THE UPLOAD GATE. It takes no argument: it stages exactly
+ * `playwright-report/results.json` into `e2e-artifacts/`, which it creates, and
+ * refuses any argument, so none can widen or empty what it stages.
  */
-const REDACT_COMMAND = "bash scripts/ci/redact-artifacts.sh test-results playwright-report";
+const REDACT_COMMAND = "bash scripts/ci/redact-artifacts.sh";
+/** The one directory the upload may publish: the gate's staging directory. */
+const STAGING_PATH = "e2e-artifacts/";
 /** The one uploader, at the one SHA it is pinned to. */
 const UPLOAD_ACTION = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02";
 const UPLOAD_GATE = "failure() && steps.redact.outcome == 'success'";
@@ -190,6 +194,7 @@ const MENTIONS = [
   [/check-coverage-floor-ran/, "`check-coverage-floor-ran.mjs`", ["floor"]],
   [/harness-canary/, "`harness-canary.mjs`", ["canary"]],
   [/playwright-browsers\.txt/, "`playwright-browsers.txt`", ["record_browsers", "upload"]],
+  [/e2e-artifacts/, "the staging directory `e2e-artifacts`", ["upload"]],
   [/redact-artifacts/, "`redact-artifacts.sh`", ["redact"]],
   [/test-results|playwright-report/, "an artifact directory", ["redact", "upload"]],
   [/steps\.redact\b/, "`steps.redact`", ["upload"]],
@@ -439,11 +444,13 @@ function describeDifferences(role, diffs) {
       .split("\n")
       .map((entry) => entry.trim())
       .filter((entry) => entry !== "");
-    if (!entries.includes("test-results/")) add(`${where("upload")} no longer includes \`test-results/\`.`);
-    for (const entry of entries) {
-      if (!["test-results/", "playwright-report/results.json", "playwright-browsers.txt"].includes(entry)) {
-        add(`${where("upload")} uploads \`${entry}\`, which is not on the path allowlist.`);
-      }
+    if (entries.length !== 1 || entries[0] !== STAGING_PATH) {
+      add(
+        `${where("upload")} uploads ${JSON.stringify(entries)}; it must upload exactly \`${STAGING_PATH}\`, ` +
+          "the directory the gate stages the one allowlisted file into. Anything else — `test-results/`, " +
+          "`playwright-report/results.json` read in place, `playwright-browsers.txt` — is a path the gate " +
+          "did not stage and whose bytes it did not check.",
+      );
     }
   }
 }
@@ -1071,6 +1078,49 @@ try {
 } catch {
   add("playwright.config.ts could not be parsed for the recorder settings.");
 }
+// NO GIT METADATA IN results.json (security seat, PR #10 plan review, S-2). Under
+// CI, Playwright 1.63.0 writes `metadata.gitCommit` and, on a pull request,
+// `metadata.gitDiff` (the whole diff) into the one file the red-lane upload
+// publishes, unless the configuration says otherwise. The upload gate refuses
+// either key; this literal keeps a normal red run uploadable. EARLY WARNING only:
+// it reads the source literal, like the recorder values above.
+const GIT_INFO_OFF = { commit: false, diff: false };
+try {
+  const tree = parseTypeScript(mainConfigPath, readFileSync(mainConfigPath, "utf8"));
+  const actual = defaultExportLiteralAt(tree, ["captureGitInfo"]);
+  if (canonical(actual) !== canonical(GIT_INFO_OFF)) {
+    add(
+      `playwright.config.ts's \`captureGitInfo\` must be exactly ${JSON.stringify(GIT_INFO_OFF)} ` +
+        `(read: ${actual === UNREADABLE ? "not a literal this guard can read" : JSON.stringify(actual)}). ` +
+        "Otherwise, under CI, results.json — the one file a red lane publishes — carries the commit " +
+        "author's name and email and the pull request's whole diff, and the upload gate refuses it.",
+    );
+  }
+} catch {
+  add("playwright.config.ts could not be parsed for captureGitInfo.");
+}
+// THE STAGING DIRECTORY IS NEVER COMMITTED (security seat S-9). The gate refuses
+// to run over an `e2e-artifacts/` that already exists (exit 6), so a committed one
+// would make every red run upload nothing, silently. Tracked files are read from
+// git when the tree is a repository, and the directory's presence otherwise.
+{
+  let tracked = null;
+  try {
+    tracked = execFileSync("git", ["-C", repoRoot, "ls-files", "-z", "--", "e2e-artifacts"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    tracked = null;
+  }
+  const present = tracked === null ? existsSync(path.join(repoRoot, "e2e-artifacts")) : tracked !== "";
+  if (present) {
+    add(
+      "`e2e-artifacts/` is committed to this tree. It is the upload gate's staging directory, which the " +
+        "gate must create itself; it refuses one that already exists, so every red run would upload nothing.",
+    );
+  }
+}
 // THE CANARY'S CONFIGURATION IS PINNED (PR #10 VERIFY, FINDING 3 / S6). The
 // canary's demos populate `test-results/` when the red-lane upload fires, and
 // which configuration they run under was decided by an unpinned argument in
@@ -1155,18 +1205,19 @@ try {
 // queries" measurement this repository has recorded was made with a search blind
 // to this file.
 //
-// Re-encoding it would be a fifth URL-shape prediction after four rounds. It is
-// dropped from the upload instead. Nothing diagnostic is lost: `test-results/`
-// still holds `trace.zip` and `error-context.md` (no screenshot or video since the
-// no-pixels change above), and
-// `npx playwright show-trace test-results/<test>/trace.zip` opens the trace
-// without the HTML report at all. `playwright-report/data/` was a second,
-// byte-identical copy of the same traces, so dropping it removes a duplicate
-// rather than a capability.
+// Re-encoding it would be a fifth URL-shape prediction after four rounds. It was
+// dropped from the upload instead.
+//
+// AND NOW EVERYTHING BUT ONE FILE IS (PR #10 allowlist round, chair ruling on
+// war-room rule R3). `test-results/` and `playwright-browsers.txt` used to be
+// uploaded too, behind a gate that DETECTED images by name, signature, `data:`
+// prefix and archive magic, and every verification round found another shape it
+// missed (PR #10 VERIFY FINDINGS 9-12, sentinel F-1/F-2). The upload now publishes
+// exactly the gate's staging directory, into which `redact-artifacts.sh` copies
+// only `playwright-report/results.json`, after checking its bytes. Traces, the
+// HTML report and pixels belong to the private authenticated Lane B.
 const ALLOWED_UPLOAD_PATHS = new Set([
-  "test-results/",
-  "playwright-report/results.json",
-  "playwright-browsers.txt",
+  STAGING_PATH,
   // NOTHING IS ALLOWLISTED BEFORE IT EXISTS. An earlier draft carried
   // `e2e-failure-summary/` here for the authenticated lane, which is a different
   // pull request: an allowlist entry for a path no step produces is a hole held
@@ -1364,8 +1415,8 @@ for (const [jobId, jobNode] of allJobs) {
       add(
         `${where} sets \`retention-days: ${String(retention)}\`, above the ceiling of ` +
           `${MAX_RETENTION_DAYS}. An artifact nobody downloaded in three days is an artifact ` +
-          "nobody needed, and it stays readable by every collaborator on this private " +
-          "repository until it expires.",
+          "nobody needed, and this repository is PUBLIC: it stays readable by anyone until it " +
+          "expires.",
       );
     }
 
@@ -1415,6 +1466,11 @@ for (const [jobId, jobNode] of allJobs) {
 //     cheap, and the one place where checking a single file would be the wrong
 //     shape.
 const SECRET_DIR = ".vizra-e2e";
+/** Every `with.path` any workflow in this repository may carry, by file, exactly. */
+const REPO_UPLOAD_ALLOWLIST = new Map([
+  ["e2e.yml", [[STAGING_PATH]]],
+  ["supply-chain.yml", [["npm-audit.json"], ["trivy-image.json"]]],
+]);
 try {
   const workflowDir = path.join(repoRoot, ".github", "workflows");
   const files = readdirSync(workflowDir).filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"));
@@ -1436,6 +1492,31 @@ try {
     for (const [jobId, jobNode] of Object.entries(other?.jobs ?? {})) {
       for (const step of Array.isArray(jobNode?.steps) ? jobNode.steps : []) {
         const candidate = step?.with?.path;
+        // (g) THE REPOSITORY-WIDE UPLOAD ALLOWLIST (sentinel Q-1). Every step in
+        //     EVERY workflow that carries a `with.path`, or whose `uses:` looks like
+        //     an uploader, must be one of the (file, path) pairs below, exactly.
+        //     A second workflow that runs Playwright and uploads `test-results/`
+        //     with no gate — or an `actions/cache` over it — is refused by name.
+        //     What no parser closes is a `run:` step that publishes (`gh`, `curl`)
+        //     or a third-party action whose input is not `path`: the `run:` class.
+        const stepUses = typeof step?.uses === "string" ? step.uses.trim() : "";
+        if (candidate !== undefined || (stepUses !== "" && UPLOADER_MENTION.test(stepUses))) {
+          const allowed = REPO_UPLOAD_ALLOWLIST.get(name) ?? [];
+          const paths = String(candidate ?? "")
+            .split("\n")
+            .map((entry) => entry.trim())
+            .filter((entry) => entry !== "");
+          const key = JSON.stringify(paths);
+          if (!allowed.some((pair) => JSON.stringify(pair) === key)) {
+            add(
+              `.github/workflows/${name}, job \`${jobId}\`, step \`${step?.name ?? stepUses}\` publishes ` +
+                `${JSON.stringify(paths)}, which is not on the repository-wide upload allowlist ` +
+                `(${[...REPO_UPLOAD_ALLOWLIST].map(([file, pairs]) => `${file}: ${pairs.map((pair) => pair.join(" + ")).join(", ")}`).join("; ")}). ` +
+                "Lane A's output may leave the runner only through the gated staging directory; adding an " +
+                "upload anywhere is a reviewed change to REPO_UPLOAD_ALLOWLIST in scripts/ci/check-e2e-lane.mjs.",
+            );
+          }
+        }
         if (candidate !== undefined && String(candidate).includes(SECRET_DIR)) {
           add(
             `.github/workflows/${name}, job \`${jobId}\`, names \`${SECRET_DIR}\` in a \`path:\`. ` +
@@ -1774,6 +1855,6 @@ if (problems.length > 0) {
 
 console.log(
   `OK: ${workflowPath} still drives the built image, runs \`${LANE_COMMAND}\` unconditionally, ` +
-    "re-checks the coverage floor after it, runs the harness canary, and redacts artifacts " +
-    "before EVERY upload step publishes them.",
+    "re-checks the coverage floor after it, runs the harness canary, and uploads only what the pinned gate " +
+    "staged (e2e-artifacts/, one checked file).",
 );

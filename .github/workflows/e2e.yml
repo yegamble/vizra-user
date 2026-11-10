@@ -82,11 +82,14 @@ jobs:
       - name: Install the pinned Chromium
         run: npm run e2e:install -- --with-deps
 
+      # Printed to the JOB LOG, not to a file: `playwright-browsers.txt` used to be
+      # uploaded and was never read by the upload gate (PR #10 VERIFY FINDING 12,
+      # sentinel F-1).
       - name: Record the browser revision
         run: |
           set -euo pipefail
           npx playwright --version
-          npx playwright install --dry-run chromium | tee playwright-browsers.txt
+          npx playwright install --dry-run chromium
 
       # The image under test is the one the release builds. `docker-build.yml`
       # proves the Dockerfile builds; this lane proves the thing it produces
@@ -161,89 +164,71 @@ jobs:
         if: always()
         run: docker logs vizra-user-e2e 2>&1 | tail -200 || true
 
-      # PRIVACY, BEFORE ANYTHING LEAVES THE RUNNER. e2e/harness/redact.ts strips
-      # query strings from what the HARNESS prints; it cannot reach Playwright's
-      # own recordings. A verifier found a `?X-Amz-Signature=…` value verbatim
-      # inside trace.zip members `1-trace.network` and `1-trace.trace` while
-      # every harness line showed it redacted. From M1 those are real signed
-      # media URLs, and the meta AGENTS.md forbids publishing them. This step
-      # rewrites the query strings inside the archives too, so what uploads is
-      # still diagnosable (origin, path, headers, timings) and carries no
-      # credential.
+      # THE UPLOAD GATE: ONE ALLOWLISTED TEXT FILE, STAGED BY CONTENT.
       #
-      # THIS STEP IS PINNED BYTE-FOR-BYTE, like every step
-      # `scripts/ci/check-e2e-lane.mjs` relies on: see .github/e2e-pinned-steps.yml.
-      # The guard used to recognise it by the substring `redact-artifacts.sh`, so
-      # `… || true`, a mistyped directory or `echo redact-artifacts.sh` left the
-      # upload below gated on a step that had redacted and gated nothing
-      # (PR #8, R3-FINDING H). Edit the step and its pin together.
+      # The repository is PUBLIC (`gh repo view yegamble/vizra-user --json
+      # visibility` -> PUBLIC since 2026-09-23), so the artifact below is
+      # readable by anyone for its 3 days. This step copies the bytes of exactly
+      # one file, `playwright-report/results.json`, into a directory it creates,
+      # `e2e-artifacts/`, after redacting URL query strings and checking every
+      # rule in AGENTS.md § Artifact privacy ("What the gate refuses, exactly"):
+      # a regular file, 8 MiB at most, strict UTF-8, no control byte but TAB and
+      # LF, no base64/base64url/hex run longer than 89, JSON, no page or matcher
+      # snapshot, no git metadata. Any failure refuses the whole upload.
       #
-      # The upload below is gated on THIS step having succeeded, not merely on
-      # the job having failed. `failure()` is true when any earlier step failed,
-      # so with both steps on a bare `if: failure()` a redactor that exits
-      # non-zero — exit 2 on a missing perl/unzip/zip, exit 1 on a repack
-      # failure — satisfies its own condition and the unredacted tree is
-      # published for 14 days. Fail-open on the privacy control, in the one
-      # place it matters.
-      - name: Redact URL query strings in the artifacts
+      # It no longer DETECTS images in whatever Playwright wrote. That version
+      # was walked around every round - screencast frames, data URIs, links,
+      # nested and unrecognised archives, untyped data URIs, a HAR, and an
+      # uploaded file it never read (PR #10 VERIFY FINDINGS 9-12, sentinel
+      # F-1/F-2). Traces, `error-context.md` (which can carry a whole-page aria
+      # snapshot with typed values: security seat S-1), the HTML report, HARs,
+      # screenshots and videos are simply not staged, so they are not uploaded.
+      # They stay on the runner; traces and pixels belong to Lane B.
+      #
+      # THIS STEP IS PINNED BYTE-FOR-BYTE (.github/e2e-pinned-steps.yml). The
+      # guard used to recognise it by a substring, so `… || true` or an `echo`
+      # left the upload gated on a step that had checked nothing (PR #8,
+      # R3-FINDING H). Edit the step and its pin together.
+      #
+      # The upload is gated on THIS step having SUCCEEDED, not merely on the job
+      # having failed: `failure()` is true when any earlier step failed, so with a
+      # bare `if: failure()` a gate that exits non-zero would satisfy its own
+      # condition and the upload would still run.
+      #
+      # WHAT THIS DOES NOT COVER (AGENTS.md § Artifact privacy, R-A to R-D): the
+      # JOB LOG - the `list` reporter prints the same failure text and every
+      # stdout/stderr line verbatim, and no gate reads it; a process the lane
+      # left running can write into `e2e-artifacts/` after this step; and a pull
+      # request can edit this workflow.
+      - name: Stage the one allowlisted artifact file
         id: redact
         if: failure()
-        run: bash scripts/ci/redact-artifacts.sh test-results playwright-report
+        run: bash scripts/ci/redact-artifacts.sh
 
-      # Traces, screenshots and videos — the things that make a red lane
-      # diagnosable without reproducing it locally. Uploaded on failure;
-      # `retain-on-failure` means a green run has nothing to publish.
+      # `results.json` only - the failure messages, received values, titles,
+      # stdout/stderr and attachment paths of a red run. Uploaded on failure,
+      # and only if the gate above succeeded; if it did not, NOTHING is
+      # published, and the job log is what remains.
       #
-      # If the redaction did not succeed, NOTHING is published: a red lane with
-      # no artifact is a worse debugging experience and the correct one.
+      # `if-no-files-found: error`: when the gate succeeded there IS a staged
+      # file, so its absence is a defect in this workflow, not a quiet warning.
       #
-      # `if-no-files-found: error`, not `warn`: this step had never executed
-      # (both runs of this lane were green), so a wrong path would have been a
-      # warning in a log nobody reads, and the ledger's "retained traces for a
-      # deliberately failing spec" would have been unsatisfiable without anyone
-      # noticing. If the lane is red, there ARE artifacts; their absence is a
-      # defect in this workflow.
+      # THE PATH IS THE STAGING DIRECTORY AND NOTHING ELSE, pinned in
+      # .github/e2e-pinned-steps.yml and required by scripts/ci/check-e2e-lane.mjs,
+      # which also refuses any other upload of any path in any workflow of this
+      # repository but the supply-chain reports (sentinel Q-1).
+      # `playwright-report/index.html` in particular carries a base64-embedded
+      # ZIP of the whole report dataset that no redactor here can reach.
       #
-      # THE PATHS ARE AN ALLOWLIST, AND `playwright-report/` IS NOT ON IT.
-      # `playwright/lib/runner/index.js:3704-3712` appends to
-      # `playwright-report/index.html`:
-      #
-      #     <template id="playwrightReportBase64">data:application/zip;base64,…</template>
-      #
-      # which decodes (magic 504b0304) to a ZIP of the entire report dataset —
-      # error messages, step titles and subtitles, attachment bodies. The
-      # redactor runs perl over index.html as TEXT and cannot touch a base64
-      # payload; it unpacks `*.zip` FILES only. `sweep-artifacts.sh` greps raw
-      # bytes and cannot decode base64 either. Measured on a failing probe:
-      # three planted markers — a scheme-less signed URL, a typed password and
-      # an assertion's received value — live inside that template, invisible to
-      # a raw grep, and STILL LIVE after the redactor reported success. Every
-      # "zero live queries" measurement this repository has recorded was made
-      # with a search blind to this file.
-      #
-      # Nothing diagnostic is lost. `test-results/` still holds `trace.zip`,
-      # `test-failed-1.png`, `video.webm` and `error-context.md`, and
-      # `npx playwright show-trace test-results/<test>/trace.zip` opens the
-      # trace without the HTML report at all. `playwright-report/data/` was a
-      # second, byte-identical copy of those same traces, so this removes a
-      # duplicate rather than a capability.
-      #
-      # RETENTION IS 3 DAYS, AND WHO CAN READ THIS. `yegamble/vizra-user` is a
-      # PRIVATE repository, so artifacts and job logs are readable by its
-      # collaborators — everyone with access now, and anyone an owner adds
-      # later — not by the public. "Not public" is not "not published": an
-      # artifact is a durable copy of whatever the lane saw, held by GitHub,
-      # outside this repository's own access controls. A trace nobody
-      # downloaded in three days is a trace nobody needed.
+      # RETENTION IS 3 DAYS. A report nobody downloaded in three days is one
+      # nobody needed.
       - name: Upload Playwright artifacts
         if: failure() && steps.redact.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            test-results/
-            playwright-report/results.json
-            playwright-browsers.txt
+            e2e-artifacts/
           retention-days: 3
           if-no-files-found: error
 

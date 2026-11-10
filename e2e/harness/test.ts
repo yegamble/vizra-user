@@ -39,6 +39,8 @@
  * PR must not smuggle one in.
  */
 
+import { writeFile } from "node:fs/promises";
+
 import { test as base, expect } from "@playwright/test";
 
 import {
@@ -145,10 +147,10 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
       // on, and a check that serialised the value was fooled by `toJSON` and
       // getters; this accepts only plain values. It lives in this BRANDED
       // fixture, so replacing the fixture costs the stamp, but a spec that does
-      // so still records, and the run is red. The control that does not depend
-      // on how the pixels were produced is the upload gate
-      // (scripts/ci/redact-artifacts.sh refuses an image or video in the shapes
-      // it knows; AGENTS.md § Artifact privacy, "What the gate refuses, exactly").
+      // so still records, and the run is red. What keeps pixels out of the
+      // PUBLISHED artifact is the upload gate: scripts/ci/redact-artifacts.sh
+      // stages one file, playwright-report/results.json, and nothing a recorder
+      // writes is ever staged (AGENTS.md § Artifact privacy).
       const pixelOptions = recorderProblems({ screenshot, video, trace });
       if (pixelOptions.length > 0) {
         throw new Error(recorderMessage(pixelOptions, "in this worker"));
@@ -229,13 +231,36 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
   // already exists is guarded by the worker fixture, which ran first.
   vizraHarnessGuard: [
     async (
-      { browser, context, browserErrorPolicy, vizraWorkerGuard, screenshot, video, trace },
+      {
+        browser,
+        context,
+        browserErrorPolicy,
+        vizraWorkerGuard,
+        screenshot,
+        video,
+        trace,
+        // Playwright's EFFECTIVE per-test context options (`{ ...contextOptions,
+        // ...options }`), which it copies into every context the test creates.
+        // Not in the public fixture types, hence the cast; it is a boxed fixture
+        // of the pinned 1.63.0 (`playwright/lib/index.js:264`).
+        // @ts-expect-error -- a Playwright-internal fixture, read for the R7 check below.
+        _combinedContextOptions,
+      },
       runTest,
       testInfo,
     ) => {
       // The same no-pixels check, per test, before the body: the second of the
       // two fixtures the harness owns, so dropping one does not drop the check.
-      const pixelOptions = recorderProblems({ screenshot, video, trace });
+      // This one also screens the effective context options for `recordHar` and
+      // `recordVideo` (war-room rule R7). The default context already exists
+      // here (this fixture depends on it) and nothing has navigated it. It is an
+      // EARLY control: the published artifact is controlled by the upload gate.
+      const pixelOptions = recorderProblems({
+        screenshot,
+        video,
+        trace,
+        contextOptions: _combinedContextOptions as unknown,
+      });
       if (pixelOptions.length > 0) {
         throw new Error(recorderMessage(pixelOptions, "for this test"));
       }
@@ -324,8 +349,17 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
 
         // Attach everything observed, pass or fail: a passing run's record is
         // what makes "no errors" evidence rather than an absence of looking.
-        await testInfo.attach("browser-signals.json", {
-          body: JSON.stringify(
+        //
+        // Written to a FILE and attached by path, not inline as a `body`: the
+        // JSON reporter embeds a `body` in `results.json` as base64, and
+        // `results.json` is the one file the red-lane upload publishes, whose
+        // gate refuses any encoded run longer than 89 characters (PR #10
+        // allowlist round; security seat S-9: awaited, and a failed write fails
+        // the test, because it throws inside this `try`).
+        const signalsPath = testInfo.outputPath("browser-signals.json");
+        await writeFile(
+          signalsPath,
+          JSON.stringify(
             {
               contextsGuarded: guard.contextCount(),
               contextsUnguarded: strays.length,
@@ -344,6 +378,10 @@ export const test = base.extend<VizraFixtures, VizraWorkerFixtures>({
             null,
             2,
           ),
+          "utf8",
+        );
+        await testInfo.attach("browser-signals.json", {
+          path: signalsPath,
           contentType: "application/json",
         });
 
