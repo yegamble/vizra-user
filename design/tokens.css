@@ -1,0 +1,235 @@
+/*
+ * Vizra design tokens — THE token file (VZ-DESIGN-001).
+ *
+ * Mirrored from the accepted Figma library "Vizra — Design System"
+ * (file key JXgRItauynmT0g8vSJB3oR, design revision 2026-09-20), as recorded in
+ * the meta repository's docs/design/figma/README.md §2–§4 and §8. Node and
+ * collection references, and what was NOT mirrored, are in design/HANDOFF.md.
+ *
+ * Naming is Figma's own web code syntax: `color/ink-2` is `--vz-ink-2`,
+ * `space/4` is `--vz-space-4`, `type/body/size` is `--vz-type-body-size`.
+ *
+ * Rules this file keeps, each checked by design/tokens.test.ts:
+ *   - Semantic roles only. The `Primitives` ramp (`blue/500`, `neutral/25`, …)
+ *     is an implementation layer and is NOT emitted as custom properties; the
+ *     ramp name beside each value is a comment.
+ *   - Light is defined on `:root`. Dark redefines exactly the 36 `Color` roles
+ *     and nothing else, twice with identical bodies: for an explicit
+ *     `data-theme="dark"`, and for the system preference unless
+ *     `data-theme="light"` overrides it.
+ *   - No Apple font is named in either stack (docs/DESIGN_BRIEF.md).
+ *   - The Figma-only `Meter fit (fill width)` collection is not here and must
+ *     never be: it carries no `var(--vz-…)` code syntax.
+ *
+ * Lengths are rem (px / 16) so they follow the reader's font-size setting;
+ * the Figma px value is in the comment. Do not add a value here that the
+ * accepted design does not define — a design change needs a change record.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Color (Figma collection `Color`, mode Light) ───────────────────── */
+  --vz-bg: #f9fafc; /* neutral/25 */
+  --vz-bg-elevated: #ffffff; /* neutral/0 */
+  --vz-bg-tint: #f0f2f4; /* neutral/50 */
+  --vz-ink: #0e1218; /* neutral/800 */
+  --vz-ink-2: #3f4349; /* neutral/600 */
+  --vz-ink-3: #66696f; /* neutral/500 */
+  --vz-line: #83868c; /* neutral/400 — meaningful boundaries, >= 3:1 */
+  --vz-line-2: #dcdee2; /* neutral/100 — decorative dividers only */
+  --vz-accent: #026fd7; /* blue/500 */
+  --vz-accent-hover: #005bb4; /* blue/600 */
+  --vz-accent-pressed: #004b96; /* blue/700 */
+  --vz-accent-soft: #e4f0ff; /* blue/50 */
+  --vz-accent-ink: #003981; /* blue/800 */
+  --vz-on-accent: #ffffff; /* neutral/0 */
+  --vz-danger: #d01c29; /* red/500 */
+  --vz-danger-hover: #b00a1d; /* red/600 */
+  --vz-danger-pressed: #8a0314; /* red/700 */
+  --vz-danger-soft: #ffe8e6; /* red/50 */
+  --vz-danger-ink: #8a0314; /* red/700 */
+  --vz-on-danger: #ffffff; /* neutral/0 */
+  --vz-success: #0a7e3a; /* green/500 */
+  --vz-success-soft: #daf8df; /* green/50 */
+  --vz-success-ink: #005725; /* green/700 */
+  --vz-on-success: #ffffff; /* neutral/0 */
+  --vz-warn: #906606; /* amber/500 */
+  --vz-warn-soft: #fff0d7; /* amber/50 */
+  --vz-warn-ink: #664700; /* amber/700 */
+  --vz-on-warn: #ffffff; /* neutral/0 */
+  --vz-focus-ring: #005bb4; /* blue/600 */
+  /* Four alpha-carrying roles: raw per mode, not aliases. */
+  --vz-scrim: rgb(14 18 24 / 0.55); /* neutral/800 @ 55% */
+  --vz-bg-frost: rgb(255 255 255 / 0.92); /* 92% is a measured floor — do not lower */
+  --vz-on-media-scrim: rgb(5 7 12 / 0.88); /* neutral/900 @ 88%, theme-invariant */
+  --vz-on-media: #ffffff; /* theme-invariant */
+  /* Shadow colours, used only by the elevation recipes below. */
+  --vz-shadow-1: rgb(14 18 24 / 0.06); /* neutral/800 @ 6% */
+  --vz-shadow-2: rgb(14 18 24 / 0.14); /* neutral/800 @ 14% */
+  --vz-shadow-3: rgb(14 18 24 / 0.22); /* neutral/800 @ 22% */
+
+  /* ── Scale (Figma collection `Scale`) ───────────────────────────────── */
+  /* Spacing — 4px grid, 11 steps. */
+  --vz-space-0: 0rem; /* 0 */
+  --vz-space-1: 0.25rem; /* 4 */
+  --vz-space-2: 0.5rem; /* 8 */
+  --vz-space-3: 0.75rem; /* 12 */
+  --vz-space-4: 1rem; /* 16 */
+  --vz-space-5: 1.25rem; /* 20 */
+  --vz-space-6: 1.5rem; /* 24 */
+  --vz-space-8: 2rem; /* 32 */
+  --vz-space-10: 2.5rem; /* 40 */
+  --vz-space-12: 3rem; /* 48 */
+  --vz-space-16: 4rem; /* 64 */
+
+  /* Radii — 5. */
+  --vz-radius-sm: 0.5rem; /* 8 */
+  --vz-radius-md: 0.75rem; /* 12 */
+  --vz-radius-lg: 1rem; /* 16 */
+  --vz-radius-xl: 1.5rem; /* 24 */
+  --vz-radius-full: 999px;
+
+  /* Strokes. */
+  --vz-stroke-hairline: 1px;
+  --vz-stroke-regular: 1.5px;
+  --vz-stroke-focus: 2px;
+
+  /* Sizes. */
+  --vz-size-control-sm: 2rem; /* 32 */
+  --vz-size-control: 2.5rem; /* 40 */
+  --vz-size-control-lg: 3rem; /* 48 */
+  --vz-size-touch-min: 2.75rem; /* 44 — WCAG 2.2 2.5.8 */
+  --vz-size-icon-sm: 1rem; /* 16 */
+  --vz-size-icon: 1.25rem; /* 20 */
+  --vz-size-icon-lg: 1.5rem; /* 24 */
+
+  /* Type — 9 steps × size / line-height / tracking. */
+  --vz-type-display-size: 2rem; /* 32 */
+  --vz-type-display-line-height: 2.375rem; /* 38 */
+  --vz-type-display-tracking: -0.02em;
+  --vz-type-title-1-size: 1.5rem; /* 24 */
+  --vz-type-title-1-line-height: 1.875rem; /* 30 */
+  --vz-type-title-1-tracking: -0.015em;
+  --vz-type-title-2-size: 1.25rem; /* 20 */
+  --vz-type-title-2-line-height: 1.625rem; /* 26 */
+  --vz-type-title-2-tracking: -0.01em;
+  --vz-type-title-3-size: 1.0625rem; /* 17 */
+  --vz-type-title-3-line-height: 1.5rem; /* 24 */
+  --vz-type-title-3-tracking: -0.01em;
+  --vz-type-body-size: 0.9375rem; /* 15 */
+  --vz-type-body-line-height: 1.375rem; /* 22 */
+  --vz-type-body-tracking: -0.003em;
+  --vz-type-body-strong-size: 0.9375rem; /* 15 */
+  --vz-type-body-strong-line-height: 1.375rem; /* 22 */
+  --vz-type-body-strong-tracking: -0.003em;
+  --vz-type-label-size: 0.8125rem; /* 13 */
+  --vz-type-label-line-height: 1.125rem; /* 18 */
+  --vz-type-label-tracking: 0em;
+  --vz-type-caption-size: 0.75rem; /* 12 */
+  --vz-type-caption-line-height: 1rem; /* 16 */
+  --vz-type-caption-tracking: 0em;
+  --vz-type-overline-size: 0.6875rem; /* 11 */
+  --vz-type-overline-line-height: 0.875rem; /* 14 */
+  --vz-type-overline-tracking: 0.08em;
+
+  /* Motion — durations only. The design authored no easing curves. */
+  --vz-motion-fast: 120ms;
+  --vz-motion-base: 180ms;
+  --vz-motion-slow: 240ms;
+
+  /* Font stacks. `font/figma-proxy` (Inter) is a Figma stand-in, not mirrored. */
+  --vz-font-sans:
+    system-ui, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", Arial, sans-serif;
+  --vz-font-mono:
+    ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "DejaVu Sans Mono", monospace;
+
+  /* ── Elevation (Figma effect styles elevation/1..3) ─────────────────── */
+  --vz-elevation-1: 0 1px 2px var(--vz-shadow-1), 0 1px 3px -1px var(--vz-shadow-1);
+  --vz-elevation-2: 0 2px 6px var(--vz-shadow-2), 0 8px 24px -12px var(--vz-shadow-2);
+  --vz-elevation-3: 0 8px 16px -10px var(--vz-shadow-3), 0 24px 48px -16px var(--vz-shadow-3);
+}
+
+/* ── Color, mode Dark — explicit choice ───────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --vz-bg: #0d0f15; /* neutral/850 */
+  --vz-bg-elevated: #181b21; /* neutral/750 */
+  --vz-bg-tint: #23262d; /* neutral/700 */
+  --vz-ink: #f4f5f8; /* neutral/d-ink */
+  --vz-ink-2: #c8cad0; /* neutral/d-ink-2 */
+  --vz-ink-3: #9598a0; /* neutral/d-ink-3 */
+  --vz-line: #71747c; /* neutral/d-line */
+  --vz-line-2: #32353c; /* neutral/d-line-2 */
+  --vz-accent: #65a7fa; /* blue/300 */
+  --vz-accent-hover: #86bafe; /* blue/200 */
+  --vz-accent-pressed: #539af2; /* blue/400 */
+  --vz-accent-soft: #132e50; /* blue/d-soft */
+  --vz-accent-ink: #65a7fa; /* blue/300 */
+  --vz-on-accent: #05070c; /* neutral/900 */
+  --vz-danger: #f66d67; /* red/300 */
+  --vz-danger-hover: #ff958e; /* red/200 */
+  --vz-danger-pressed: #f66d67; /* red/300 */
+  --vz-danger-soft: #4b1d1b; /* red/d-soft */
+  --vz-danger-ink: #f66d67; /* red/300 */
+  --vz-on-danger: #05070c; /* neutral/900 */
+  --vz-success: #5ac576; /* green/300 */
+  --vz-success-soft: #14361d; /* green/d-soft */
+  --vz-success-ink: #5ac576; /* green/300 */
+  --vz-on-success: #05070c; /* neutral/900 */
+  --vz-warn: #edb345; /* amber/300 */
+  --vz-warn-soft: #3c2a07; /* amber/d-soft */
+  --vz-warn-ink: #edb345; /* amber/300 */
+  --vz-on-warn: #05070c; /* neutral/900 */
+  --vz-focus-ring: #65a7fa; /* blue/300 */
+  --vz-scrim: rgb(5 7 12 / 0.72); /* neutral/900 @ 72% */
+  --vz-bg-frost: rgb(24 27 33 / 0.92); /* #181b21 @ 92% */
+  --vz-on-media-scrim: rgb(5 7 12 / 0.88); /* theme-invariant */
+  --vz-on-media: #ffffff; /* theme-invariant */
+  --vz-shadow-1: rgb(0 0 0 / 0.4);
+  --vz-shadow-2: rgb(0 0 0 / 0.52);
+  --vz-shadow-3: rgb(0 0 0 / 0.64);
+}
+
+/* ── Color, mode Dark — system preference, unless light is chosen ─────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --vz-bg: #0d0f15; /* neutral/850 */
+    --vz-bg-elevated: #181b21; /* neutral/750 */
+    --vz-bg-tint: #23262d; /* neutral/700 */
+    --vz-ink: #f4f5f8; /* neutral/d-ink */
+    --vz-ink-2: #c8cad0; /* neutral/d-ink-2 */
+    --vz-ink-3: #9598a0; /* neutral/d-ink-3 */
+    --vz-line: #71747c; /* neutral/d-line */
+    --vz-line-2: #32353c; /* neutral/d-line-2 */
+    --vz-accent: #65a7fa; /* blue/300 */
+    --vz-accent-hover: #86bafe; /* blue/200 */
+    --vz-accent-pressed: #539af2; /* blue/400 */
+    --vz-accent-soft: #132e50; /* blue/d-soft */
+    --vz-accent-ink: #65a7fa; /* blue/300 */
+    --vz-on-accent: #05070c; /* neutral/900 */
+    --vz-danger: #f66d67; /* red/300 */
+    --vz-danger-hover: #ff958e; /* red/200 */
+    --vz-danger-pressed: #f66d67; /* red/300 */
+    --vz-danger-soft: #4b1d1b; /* red/d-soft */
+    --vz-danger-ink: #f66d67; /* red/300 */
+    --vz-on-danger: #05070c; /* neutral/900 */
+    --vz-success: #5ac576; /* green/300 */
+    --vz-success-soft: #14361d; /* green/d-soft */
+    --vz-success-ink: #5ac576; /* green/300 */
+    --vz-on-success: #05070c; /* neutral/900 */
+    --vz-warn: #edb345; /* amber/300 */
+    --vz-warn-soft: #3c2a07; /* amber/d-soft */
+    --vz-warn-ink: #edb345; /* amber/300 */
+    --vz-on-warn: #05070c; /* neutral/900 */
+    --vz-focus-ring: #65a7fa; /* blue/300 */
+    --vz-scrim: rgb(5 7 12 / 0.72); /* neutral/900 @ 72% */
+    --vz-bg-frost: rgb(24 27 33 / 0.92); /* #181b21 @ 92% */
+    --vz-on-media-scrim: rgb(5 7 12 / 0.88); /* theme-invariant */
+    --vz-on-media: #ffffff; /* theme-invariant */
+    --vz-shadow-1: rgb(0 0 0 / 0.4);
+    --vz-shadow-2: rgb(0 0 0 / 0.52);
+    --vz-shadow-3: rgb(0 0 0 / 0.64);
+  }
+}

@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { STATIC_SECURITY_HEADERS } from "./lib/security/headers";
+
 const nextConfig: NextConfig = {
   // Emit a self-contained production server (.next/standalone) so the Docker
   // image runs `node server.js` against a pruned node_modules. See Dockerfile.
@@ -22,6 +24,12 @@ const nextConfig: NextConfig = {
   // config-shared.d.ts) turns it off; the version-matched docs it points at are
   // still on disk for anyone who wants them.
   agentRules: false,
+  // The request-independent security headers, on EVERY path — pages and
+  // `/_next/static` alike. The per-request Content-Security-Policy is set in
+  // proxy.ts, which needs a nonce; both read lib/security/headers.ts.
+  async headers() {
+    return [{ source: "/:path*", headers: [...STATIC_SECURITY_HEADERS] }];
+  },
 };
 
 export default nextConfig;
