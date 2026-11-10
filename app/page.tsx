@@ -19,7 +19,6 @@ export default function Home() {
           mid-stream, which the browser lane rightly reports as a failed
           request.
         */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above */}
         <a
           href="/health"
           className="rounded-sm text-accent underline underline-offset-2 hover:text-accent-hover"
