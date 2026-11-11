@@ -36,7 +36,9 @@ export interface paths {
         /**
          * Readiness probe
          * @description Drain-aware readiness with a 2 second single-flight cache (ADR-002
-         *     § Probes). PostgreSQL unreachable yields 503 `unavailable`. Every other
+         *     § Probes). PostgreSQL unreachable yields 503 `unavailable`, and so does
+         *     a storage root that is missing, not a directory or not writable
+         *     (VZ-FOUND-005). Every other
          *     degraded dependency — cache unreachable, search misconfigured or
          *     unreachable (Q-001), oldest queued job above the configured age
          *     threshold (Q-028) — yields 200 `degraded` with the component named, so a
@@ -100,10 +102,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup/claim-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether this instance has an owner yet
+         * @description Returns exactly one bit. It deliberately does NOT report when a token was
+         *     minted, when it expires, its generation, whether one is currently live, a
+         *     user count, or the owner's identity: the claim page needs one bit to
+         *     choose between the form and the "already claimed" screen, and every other
+         *     field would be secret material, a freshness oracle for a token-guessing
+         *     attacker, or an enumeration aid.
+         *
+         *     `claimed: false` does advertise an unclaimed instance, but so does the
+         *     public claim page and an empty gallery; concealment there would be
+         *     illusory while the token remains the real control.
+         */
+        get: operations["getSetupClaimStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/claim-owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem the one-time token and create the owner account
+         * @description Exchanges the one-time claim token for THE owner account, exactly once.
+         *     The operator obtains a token with `vizra claim-token` (whose output goes
+         *     to their terminal, not to the container log).
+         *
+         *     NO SESSION IS ESTABLISHED at this milestone: sessions arrive with
+         *     VZ-AUTH-001, and this response therefore sets no cookie. A client must
+         *     send the new owner to the sign-in page. `Set-Cookie` will be added to
+         *     this same operation by that slice, which is a backward-compatible change.
+         *
+         *     `Content-Type` must be `application/json`; unknown properties are
+         *     refused; the body is bounded at 8 KiB. If `Origin` is present it must
+         *     equal the instance's configured public origin, and if `Sec-Fetch-Site` is
+         *     present it must be `same-origin` or `none` — absence of both is allowed
+         *     so non-browser clients work.
+         *
+         *     A refused token returns ONE message for every cause — mistyped,
+         *     malformed, already redeemed, superseded by a re-mint, expired, or never
+         *     minted. The server cannot distinguish them from a digest comparison, and
+         *     separate messages would be both inaccurate and an oracle.
+         */
+        post: operations["claimOwner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SetupClaimStatus: {
+            /** @description Whether this instance already has an owner account. */
+            claimed: boolean;
+        };
+        ClaimOwnerRequest: {
+            /**
+             * @description The one-time claim token: 64 hexadecimal characters (256 bits).
+             *     Surrounding whitespace is trimmed and the value is case-insensitive.
+             */
+            token: string;
+            /**
+             * @description 3 to 30 characters: letters, numbers, hyphen or underscore, starting
+             *     with a letter or number. Compared case-insensitively for uniqueness.
+             */
+            username: string;
+            /**
+             * @description At most 254 BYTES — the server bound is `octet_length`, not a
+             *     character count, so a non-ASCII address may be refused before it
+             *     reaches 254 characters. Stored for later account recovery; this
+             *     release sends no email.
+             */
+            email: string;
+            /**
+             * @description At least 12 characters and at most 256, and at most 1024 BYTES.
+             *     Hashed with argon2id as raw UTF-8 with no Unicode normalisation.
+             */
+            password: string;
+        };
+        ClaimOwnerResponse: {
+            /**
+             * @description The owner's username, which is the public handle for an account.
+             *     The internal identifier is deliberately not returned.
+             */
+            username: string;
+            /** @enum {string} */
+            role: "owner";
+        };
         /**
          * @example {
          *       "status": "ok"
@@ -301,7 +407,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReadinessResponse"];
                 };
             };
-            /** @description Not ready. PostgreSQL is unreachable, or the process is draining. */
+            /** @description Not ready. PostgreSQL is unreachable, the storage root is unusable, or the process is draining. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -348,6 +454,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchemaResponse"];
+                };
+            };
+        };
+    };
+    getSetupClaimStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The claim state of this instance. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupClaimStatus"];
+                };
+            };
+            /**
+             * @description Too many requests to this route. It carries its own hard ceiling,
+             *     separate from the claim endpoint's, so a flood here can never spend
+             *     the budget a claim needs.
+             */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance state could not be read. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    claimOwner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimOwnerRequest"];
+            };
+        };
+        responses: {
+            /** @description The owner account was created. No session is established. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimOwnerResponse"];
+                };
+            };
+            /** @description A field is missing, unknown or outside its bounds. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /**
+             * @description The claim token was not accepted (`forbidden`), or the request Origin
+             *     did not match this instance's public origin (`origin_mismatch`).
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description This instance already has an owner. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The request body exceeded 8 KiB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The request was not `application/json`. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many failed attempts, or the hard request ceiling was reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The database was unreachable, or hashing capacity was exhausted. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

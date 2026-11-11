@@ -5,12 +5,12 @@
     "source_repo": "yegamble/vizra-core",
     "source_path": "api/openapi.yaml",
     "source_ref": "main",
-    "source_commit": "415a6d19cfc0acedd8ad84c1857c95db0ed63627",
-    "source_blob": "58030e7f0d90d9bf00f44782d705aad72a18407c",
+    "source_commit": "5f615d74e840b23d2201b1d78dd89abfef07701b",
+    "source_blob": "8bab7e9d518511a1cae864459f1ff8e177ccb3b1",
     "vendored_path": "contracts/vizra-core/api/openapi.yaml",
-    "sha256": "128d0509238a8eb66e9847efd6bf90c4d52d2fb4c2d80b6fed88dbc3a0c8e04d",
-    "bytes": 10695,
-    "vendored_at": "2026-09-21"
+    "sha256": "2ac3280056871c48477b0238a398dc23afbd3afec5ff0ad170b27c5cc373c1d6",
+    "bytes": 18521,
+    "vendored_at": "2026-11-11"
   },
   "generated_client": {
     "path": "lib/api/generated.ts",
