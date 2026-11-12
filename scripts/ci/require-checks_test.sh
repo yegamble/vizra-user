@@ -615,7 +615,12 @@ lane_expect() {
   local file=$tmp/lane-$cases.yml
   sed "$program" "$real_workflow" >"$file"
   bash "$lane_script" "$file" >"$tmp/lane-$cases.out" 2>&1 || rc=$?
-  if [ "$rc" -ne "$want" ]; then
+  # A sed program whose anchor no longer matches leaves the workflow unchanged
+  # and would test the REAL file instead of the mutation: refuse that vacuous case.
+  # Only an EMPTY program (the committed-workflow case) may leave it unchanged.
+  if [ -n "$program" ] && cmp -s "$file" "$real_workflow"; then
+    record 1 "the mutation is a no-op (its anchor no longer matches $real_workflow): $program"
+  elif [ "$rc" -ne "$want" ]; then
     record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
   elif ! grep -Eq -- "$pattern" "$tmp/lane-$cases.out"; then
     record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$tmp/lane-$cases.out" | cut -c1-220)"
@@ -1288,19 +1293,19 @@ fi
 # these are the six mutations that prove it.
 
 title="a GLOB in an upload path fails by name"
-lane_expect 1 'glob or exclusion metacharacter' 's|^            test-results/$|            test-*/|'
+lane_expect 1 'glob or exclusion metacharacter' 's|^            artifact-upload/$|            artifact-*/|'
 
 title="a \${{ }} expression in an upload path fails by name"
 # The `${{ }}` must reach the sed program LITERALLY — that is the mutation under
 # test. Double quotes would make the shell try to expand it.
 # shellcheck disable=SC2016
-lane_expect 1 'expression' 's|^            test-results/$|            ${{ runner.temp }}/|'
+lane_expect 1 'expression' 's|^            artifact-upload/$|            ${{ runner.temp }}/|'
 
 title="include-hidden-files: true fails by name"
 lane_expect 1 'include-hidden-files' 's|^          retention-days: 3$|          retention-days: 3\n          include-hidden-files: true|'
 
 title="an upload path outside the allowlist fails by name"
-lane_expect 1 'not on the allowlist' 's|^            test-results/$|            test-results/\n            playwright-report/index.html|'
+lane_expect 1 'not on the allowlist' 's|^            artifact-upload/$|            artifact-upload/\n            playwright-report/index.html|'
 
 title="a \$GITHUB_STEP_SUMMARY write in the e2e job fails by name"
 # `$GITHUB_STEP_SUMMARY` is the text being injected into the workflow, not a
