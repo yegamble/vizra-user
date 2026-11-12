@@ -111,7 +111,7 @@ props. Tests: `components/ui/components.test.ts`.
 | Chip | `11:54` | `components/ui/Chip.tsx` | `selected` → `aria-pressed` + `icon/Check` | default, hover, focus-visible, disabled; native toggle button |
 | Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
 
-Not yet built (PLANNED): Tab,
+Not yet built (PLANNED):
 PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
 Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
 design (HANDOFF §3).
