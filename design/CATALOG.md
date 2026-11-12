@@ -107,8 +107,9 @@ props. Tests: `components/ui/components.test.ts`.
 | Select | `9:139` | `components/ui/Select.tsx` | `options` | default, hover, focus-visible, error (`aria-invalid`, icon + text, `aria-describedby`), disabled; native `<select>`, visible `<label>`, decorative chevron |
 | Checkbox | `10:66` | `components/ui/Checkbox.tsx` | `checked`: off, on, mixed (DOM `indeterminate`) | default, hover, focus-visible, disabled; native checkbox, `line` off boundary |
 | Radio | `10:103` | `components/ui/Radio.tsx` (`RadioGroup`) | `options`, `value` | on/off, default, hover, focus-visible, disabled (option or group); `<fieldset>`/`<legend>`, native arrow keys |
+| Switch | `10:144` | `components/ui/Switch.tsx` | `checked` | on/off (thumb position), default, hover, focus-visible, disabled; native checkbox + `role="switch"`, reduced motion |
 
-Not yet built (PLANNED): Switch, Chip, Tab,
+Not yet built (PLANNED): Chip, Tab,
 PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
 Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
 design (HANDOFF §3).

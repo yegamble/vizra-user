@@ -39,7 +39,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `Select` | `9:139` | `4:23` | same as TextField | `components/ui/Select.tsx` | IMPLEMENTED |
 | `Checkbox` | `10:66` | `4:24` | `Checked` Off\|On\|Mixed; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Checkbox.tsx` | IMPLEMENTED |
 | `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Radio.tsx` | IMPLEMENTED |
-| `Switch` | `10:144` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
+| `Switch` | `10:144` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Switch.tsx` | IMPLEMENTED |
 | `Chip` | `11:54` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Tab` | `11:79` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus | — | PLANNED |
 | `PhotoCard` | `12:263` | `4:26` | `Aspect` Landscape 3:2\|Square 1:1\|Portrait 4:5; `State` Default\|Sensitive\|Loading | — | PLANNED |
