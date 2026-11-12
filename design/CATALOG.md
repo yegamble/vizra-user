@@ -90,3 +90,21 @@ follow-up row "security F3".
 - **`design/HANDOFF.md`** is referenced by comments in `design/tokens.css` and
   `components/icons/registry.ts` (per-node references, and what was not
   mirrored) and has not been written. Owed.
+
+## UI components — `components/ui/` (VZ-DESIGN-001 remainder, PR #13)
+
+Node ids and the full per-component status are in `design/HANDOFF.md` §2.
+Hover/Pressed/Focus are CSS states built from tokens (`hover:`, `active:`,
+`focus-visible:outline-focus-ring` + offset 2); Disabled/Loading/Error are
+props. Tests: `components/ui/components.test.ts`.
+
+| Component | Figma | File | Variants (prop) | States |
+| --- | --- | --- | --- | --- |
+| Button | `7:146` | `components/ui/Button.tsx` | `kind`: primary, secondary, quiet, danger; `leadingIcon` | default, hover, pressed, focus-visible, disabled (`disabled`), loading (`loading` → `aria-busy`, disabled, stable name, reduced-motion spinner) |
+| IconButton | `8:104` | `components/ui/IconButton.tsx` | `kind`: secondary, quiet, danger, onMedia (dual focus ring); `pressed` → `aria-pressed` | default, hover, pressed, focus-visible, disabled; 44px hit box, required `label` → `aria-label` |
+| TextField | `9:42` | `components/ui/TextField.tsx` | — | default, hover, focus-visible, error (`error` → `aria-invalid`, icon + text, `aria-describedby`), disabled; visible `<label>`, `helper` |
+
+Not yet built (PLANNED): Textarea, Select, Checkbox, Radio, Switch, Chip, Tab,
+PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
+Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
+design (HANDOFF §3).
