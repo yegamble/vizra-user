@@ -46,6 +46,7 @@ contract
 # docker-build.yml — the production Dockerfile builds on the acceptance
 # platform (ADR-009: GitHub-hosted ubuntu-24.04, linux/amd64). Path-filtered to
 # the files that can break it.
+?docker-build
 
 # e2e.yml — the browser lane (VZ-FOUND-008). It builds the production image
 # from this Dockerfile, runs it, and drives it with Playwright at 1440 px and
