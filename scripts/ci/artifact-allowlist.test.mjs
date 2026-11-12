@@ -6,6 +6,8 @@ import { deflateRawSync } from "node:zlib";
 
 import { describe, expect, it } from "vitest";
 
+import { stage } from "./artifact-allowlist.mjs";
+
 const GATE = new URL("./artifact-allowlist.mjs", import.meta.url).pathname;
 
 // Minimal zip writer (deflate) so fixtures need no zip binary.
@@ -148,5 +150,79 @@ describe("filtered upload (QUEUE-2f session 3)", () => {
     expect(walkFiles(out)).not.toContain("test-results/zz-forced-fail-chromium/fake.png");
     expect(r.stderr).toMatch(/REFUSED test-results\/zz-forced-fail-chromium\/fake\.png content-not-png/);
     for (const f of walkFiles(out)) expect(readFileSync(join(out, f), "utf8")).not.toMatch(/SYNTHSECRET|SYNTHPAGE/);
+  });
+});
+
+// QUEUE-2f follow-ups F-1/F-2 (verifier, 2026-11-12-vizra-user-pr18-2f-VERIFY.md).
+describe("F-1: assertion values and messages never reach the staged upload", () => {
+  const LEAKY = JSON.stringify({ suites: [{ file: "login.spec.ts", specs: [{ title: "types a password", file: "login.spec.ts", line: 3, tags: [],
+    tests: [{ projectName: "chromium", results: [{ status: "failed", errors: [{
+      message: 'Error: expect(locator).toHaveValue(expected) failed\nLocator: getByLabel(\'Password\')\nExpected: "x"\nReceived: "CorrectHorse!PWSENTINEL"\nnote sent Bearer TOKSENTINEL to https://b.s3.amazonaws.com/k.jpg?X-Amz-Signature=SIGSENTINEL',
+      stack: "Error: Received: CorrectHorse!PWSENTINEL\n at x", value: "CorrectHorse!PWSENTINEL",
+      location: { file: "e2e/specs/login.spec.ts", line: 9 } }] }] }] }] }] });
+  it("drops results.json and keeps only title, location and matcher header in SUMMARY.txt", () => {
+    const root = realTree(), out = join(root, "stage");
+    writeFileSync(join(root, "playwright-report/results.json"), LEAKY);
+    const r = spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root, encoding: "utf8" });
+    expect(r.status).toBe(0);
+    expect(walkFiles(out)).not.toContain("playwright-report/results.json");
+    expect(r.stderr).toMatch(/^REFUSED playwright-report\/results\.json not-staged$/m);
+    for (const f of walkFiles(out)) {
+      const body = readFileSync(join(out, f), "latin1");
+      for (const s of ["PWSENTINEL", "TOKSENTINEL", "SIGSENTINEL", "amazonaws", "Received", "Expected"]) expect(body, f).not.toContain(s);
+    }
+    const summary = readFileSync(join(out, "SUMMARY.txt"), "utf8");
+    expect(summary).toMatch(/FAILED \[chromium\] types a password \(failed\)/);
+    expect(summary).toMatch(/e2e\/specs\/login\.spec\.ts:9/);
+    expect(summary).toMatch(/expect\(locator\)\.toHaveValue\(expected\) failed/);
+    expect(r.stderr).not.toMatch(/SENTINEL/);
+  });
+});
+
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("MEDIASENTINEL")]);
+const WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.from("MEDIASENTINEL")]);
+function mediaTree(tags) {
+  const root = mkdtempSync(join(tmpdir(), "2f-media-"));
+  const dir = "test-results/health-shows-chromium";
+  const res = { suites: [{ file: "health.spec.ts", specs: [{ title: "shows", file: "health.spec.ts", line: 1, tags,
+    tests: [{ projectName: "chromium", results: [{ status: "failed", errors: [{ message: "Error: boom" }], attachments: [
+      { name: "screenshot", contentType: "image/png", path: `/home/runner/work/x/${dir}/test-failed-1.png` },
+      { name: "video", contentType: "video/webm", path: `/home/runner/work/x/${dir}/video.webm` }] }] }] }] }] };
+  for (const [rel, body] of [[`${dir}/test-failed-1.png`, PNG], [`${dir}/video.webm`, WEBM], ["test-results/stray.jpg", Buffer.from([0xff, 0xd8, 0xff, 0])], ["playwright-report/results.json", JSON.stringify(res)]]) {
+    mkdirSync(join(root, rel, ".."), { recursive: true }); writeFileSync(join(root, rel), body);
+  }
+  return root;
+}
+const runStage = (root, mediaAllowlist) => {
+  const cwd = process.cwd();
+  try { process.chdir(root); return stage(join(root, "stage"), ["test-results", "playwright-report"], { mediaAllowlist }); } finally { process.chdir(cwd); }
+};
+describe("F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec", () => {
+  it("refuses png/webm/jpeg by default (empty allow-list)", () => {
+    const root = mediaTree([]);
+    const { refused } = runStage(root, []);
+    expect(walkFiles(join(root, "stage"))).toEqual(["SUMMARY.txt"]);
+    expect(refused).toContainEqual(["test-results/health-shows-chromium/test-failed-1.png", "media-not-opted-in"]);
+    expect(refused).toContainEqual(["test-results/health-shows-chromium/video.webm", "media-not-opted-in"]);
+    expect(refused).toContainEqual(["test-results/stray.jpg", "media-not-opted-in"]);
+  });
+  it("the shipped allow-list opts nothing in", () => {
+    const root = realTree(), out = join(root, "stage");
+    spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root, encoding: "utf8" });
+    expect(walkFiles(out).filter((f) => /\.(png|jpe?g|webm|zip)$/i.test(f))).toEqual([]);
+  });
+  it("admits media of an opted-in, unauthenticated spec; refuses an entry with no reason", () => {
+    const root = mediaTree([]);
+    runStage(root, [{ spec: "health.spec.ts", reason: "public page, no session" }]);
+    expect(walkFiles(join(root, "stage")).sort()).toEqual(["SUMMARY.txt", "test-results/health-shows-chromium/test-failed-1.png", "test-results/health-shows-chromium/video.webm"]);
+    const r2 = mediaTree([]);
+    runStage(r2, [{ spec: "health.spec.ts", reason: "  " }]);
+    expect(walkFiles(join(r2, "stage"))).toEqual(["SUMMARY.txt"]);
+  });
+  it("never admits media of a spec tagged @authenticated, even if opted in", () => {
+    const root = mediaTree(["@authenticated"]);
+    const { refused } = runStage(root, [{ spec: "health.spec.ts", reason: "wants it" }]);
+    expect(walkFiles(join(root, "stage"))).toEqual(["SUMMARY.txt"]);
+    expect(refused).toContainEqual(["test-results/health-shows-chromium/test-failed-1.png", "media-authenticated-spec"]);
   });
 });
