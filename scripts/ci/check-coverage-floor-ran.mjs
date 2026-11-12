@@ -42,6 +42,7 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -229,6 +230,18 @@ if (stampKey === undefined && sawSucceedingResult) {
   ]);
 }
 if (stampProblems.length > 0) failStamps(stampProblems);
+
+// VZ-CI-001 N1: a skipped required browser test (test.skip, test.fixme,
+// conditional skips) fails this step even when the floor is met. It runs here,
+// inside the existing e2e step, because .github/workflows/e2e.yml is
+// digest-pinned by docs/evidence/VZ-FOUND-008/mutation-digests.txt.
+// Allowlist (EMPTY): scripts/ci/skip-allowlist.json.
+const skips = spawnSync(
+  process.execPath,
+  [fileURLToPath(new URL("./check-no-skipped-tests.mjs", import.meta.url)), "playwright", reportPath],
+  { stdio: "inherit" },
+);
+if (skips.status !== 0) process.exit(1);
 
 const summary = Object.entries(minimums)
   .map(([project, minimum]) => `${project}=${passed.get(project) ?? 0}/${minimum}`)
