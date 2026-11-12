@@ -93,3 +93,23 @@ describe("Toast / Inline status (Figma 17:40)", () => {
     expect(html).toContain('<p class="flex-1 text-body"></p>');
   });
 });
+
+import { Dialog } from "./Dialog";
+
+describe("Dialog (Figma 16:43)", () => {
+  const base = { open: false, onClose: () => {}, title: "Delete album?", confirmLabel: "Delete album", onConfirm: () => {}, children: "The photos stay in your library." };
+  it("native <dialog> labelled by its title; named close button; Cancel autofocused", () => {
+    const html = r(h(Dialog, base));
+    expect(html).toMatch(/^<dialog aria-labelledby="([^"]+)"/);
+    const id = html.match(/aria-labelledby="([^"]+)"/)![1];
+    expect(html).toContain(`<h2 id="${id}"`);
+    expect(html).toContain('aria-label="Close"');
+    expect(html).toMatch(/<button autofocus=""[^>]*data-kind="secondary"[^>]*><span>Cancel<\/span>/i);
+    expect(html).not.toContain(" open=");
+  });
+  it("Kind=Destructive: confirm is the danger button and is not autofocused", () => {
+    const html = r(h(Dialog, { ...base, kind: "destructive" }));
+    expect(html).toContain('data-kind="destructive"');
+    expect(html).toMatch(/<button type="button" data-kind="danger"[^>]*><span>Delete album<\/span>/);
+  });
+});

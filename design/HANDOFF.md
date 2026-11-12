@@ -48,7 +48,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `TopNav` | `15:74` | `4:28` | single | superseded at M1 by `TopNav / M1` below | — |
 | `TopNav / M1` | `30:770` | `4:28` | `State` Signed out\|Signed in | `components/shell/TopBar.tsx` (wordmark only) | PARTIAL |
 | `AppBar / M1` | `30:814` | `4:28` | `State` Signed out\|Signed in | `components/shell/TopBar.tsx`, `components/shell/SkipLink.tsx` | PARTIAL |
-| `Dialog` | `16:43` | `4:29` | `Kind` Standard\|Destructive | — | PLANNED |
+| `Dialog` | `16:43` | `4:29` | `Kind` Standard\|Destructive | `components/ui/Dialog.tsx` | IMPLEMENTED (browser behaviour UNVERIFIED: no production route renders it) |
 | `Toast / Inline status` | `17:40` | `4:30` | `Tone` Success\|Error\|Info | `components/ui/Toast.tsx` | IMPLEMENTED |
 | `Banner` | `17:68` | `4:30` | `Tone` Info\|Warn\|Danger | `components/ui/Banner.tsx` | IMPLEMENTED |
 | `Skeleton` | `17:72` | `4:30` | `Shape` Line\|Block\|Circle | `components/ui/Skeleton.tsx` | IMPLEMENTED |

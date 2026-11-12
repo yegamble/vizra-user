@@ -115,6 +115,7 @@ props. Tests: `components/ui/components.test.ts`.
 | Skeleton | `17:72` | `components/ui/Skeleton.tsx` | `shape` line/block/circle | `aria-hidden`, static tint (no shimmer) |
 | EmptyState | `17:95` | `components/ui/EmptyState.tsx` | `kind` empty/noResults | caller copy and optional real action |
 | ErrorState | `17:96` | `components/ui/ErrorState.tsx` | single | required `onRetry` native button; caller supplies sanitised copy |
+| Dialog | `16:43` | `components/ui/Dialog.tsx` | `kind` standard/destructive | native `<dialog>` + `showModal()` (focus trap, inert background, Escape native); `aria-labelledby` title; Cancel autofocused; focus returned to opener; named close button |
 | Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
 
 Not yet built (PLANNED):
