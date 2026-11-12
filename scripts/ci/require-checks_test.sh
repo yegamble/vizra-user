@@ -1663,7 +1663,8 @@ tomb_expect() {
   fi
 }
 title="tombstone: unchanged manifest passes"
-tomb_expect 0 'retires no lane' "$TB" <"$TB"
+cp "$TB" "$tmp/tomb-same.txt"
+tomb_expect 0 'retires no lane' "$TB" <"$tmp/tomb-same.txt"
 title="S1 tombstone: deleting a required line without tombstone fails"
 printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n' | tomb_expect 1 'lint: removed from the manifest without a tombstone' "$TB"
 title="S1 tombstone: commenting out a required line fails"
