@@ -375,13 +375,18 @@ half d4b-missing-project-GREEN 0 "e2e coverage floor: OK" \
 # equal today's counts (e2e/harness/required-projects.json), so ATTRITION is
 # caught, not just wholesale vacuity.
 log "D4c — deleting one test drops a project below its floor"
+# Expected counts are DERIVED from the floor file, never hard-coded: a demo
+# that pins a count goes stale the moment a UI PR adds specs. Both projects
+# share one minimum, which must equal what the clean tree actually runs.
+floor="$(node -e 'const p=require("./e2e/harness/required-projects.json").projects;const v=[...new Set(Object.values(p))];if(v.length!==1)process.exit(1);console.log(v[0])')"
+spec_files="$(find "$repo/e2e/specs" -name '*.spec.ts' | wc -l | tr -d ' ')"
 health_spec="$repo/e2e/specs/health.spec.ts"
 cp "$health_spec" "$evidence/.health.spec.ts.bak"
 # Delete exactly one test: from its title line to the first following line that
 # is exactly `  });`.
 sed '/test("reports liveness for vizra-user"/,/^  });$/d' \
   "$evidence/.health.spec.ts.bak" > "$health_spec"
-half d4c-floor-shortfall-RED 1 "the floor is 9" \
+half d4c-floor-shortfall-RED 1 "the floor is $floor" \
   -- env E2E_BASE_URL="$prod_url" npx playwright test
 cp "$evidence/.health.spec.ts.bak" "$health_spec"
 rm -f "$evidence/.health.spec.ts.bak"
@@ -399,7 +404,7 @@ test("an added test raises the count without failing the floor", async ({ page }
   await expect(page.getByTestId("health-service")).toHaveText("vizra-user");
 });
 EXTRA
-half d4c2-floor-is-a-minimum-GREEN 0 "desktop-chromium-1440=10/9" \
+half d4c2-floor-is-a-minimum-GREEN 0 "desktop-chromium-1440=$((floor + 1))/$floor" \
   -- env E2E_BASE_URL="$prod_url" npx playwright test
 rm -f "$repo/e2e/specs/__extra.spec.ts"
 
@@ -897,7 +902,7 @@ rm -f "$repo/eslint.config.no-inline-config.mjs"
 
 # --- D11c door 3: a spec outside e2e/specs ---------------------------------
 # Closed twice over. At COLLECTION: `testDir` is `./e2e/specs`, so the file is
-# not collected at all — the lane still lists exactly its own 18 tests. At LINT:
+# not collected at all — the lane still lists exactly its own tests (2 x floor). At LINT:
 # the glob is `e2e/**` minus the harness, so the file is refused if anyone
 # writes one. Neither is the guarantee; the guarantee is that were it collected,
 # it would be unstamped.
@@ -911,7 +916,7 @@ test("R1", async ({ page }) => {
   await page.goto("/");
 });
 OUTSIDE
-half d11c-outside-not-collected-GREEN 0 "Total: 18 tests in 3 files" \
+half d11c-outside-not-collected-GREEN 0 "Total: $((2 * floor)) tests in $spec_files files" \
   -- env E2E_COVERAGE_FLOOR=off E2E_BASE_URL="$prod_url" npx playwright test --list
 half d11c-outside-refused-by-lint-RED 1 "must not reference" \
   -- npx eslint "$repo/e2e/other/__r1.spec.ts"
@@ -987,7 +992,7 @@ const { test, expect } = pw;'
 rm -rf "$repo/.vizra-e2e"
 # The run itself is green: with the reporter gone, nothing inside Playwright
 # objects. That is the point of the mutation.
-half d11f-in-process-reporter-deleted-GREEN 0 "20 passed" \
+half d11f-in-process-reporter-deleted-GREEN 0 "$((2 * floor + 2)) passed" \
   -- env E2E_BASE_URL="$prod_url" npx playwright test --config playwright.config.no-stamp-reporter.ts
 half d11f-out-of-process-still-RED 1 "did not prove anything" \
   -- node scripts/ci/check-coverage-floor-ran.mjs
