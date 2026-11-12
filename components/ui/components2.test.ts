@@ -58,3 +58,73 @@ describe("Select (Figma 9:139)", () => {
     expect(r(h(Select, { label: "Sort", options, disabled: true }))).toContain('disabled=""');
   });
 });
+
+import { Checkbox, applyMixed } from "./Checkbox";
+import { RadioGroup } from "./Radio";
+import { Switch } from "./Switch";
+
+describe("Checkbox (Figma 10:66)", () => {
+  it("Checked=Off: native unchecked checkbox, labelled, line boundary", () => {
+    const html = r(h(Checkbox, { label: "Public", checked: "off", onChange: () => {} }));
+    const id = idOf(html, /<label for="([^"]+)"/);
+    expect(html).toContain(`id="${id}" type="checkbox"`);
+    expect(html).not.toContain('checked=""');
+    expect(html).toContain("border-line");
+    expect(html).toContain("focus-visible:outline-focus-ring");
+    expect(html).not.toContain("aria-checked");
+  });
+  it("Checked=On: native checked", () => {
+    expect(r(h(Checkbox, { label: "Public", checked: "on", onChange: () => {} }))).toContain('checked=""');
+  });
+  it("Checked=Mixed: not checked, indeterminate set via the DOM property", () => {
+    const html = r(h(Checkbox, { label: "All", checked: "mixed", onChange: () => {} }));
+    expect(html).not.toContain('checked=""');
+    expect(html).toContain('data-checked="mixed"');
+    const el = { indeterminate: false } as HTMLInputElement;
+    applyMixed(el, true);
+    expect(el.indeterminate).toBe(true);
+    applyMixed(el, false);
+    expect(el.indeterminate).toBe(false);
+  });
+  it("State=Disabled: native disabled", () => {
+    expect(r(h(Checkbox, { label: "Public", checked: "off", disabled: true }))).toContain('disabled=""');
+  });
+});
+
+describe("Radio (Figma 10:103)", () => {
+  const options = [{ value: "l", label: "Landscape" }, { value: "p", label: "Portrait", disabled: true }];
+  it("group is a fieldset named by its legend; radios share a name and have labels", () => {
+    const html = r(h(RadioGroup, { legend: "Orientation", name: "o", options, value: "l", onChange: () => {} }));
+    expect(html).toMatch(/^<fieldset[^>]*><legend[^>]*>Orientation<\/legend>/);
+    expect(html.match(/type="radio"[^>]*name="o"/g)).toHaveLength(2);
+    for (const id of html.matchAll(/<label for="([^"]+)"/g)) expect(html).toContain(`id="${id[1]}"`);
+  });
+  it("Checked=On/Off: only the selected value is checked", () => {
+    const html = r(h(RadioGroup, { legend: "Orientation", name: "o", options, value: "l", onChange: () => {} }));
+    expect(html.match(/checked=""/g)).toHaveLength(1);
+    expect(html).toMatch(/checked="" value="l"/);
+  });
+  it("State=Disabled: per option and whole group", () => {
+    expect(r(h(RadioGroup, { legend: "O", name: "o", options }))).toMatch(/disabled=""[^>]*value="p"/);
+    expect(r(h(RadioGroup, { legend: "O", name: "o", options, disabled: true }))).toMatch(/^<fieldset disabled=""/);
+  });
+});
+
+describe("Switch (Figma 10:144)", () => {
+  it("native checkbox with role=switch and a visible label; thumb position cue", () => {
+    const html = r(h(Switch, { label: "Show EXIF" }));
+    const id = idOf(html, /<label for="([^"]+)"/);
+    expect(html).toContain(`id="${id}" type="checkbox" role="switch"`);
+    expect(html).toContain("checked:before:translate-x-4");
+    expect(html).toContain("border-line");
+    expect(html).toContain("motion-reduce:transition-none");
+    expect(html).toContain("focus-visible:outline-focus-ring");
+  });
+  it("Checked=On/Off maps to native checked", () => {
+    expect(r(h(Switch, { label: "x", checked: true, onChange: () => {} }))).toContain('checked=""');
+    expect(r(h(Switch, { label: "x", checked: false, onChange: () => {} }))).not.toContain('checked=""');
+  });
+  it("State=Disabled: native disabled", () => {
+    expect(r(h(Switch, { label: "x", disabled: true }))).toContain('disabled=""');
+  });
+});

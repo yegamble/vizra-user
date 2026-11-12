@@ -105,8 +105,9 @@ props. Tests: `components/ui/components.test.ts`.
 | TextField | `9:42` | `components/ui/TextField.tsx` | — | default, hover, focus-visible, error (`error` → `aria-invalid`, icon + text, `aria-describedby`), disabled; visible `<label>`, `helper` |
 | Textarea | `9:83` | `components/ui/Textarea.tsx` | — | default, hover, focus-visible, error (`aria-invalid`, icon + text, `aria-describedby`), disabled; visible `<label>`, `helper` |
 | Select | `9:139` | `components/ui/Select.tsx` | `options` | default, hover, focus-visible, error (`aria-invalid`, icon + text, `aria-describedby`), disabled; native `<select>`, visible `<label>`, decorative chevron |
+| Checkbox | `10:66` | `components/ui/Checkbox.tsx` | `checked`: off, on, mixed (DOM `indeterminate`) | default, hover, focus-visible, disabled; native checkbox, `line` off boundary |
 
-Not yet built (PLANNED): Checkbox, Radio, Switch, Chip, Tab,
+Not yet built (PLANNED): Radio, Switch, Chip, Tab,
 PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
 Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
 design (HANDOFF §3).
