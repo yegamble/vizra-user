@@ -233,4 +233,10 @@ for dir in "${dirs[@]}"; do
   refuse_page_snapshots "$dir" "$dir"
 done
 
+# QUEUE-2f: DEFAULT-DENY allowlist over the REDACTED trees. Any file type,
+# zip member or content shape not on the allowlist (header values, bodies, DOM
+# snapshots, call parameters, console text, scheme-less URL queries) refuses
+# the whole upload. See scripts/ci/artifact-allowlist.mjs.
+node scripts/ci/artifact-allowlist.mjs "${dirs[@]}" || exit 1
+
 echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, across: ${dirs[*]}"
