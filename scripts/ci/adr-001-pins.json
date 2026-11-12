@@ -1,0 +1,22 @@
+{
+  "_source": "Meta repo docs/adr/ADR-001-stack-pins-and-licences.md, licence table rows that ship in or build vizra-user, transcribed 2026-11-12. This file mirrors the ADR; it does not amend it. Change it only together with the ADR.",
+  "node": { "adr_row": null },
+  "packages": {
+    "next": { "adr_row": "Next.js", "adr_version": "16.3.x", "licence": "MIT" },
+    "react": { "adr_row": "React", "adr_version": null, "licence": "MIT" },
+    "react-dom": { "adr_row": "React", "adr_version": null, "licence": "MIT" },
+    "tailwindcss": { "adr_row": "Tailwind CSS", "adr_version": null, "licence": "MIT" },
+    "lucide-react": { "adr_row": "lucide-react", "adr_version": "1.46.x", "licence": "ISC" },
+    "openapi-typescript": { "adr_row": "openapi-typescript", "adr_version": "7.13.x", "licence": "MIT" },
+    "typescript": { "adr_row": "TypeScript", "adr_version": null, "licence": "Apache-2.0" }
+  },
+  "_adr_gaps_note": "Known gaps between this repo and ADR-001, each needing an ADR amendment by the meta owner. The check FAILS on any gap not listed here and on any listed gap that no longer exists, so this list cannot drift silently. A listed gap means the VZ-FOUND-004 'versions match ADR' case is NOT met for that row.",
+  "adr_gaps": [
+    "node: ADR-001 has no Node.js row (repo pins 22.14.0 in .nvmrc)",
+    "next: ADR-001 row 'Next.js' says 16.3.x, package.json pins 16.4.1",
+    "react: ADR-001 row 'React' has no version ('matching [pin at PR time; verify]'), package.json pins 19.3.0",
+    "react-dom: ADR-001 row 'React' has no version ('matching [pin at PR time; verify]'), package.json pins 19.3.0",
+    "tailwindcss: ADR-001 row 'Tailwind CSS' has no version ('[pin at PR time; verify]'), package.json pins 4.3.3",
+    "typescript: ADR-001 row 'TypeScript' has no version ('[pin at PR time; verify]'), package.json pins 5.9.3"
+  ]
+}

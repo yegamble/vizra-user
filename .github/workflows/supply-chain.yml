@@ -88,6 +88,11 @@ jobs:
                    | to_entries[] | "| \(.key) | \(.value) |"' npm-audit.json
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # VZ-FOUND-004: prove the verdict below is a gate — the same command must
+      # fail on a fixture lockfile with a known high advisory.
+      - name: The audit verdict fails on a known-vulnerable lockfile
+        run: bash scripts/ci/check-audit-gate.sh
+
       # The verdict. No `continue-on-error`: when this is red the lane is red,
       # and a human decides. The lane is not in the required set, so red here
       # does not block a merge — it is read, not routed around.
