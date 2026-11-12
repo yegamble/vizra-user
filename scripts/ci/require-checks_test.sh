@@ -633,16 +633,16 @@ title="the committed e2e workflow passes its own guard"
 lane_expect 0 'still drives the built image' ''
 
 title="deleting the lane step fails by name"
-lane_expect 1 'no step runs the browser lane' '/^        run: npm run e2e$/d'
+lane_expect 1 'no step runs the browser lane' '/^          npm run e2e 2>&1 | node scripts\/ci\/artifact-allowlist.mjs --filter-log$/d'
 
 title="replacing the lane step with an echo fails by name"
-lane_expect 1 'no step runs the browser lane' 's|^        run: npm run e2e$|        run: echo skipping|'
+lane_expect 1 'no step runs the browser lane' 's|^          npm run e2e 2>&1 . node scripts/ci/artifact-allowlist.mjs --filter-log$|          echo skipping|'
 
 title="appending || true to the lane step fails by name"
-lane_expect 1 'launders the exit code' 's@^        run: npm run e2e$@        run: npm run e2e || true@'
+lane_expect 1 'launders the exit code' 's@^\(          npm run e2e 2>&1 . node scripts/ci/artifact-allowlist.mjs --filter-log\)$@\1 || true@'
 
 title="wrapping the lane step in a subshell fails by name"
-lane_expect 1 'no step runs the browser lane' 's@^        run: npm run e2e$@        run: (npm run e2e); true@'
+lane_expect 1 'no step runs the browser lane' 's@^          \(npm run e2e 2>&1 . node scripts/ci/artifact-allowlist.mjs --filter-log\)$@          (\1); true@'
 
 title="if: false on the lane step fails by name"
 lane_expect 1 'must run unconditionally' 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        if: false|'
@@ -1056,7 +1056,7 @@ lane_expect 1 'not byte-equal to the pinned .start_image. step' \
 
 title="R3-H: the lane step run from another working-directory fails by name"
 lane_expect 1 'not byte-equal to the pinned .lane. step.*working-directory. not in the pin' \
-  's#^        run: npm run e2e$#        working-directory: e2e\n&#'
+  '/^      - name: Browser lane/,/^        run: |$/s#^        run: |$#        working-directory: e2e\n&#'
 
 title="R3-H: the floor step with its exit code laundered fails by name"
 lane_expect 1 'not byte-equal to the pinned .floor. step' \
@@ -1156,7 +1156,7 @@ pinned_pair_expect 1 'the .upload. pin is not gated on the redaction having SUCC
 title="R3-H pins: a working-directory on the lane in BOTH files fails by name"
 # shellcheck disable=SC2016 # $1 is PERL's capture group, not a shell expansion
 pinned_pair_expect 1 'the .lane. pin carries .working-directory.' \
-  's/^(\s+)(run: npm run e2e)$/$1working-directory: e2e\n$1$2/m'
+  's/^( +)(run: \|\n +set -euo pipefail\n +npm run e2e )/$1working-directory: e2e\n$1$2/m'
 
 title="R3-H pins: retention above the ceiling in BOTH files fails by name"
 pinned_pair_expect 1 'the ceiling is 3' \
@@ -1433,16 +1433,16 @@ lane_expect 1 'must be\s+exactly' 's|^      PLAYWRIGHT_NO_COPY_PROMPT: "1"$|    
 # ...and a `run:` line that clears it, in the four spellings someone would reach
 # for. A grep, and § Residuals says so - a script can compute the name.
 title="a run: step that unsets the variable fails by name"
-lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: unset PLAYWRIGHT_NO_COPY_PROMPT; npm run e2e|'
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^          npm run e2e 2>|          unset PLAYWRIGHT_NO_COPY_PROMPT; npm run e2e 2>|'
 
 title="a run: step with an empty export fails by name"
-lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: export PLAYWRIGHT_NO_COPY_PROMPT=; npm run e2e|'
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^          npm run e2e 2>|          export PLAYWRIGHT_NO_COPY_PROMPT=; npm run e2e 2>|'
 
 title="a run: step using env -u fails by name"
-lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: env -u PLAYWRIGHT_NO_COPY_PROMPT npm run e2e|'
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^          npm run e2e 2>|          env -u PLAYWRIGHT_NO_COPY_PROMPT npm run e2e 2>|'
 
 title="a run: step with a VAR= command prefix fails by name"
-lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^        run: npm run e2e$|        run: PLAYWRIGHT_NO_COPY_PROMPT= npm run e2e|'
+lane_expect 1 'removes .PLAYWRIGHT_NO_COPY_PROMPT' 's|^          npm run e2e 2>|          PLAYWRIGHT_NO_COPY_PROMPT= npm run e2e 2>|'
 
 # --- ALL THREE ENV SCOPES (FINDING 3) --------------------------------------
 # job and step level were red; the WORKFLOW-level block was never read.
