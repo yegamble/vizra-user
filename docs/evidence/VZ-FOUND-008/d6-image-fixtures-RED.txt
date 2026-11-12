@@ -1,4 +1,4 @@
-$ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
+$ bash scripts/ci/check-no-test-fixtures-in-image.sh vizra-user:demonstrate-with-fixtures
 
 ::error::fixture guard: the built image contains browser-harness files:
   app/e2e/
@@ -37,6 +37,8 @@ $ bash scripts/ci/check-no-test-fixtures-in-image.sh pr8close-a7x:with-fixtures
   app/e2e/specs/health.spec.ts
   app/e2e/specs/home.spec.ts
   app/e2e/specs/production-build.spec.ts
+  app/e2e/specs/security-headers.spec.ts
+  app/e2e/specs/shell.spec.ts
   The harness must never ship. Check .dockerignore and the Dockerfile's COPY lines.
 
 [exit 1]

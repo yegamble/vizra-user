@@ -1,6 +1,31 @@
 $ bash -c ls test-results/*/error-context.md > /dev/null && echo "error-context.md written: yes" && bash scripts/ci/redact-artifacts.sh test-results playwright-report
 
 error-context.md written: yes
+REFUSED test-results/.last-run.json not-staged
+REFUSED test-results/__snapshot-a-failing-test--e1053-e-field-holds-a-typed-value-desktop-chromium-1440/error-context.md not-staged
+REFUSED test-results/__snapshot-a-failing-test--e1053-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip not-staged
+REFUSED playwright-report/data/6e1ebc0fdcefb31372f3a084404847e8c3b9b102.md not-staged
+REFUSED playwright-report/data/a3c173ee5df5ee4598fd05a45a322d172d3fd5f7.zip not-staged
+REFUSED playwright-report/index.html not-staged
+REFUSED playwright-report/trace/assets/codeMirrorModule-BbkfBe3n.js not-staged
+REFUSED playwright-report/trace/assets/defaultSettingsView-Ds6CBOo0.js not-staged
+REFUSED playwright-report/trace/assets/urlMatch-L3liM589.js not-staged
+REFUSED playwright-report/trace/codeMirrorModule.-QdMvsKi.css not-staged
+REFUSED playwright-report/trace/codicon.DCmgc-ay.ttf not-staged
+REFUSED playwright-report/trace/defaultSettingsView.Bqk9acqE.css not-staged
+REFUSED playwright-report/trace/index.B4cLoZK3.js not-staged
+REFUSED playwright-report/trace/index.B_TqY17P.css not-staged
+REFUSED playwright-report/trace/index.html not-staged
+REFUSED playwright-report/trace/manifest.webmanifest not-staged
+REFUSED playwright-report/trace/playwright-logo.svg not-staged
+REFUSED playwright-report/trace/snapshot.B_Jk1wbt.js not-staged
+REFUSED playwright-report/trace/snapshot.html not-staged
+REFUSED playwright-report/trace/sw.bundle.js not-staged
+REFUSED playwright-report/trace/uiMode.CU5KtEkS.js not-staged
+REFUSED playwright-report/trace/uiMode.CyMfwkXJ.css not-staged
+REFUSED playwright-report/trace/uiMode.html not-staged
+REFUSED playwright-report/trace/xtermModule.kHJ-D0s7.css not-staged
+OK: staged admitted files into artifact-upload (24 refused, listed above)
 OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 23 file(s) and 2 archive(s), and no page snapshot is present, across: test-results playwright-report
 
 [exit 0]

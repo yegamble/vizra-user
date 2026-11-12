@@ -1,6 +1,35 @@
 $ bash -c echo "\$ bash -e -c \"$1\""; bash -e -c "$1"; rc=$?; echo "[exit $rc]"; exit "$rc" _ bash scripts/ci/redact-artifacts.sh test-results playwright-report || true
 
 $ bash -e -c "bash scripts/ci/redact-artifacts.sh test-results playwright-report || true"
+REFUSED test-results/.last-run.json not-staged
+REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440/trace.zip not-staged
+REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/trace.zip not-staged
+REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/trace.zip not-staged
+REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/trace.zip not-staged
+REFUSED playwright-report/data/04983e46e33218b3c6b63d1080e844489ff1bbac.zip not-staged
+REFUSED playwright-report/data/1122ea978923c0744865b8c6b1aaeda5eae01d25.zip not-staged
+REFUSED playwright-report/data/3d9083368efed770276a008bc4c008afcba37083.zip not-staged
+REFUSED playwright-report/data/cb76f160633d07c0cfc9eafb34218529e9fd2cd4.zip not-staged
+REFUSED playwright-report/index.html not-staged
+REFUSED playwright-report/trace/assets/codeMirrorModule-BbkfBe3n.js not-staged
+REFUSED playwright-report/trace/assets/defaultSettingsView-Ds6CBOo0.js not-staged
+REFUSED playwright-report/trace/assets/urlMatch-L3liM589.js not-staged
+REFUSED playwright-report/trace/codeMirrorModule.-QdMvsKi.css not-staged
+REFUSED playwright-report/trace/codicon.DCmgc-ay.ttf not-staged
+REFUSED playwright-report/trace/defaultSettingsView.Bqk9acqE.css not-staged
+REFUSED playwright-report/trace/index.B4cLoZK3.js not-staged
+REFUSED playwright-report/trace/index.B_TqY17P.css not-staged
+REFUSED playwright-report/trace/index.html not-staged
+REFUSED playwright-report/trace/manifest.webmanifest not-staged
+REFUSED playwright-report/trace/playwright-logo.svg not-staged
+REFUSED playwright-report/trace/snapshot.B_Jk1wbt.js not-staged
+REFUSED playwright-report/trace/snapshot.html not-staged
+REFUSED playwright-report/trace/sw.bundle.js not-staged
+REFUSED playwright-report/trace/uiMode.CU5KtEkS.js not-staged
+REFUSED playwright-report/trace/uiMode.CyMfwkXJ.css not-staged
+REFUSED playwright-report/trace/uiMode.html not-staged
+REFUSED playwright-report/trace/xtermModule.kHJ-D0s7.css not-staged
+OK: staged admitted files into artifact-upload (28 refused, listed above)
 OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 21 file(s) and 8 archive(s), and no page snapshot is present, across: test-results playwright-report
 [exit 0]
 

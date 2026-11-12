@@ -10,6 +10,18 @@ Listing tests:
   [desktop-chromium-1440] › home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow
   [desktop-chromium-1440] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
   [desktop-chromium-1440] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
+  [desktop-chromium-1440] › security-headers.spec.ts:24:9 › security headers on the production build › / is served with the enforcing policy and the static headers
+  [desktop-chromium-1440] › security-headers.spec.ts:24:9 › security headers on the production build › /health is served with the enforcing policy and the static headers
+  [desktop-chromium-1440] › security-headers.spec.ts:63:7 › security headers on the production build › the nonce is different on every response
+  [desktop-chromium-1440] › security-headers.spec.ts:71:7 › security headers on the production build › a static asset is served nosniff too
+  [desktop-chromium-1440] › security-headers.spec.ts:99:7 › the policy is enforced, not merely sent › an inline script without the nonce does not run
+  [desktop-chromium-1440] › shell.spec.ts:13:7 › app shell › has one banner, one main, and the skip link first in the document
+  [desktop-chromium-1440] › shell.spec.ts:24:7 › app shell › the skip link is the first Tab stop, becomes visible, and moves focus to main
+  [desktop-chromium-1440] › shell.spec.ts:68:7 › app shell › the wordmark is a link home with a 44 px target
+  [desktop-chromium-1440] › shell.spec.ts:80:7 › app shell › the shell offers no control whose destination does not exist
+  [desktop-chromium-1440] › shell.spec.ts:88:9 › app shell › tokens resolve to the light palette when the system prefers light
+  [desktop-chromium-1440] › shell.spec.ts:88:9 › app shell › tokens resolve to the dark palette when the system prefers dark
+  [desktop-chromium-1440] › shell.spec.ts:122:7 › app shell › an explicit data-theme overrides the system preference in both directions
   [mobile-chromium-390] › health.spec.ts:16:7 › health page › reports liveness for vizra-user
   [mobile-chromium-390] › health.spec.ts:25:7 › health page › does not claim readiness and leaks no build metadata
   [mobile-chromium-390] › health.spec.ts:51:7 › health page › is rendered per request rather than served from a build-time cache
@@ -19,7 +31,19 @@ Listing tests:
   [mobile-chromium-390] › home.spec.ts:66:7 › home placeholder › the layout fits the viewport with no horizontal overflow
   [mobile-chromium-390] › production-build.spec.ts:23:7 › the target is the production build › shows every production marker and no development marker
   [mobile-chromium-390] › production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route
-Total: 18 tests in 3 files
+  [mobile-chromium-390] › security-headers.spec.ts:24:9 › security headers on the production build › / is served with the enforcing policy and the static headers
+  [mobile-chromium-390] › security-headers.spec.ts:24:9 › security headers on the production build › /health is served with the enforcing policy and the static headers
+  [mobile-chromium-390] › security-headers.spec.ts:63:7 › security headers on the production build › the nonce is different on every response
+  [mobile-chromium-390] › security-headers.spec.ts:71:7 › security headers on the production build › a static asset is served nosniff too
+  [mobile-chromium-390] › security-headers.spec.ts:99:7 › the policy is enforced, not merely sent › an inline script without the nonce does not run
+  [mobile-chromium-390] › shell.spec.ts:13:7 › app shell › has one banner, one main, and the skip link first in the document
+  [mobile-chromium-390] › shell.spec.ts:24:7 › app shell › the skip link is the first Tab stop, becomes visible, and moves focus to main
+  [mobile-chromium-390] › shell.spec.ts:68:7 › app shell › the wordmark is a link home with a 44 px target
+  [mobile-chromium-390] › shell.spec.ts:80:7 › app shell › the shell offers no control whose destination does not exist
+  [mobile-chromium-390] › shell.spec.ts:88:9 › app shell › tokens resolve to the light palette when the system prefers light
+  [mobile-chromium-390] › shell.spec.ts:88:9 › app shell › tokens resolve to the dark palette when the system prefers dark
+  [mobile-chromium-390] › shell.spec.ts:122:7 › app shell › an explicit data-theme overrides the system preference in both directions
+Total: 42 tests in 5 files
 e2e coverage floor: DISABLED by E2E_COVERAGE_FLOOR=off. This run proves nothing about coverage; the lane never sets it.
 e2e harness stamp: OK (0 succeeding result(s) verified).
 

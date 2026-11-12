@@ -1,6 +1,7 @@
 $ node scripts/ci/check-coverage-floor-ran.mjs
 
-OK: the browser lane satisfied its coverage floor from the report (desktop-chromium-1440=9/9 mobile-chromium-390=9/9).
-OK: every succeeding result carried a valid harness stamp (18 verified, from .vizra-e2e/stamp-key.json).
+check-no-skipped-tests: 42 playwright test(s), none skipped/todo/fixme
+OK: the browser lane satisfied its coverage floor from the report (desktop-chromium-1440=21/21 mobile-chromium-390=21/21).
+OK: every succeeding result carried a valid harness stamp (42 verified, from .vizra-e2e/stamp-key.json).
 
 [exit 0]
