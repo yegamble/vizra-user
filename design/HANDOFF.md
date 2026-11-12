@@ -36,7 +36,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `IconButton` | `8:104` | `4:22` | `Kind` Secondary\|Quiet\|Danger\|On media; `State` Default\|Hover\|Pressed\|Focus\|Disabled; `Icon` | `components/ui/IconButton.tsx` | IMPLEMENTED |
 | `TextField` | `9:42` | `4:23` | `State` Default\|Hover\|Focus\|Error\|Disabled | `components/ui/TextField.tsx` | IMPLEMENTED |
 | `Textarea` | `9:83` | `4:23` | same as TextField | `components/ui/Textarea.tsx` | IMPLEMENTED |
-| `Select` | `9:139` | `4:23` | same as TextField | — | PLANNED |
+| `Select` | `9:139` | `4:23` | same as TextField | `components/ui/Select.tsx` | IMPLEMENTED |
 | `Checkbox` | `10:66` | `4:24` | `Checked` Off\|On\|Mixed; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Switch` | `10:144` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |

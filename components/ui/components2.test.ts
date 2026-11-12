@@ -33,3 +33,28 @@ describe("Textarea (Figma 9:83)", () => {
     expect(html).toContain("disabled:bg-bg-tint");
   });
 });
+
+import { Select } from "./Select";
+
+describe("Select (Figma 9:139)", () => {
+  const options = [{ value: "a", label: "Newest" }, { value: "b", label: "Oldest" }];
+  it("Default: native select labelled by visible label, options, decorative chevron", () => {
+    const html = r(h(Select, { label: "Sort", options }));
+    const id = idOf(html, /<label for="([^"]+)"/);
+    expect(html).toContain(`<select id="${id}"`);
+    expect(html).toContain('<option value="a">Newest</option>');
+    expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(html).not.toContain("aria-invalid");
+    expect(html).toContain("focus-visible:outline-focus-ring");
+  });
+  it("Error: aria-invalid + describedby error text", () => {
+    const html = r(h(Select, { label: "Sort", options, error: "Pick one" }));
+    expect(html).toContain('aria-invalid="true"');
+    const eid = idOf(html, /aria-describedby="([^"]+)"/);
+    expect(html).toContain(`id="${eid}"`);
+    expect(html).toContain("Pick one");
+  });
+  it("Disabled: native disabled", () => {
+    expect(r(h(Select, { label: "Sort", options, disabled: true }))).toContain('disabled=""');
+  });
+});
