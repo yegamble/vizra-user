@@ -43,17 +43,17 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `Chip` | `11:54` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Chip.tsx` | IMPLEMENTED |
 | `Tab` | `11:79` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus | `components/ui/Tabs.tsx` | IMPLEMENTED |
 | `PhotoCard` | `12:263` | `4:26` | `Aspect` Landscape 3:2\|Square 1:1\|Portrait 4:5; `State` Default\|Sensitive\|Loading | — | PLANNED |
-| `Avatar` | `14:56` | `4:27` | `Size` XS\|SM\|MD\|LG; `Type` Image\|Initials\|Fallback | — | PLANNED |
+| `Avatar` | `14:56` | `4:27` | `Size` XS\|SM\|MD\|LG; `Type` Image\|Initials\|Fallback | `components/ui/Avatar.tsx` | IMPLEMENTED |
 | `TabBar Item` / `TabBar` | `15:31` / `15:32` | `4:28` | `Selected` No\|Yes; `State` Default\|Focus | — | PLANNED |
 | `TopNav` | `15:74` | `4:28` | single | superseded at M1 by `TopNav / M1` below | — |
 | `TopNav / M1` | `30:770` | `4:28` | `State` Signed out\|Signed in | `components/shell/TopBar.tsx` (wordmark only) | PARTIAL |
 | `AppBar / M1` | `30:814` | `4:28` | `State` Signed out\|Signed in | `components/shell/TopBar.tsx`, `components/shell/SkipLink.tsx` | PARTIAL |
 | `Dialog` | `16:43` | `4:29` | `Kind` Standard\|Destructive | — | PLANNED |
-| `Toast / Inline status` | `17:40` | `4:30` | `Tone` Success\|Error\|Info | — | PLANNED |
-| `Banner` | `17:68` | `4:30` | `Tone` Info\|Warn\|Danger | — | PLANNED |
-| `Skeleton` | `17:72` | `4:30` | `Shape` Line\|Block\|Circle | — | PLANNED |
-| `EmptyState` | `17:95` | `4:30` | `Kind` Empty\|No results | — | PLANNED |
-| `ErrorState` | `17:96` | `4:30` | single | — | PLANNED |
+| `Toast / Inline status` | `17:40` | `4:30` | `Tone` Success\|Error\|Info | `components/ui/Toast.tsx` | IMPLEMENTED |
+| `Banner` | `17:68` | `4:30` | `Tone` Info\|Warn\|Danger | `components/ui/Banner.tsx` | IMPLEMENTED |
+| `Skeleton` | `17:72` | `4:30` | `Shape` Line\|Block\|Circle | `components/ui/Skeleton.tsx` | IMPLEMENTED |
+| `EmptyState` | `17:95` | `4:30` | `Kind` Empty\|No results | `components/ui/EmptyState.tsx` | IMPLEMENTED |
+| `ErrorState` | `17:96` | `4:30` | single | `components/ui/ErrorState.tsx` | IMPLEMENTED |
 
 ## 3. Brand mark
 

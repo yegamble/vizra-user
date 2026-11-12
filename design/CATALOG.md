@@ -109,6 +109,12 @@ props. Tests: `components/ui/components.test.ts`.
 | Radio | `10:103` | `components/ui/Radio.tsx` (`RadioGroup`) | `options`, `value` | on/off, default, hover, focus-visible, disabled (option or group); `<fieldset>`/`<legend>`, native arrow keys |
 | Switch | `10:144` | `components/ui/Switch.tsx` | `checked` | on/off (thumb position), default, hover, focus-visible, disabled; native checkbox + `role="switch"`, reduced motion |
 | Chip | `11:54` | `components/ui/Chip.tsx` | `selected` → `aria-pressed` + `icon/Check` | default, hover, focus-visible, disabled; native toggle button; drawn 32px, hit area 44px (`min-h-touch-min`) |
+| Avatar | `14:56` | `components/ui/Avatar.tsx` | `size` xs/sm/md/lg (24/32/40/64); Image when `src`, else Initials, else Fallback | named by caller `name` (img alt / role=img); no default image or name |
+| Toast / Inline status | `17:40` | `components/ui/Toast.tsx` | `tone` success/info → `role=status aria-live=polite`; error → `role=alert` + required `action` | message required, no default text, no auto-dismiss timer |
+| Banner | `17:68` | `components/ui/Banner.tsx` | `tone` info/warn/danger | named `<section>`, icon + text, not a live region |
+| Skeleton | `17:72` | `components/ui/Skeleton.tsx` | `shape` line/block/circle | `aria-hidden`, static tint (no shimmer) |
+| EmptyState | `17:95` | `components/ui/EmptyState.tsx` | `kind` empty/noResults | caller copy and optional real action |
+| ErrorState | `17:96` | `components/ui/ErrorState.tsx` | single | required `onRetry` native button; caller supplies sanitised copy |
 | Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
 
 Not yet built (PLANNED):
