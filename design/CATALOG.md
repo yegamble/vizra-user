@@ -108,7 +108,7 @@ props. Tests: `components/ui/components.test.ts`.
 | Checkbox | `10:66` | `components/ui/Checkbox.tsx` | `checked`: off, on, mixed (DOM `indeterminate`) | default, hover, focus-visible, disabled; native checkbox, `line` off boundary |
 | Radio | `10:103` | `components/ui/Radio.tsx` (`RadioGroup`) | `options`, `value` | on/off, default, hover, focus-visible, disabled (option or group); `<fieldset>`/`<legend>`, native arrow keys |
 | Switch | `10:144` | `components/ui/Switch.tsx` | `checked` | on/off (thumb position), default, hover, focus-visible, disabled; native checkbox + `role="switch"`, reduced motion |
-| Chip | `11:54` | `components/ui/Chip.tsx` | `selected` → `aria-pressed` + `icon/Check` | default, hover, focus-visible, disabled; native toggle button |
+| Chip | `11:54` | `components/ui/Chip.tsx` | `selected` → `aria-pressed` + `icon/Check` | default, hover, focus-visible, disabled; native toggle button; drawn 32px, hit area 44px (`min-h-touch-min`) |
 | Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
 
 Not yet built (PLANNED):

@@ -148,6 +148,11 @@ describe("Chip (Figma 11:54)", () => {
   it("State=Disabled: native disabled", () => {
     expect(r(h(Chip, { label: "x", selected: false, disabled: true }))).toContain('disabled=""');
   });
+  it("hit area is 44px (touch-min) while the drawn pill stays 32px (control-sm)", () => {
+    const html = r(h(Chip, { label: "x", selected: false }));
+    expect(html).toMatch(/^<button[^>]*class="[^"]*min-h-touch-min/);
+    expect(html).toMatch(/<span class="[^"]*h-control-sm/);
+  });
 });
 
 describe("Tab (Figma 11:79)", () => {
