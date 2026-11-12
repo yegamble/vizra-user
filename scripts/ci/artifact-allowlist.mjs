@@ -162,7 +162,51 @@ export function gateLog(file) {
 // error-context.md is NOT here: it is page text (outline) plus the failure
 // message; the failure message reaches SUMMARY.txt redacted, from results.json,
 // so the page-content half never needs to leave the runner.
-export const STAGED_FILES = [/\.png$/i, /\.jpe?g$/i, /\.webm$/i, /(^|\/)results\.json$/];
+// F-1: results.json is NOT staged: it carries assertion Expected/Received values
+// (a typed password), error stacks and attachment bodies. SUMMARY.txt is built
+// from an allow-list of its fields instead (see summarize()).
+// F-2: media is staged only after mediaVerdict() admits it.
+export const STAGED_FILES = [/\.png$/i, /\.jpe?g$/i, /\.webm$/i];
+const MEDIA = /\.(png|jpe?g|webm|zip)$/i;
+export const AUTH_TAG = "@authenticated";
+const MEDIA_ALLOWLIST_FILE = new URL("./artifact-media-allowlist.json", import.meta.url);
+export function loadMediaAllowlist() {
+  const j = JSON.parse(readFileSync(MEDIA_ALLOWLIST_FILE, "utf8"));
+  if (!Array.isArray(j.entries)) throw new Error("artifact-media-allowlist.json: entries must be an array");
+  return j.entries;
+}
+
+// Map each attachment path (as a suffix under one of the artifact dirs) to the
+// spec file and tags of the test that produced it.
+function attachmentOwners(results) {
+  const owners = new Map();
+  const visit = (suite, file) => {
+    for (const spec of suite.specs ?? []) {
+      const tags = [...(spec.tags ?? [])];
+      for (const t of spec.tests ?? []) {
+        const all = [...tags, ...(t.tags ?? []), ...(t.annotations ?? []).map((a) => a.type)];
+        for (const r of t.results ?? []) for (const a of r.attachments ?? []) {
+          if (a.path) owners.set(String(a.path).replace(/\\/g, "/"), { spec: spec.file ?? file, tags: all });
+        }
+      }
+    }
+    for (const s of suite.suites ?? []) visit(s, s.file ?? file);
+  };
+  for (const s of results.suites ?? []) visit(s, s.file);
+  return owners;
+}
+
+// Returns null (admit) or a refusal rule. Default-deny: unknown owner, no entry,
+// an entry without a reason, or an authenticated test -> refused.
+function mediaVerdict(label, owners, allow) {
+  let owner = null;
+  for (const [path, o] of owners) if (path === label || path.endsWith(`/${label}`)) { if (owner && owner.spec !== o.spec) return "media-ambiguous-owner"; owner = owner ? { ...o, tags: [...owner.tags, ...o.tags] } : o; }
+  if (owner?.tags.some((t) => String(t).toLowerCase() === AUTH_TAG)) return "media-authenticated-spec";
+  if (!owner) return "media-not-opted-in";
+  const entry = allow.find((e) => e && e.spec === owner.spec);
+  if (!entry || typeof entry.reason !== "string" || !entry.reason.trim()) return "media-not-opted-in";
+  return null;
+}
 
 // Redaction for SUMMARY.txt (the separator is dropped so the re-scan rule
 // `header-value` does not fire on the redacted line): URL queries, token shapes, header values, emails.
@@ -177,6 +221,16 @@ export function redactText(t) {
     .replace(/\b[A-Za-z0-9_-]{32,}\b/g, "<redacted-token>");
 }
 
+// F-1 DEFAULT-DENY: of an error message only the matcher header
+// (`expect(...).toX(...) failed`) and the `Locator:` line pass; Expected,
+// Received, call logs, stacks, values and free-form messages are dropped.
+const MESSAGE_LINE_ALLOW = [/^(Error: )?expect\([^\n]*\)(\.not)?\.\w+\([^\n]*\)( failed)?$/, /^Locator: /, /^(Error: )?Timed? ?out\b[^"'`]*$/i, /^Test timeout of \d+ms exceeded\.?$/];
+function allowedMessageLines(message) {
+  const lines = String(message ?? "").replace(/\x1b\[[0-9;]*m/g, "").split("\n").map((l) => l.trim());
+  const kept = lines.filter((l) => MESSAGE_LINE_ALLOW.some((re) => re.test(l)));
+  return kept.length < lines.filter(Boolean).length ? [...kept, "(other message lines withheld from upload; see the job log)"] : kept;
+}
+
 export function summarize(results) {
   const out = [];
   const visit = (suite, file) => {
@@ -185,7 +239,7 @@ export function summarize(results) {
       const errs = r.errors?.length ? r.errors : r.error ? [r.error] : [{}];
       for (const e of errs) {
         const loc = e.location ? `${e.location.file}:${e.location.line}` : `${spec.file ?? file}:${spec.line ?? "?"}`;
-        out.push(`FAILED [${t.projectName ?? ""}] ${spec.title} (${r.status})\n  at ${loc}\n  ${String(e.message ?? "").split("\n").join("\n  ")}`);
+        out.push(`FAILED [${t.projectName ?? ""}] ${spec.title} (${r.status})\n  at ${loc}${allowedMessageLines(e.message).map((l) => `\n  ${l}`).join("")}`);
       }
     }
     for (const s of suite.suites ?? []) visit(s, s.file ?? file);
@@ -194,11 +248,20 @@ export function summarize(results) {
   return redactText(out.join("\n\n") || "no failed test recorded in results.json") + "\n";
 }
 
-export function stage(out, dirs) {
+export function stage(out, dirs, { mediaAllowlist = loadMediaAllowlist() } = {}) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const refused = [];
   const failures = [];
+  // Pass 1: owners of every attachment, from every results.json, before any media is judged.
+  const owners = new Map();
+  for (const d of dirs) {
+    if (!statSync(d, { throwIfNoEntry: false })?.isDirectory()) continue;
+    for (const [p, special] of files(d)) {
+      if (special || !/(^|\/)results\.json$/.test(p)) continue;
+      try { for (const [k, v] of attachmentOwners(JSON.parse(readFileSync(p, "utf8")))) owners.set(k, owners.has(k) ? { ...v, tags: [...owners.get(k).tags, ...v.tags] } : v); } catch { /* reported in pass 2 */ }
+    }
+  }
   for (const d of dirs) {
     if (!statSync(d, { throwIfNoEntry: false })?.isDirectory()) { refused.push([d, "not-a-directory"]); continue; }
     for (const [p, special] of files(d)) {
@@ -212,6 +275,7 @@ export function stage(out, dirs) {
       if (!STAGED_FILES.some((re) => re.test(label))) { refused.push([label, "not-staged"]); continue; }
       const r = checkFile(p, label);
       if (r.length) { refused.push(...r); continue; }
+      if (MEDIA.test(label)) { const v = mediaVerdict(label, owners, mediaAllowlist); if (v) { refused.push([label, v]); continue; } }
       const dest = join(out, label.replace(/^(\.\.\/|\/)+/, ""));
       mkdirSync(dirname(dest), { recursive: true });
       copyFileSync(p, dest);

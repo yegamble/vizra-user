@@ -1,0 +1,10 @@
+
+ RUN  v5.0.3 /Users/yosefgamble/github/vizra/.claude/worktrees/user-2f-leaks
+
+ ✓ scripts/ci/artifact-allowlist.test.mjs (24 tests) 762ms
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  13:18:32
+   Duration  859ms (tests 96%, transform 3%, import 1%)
+

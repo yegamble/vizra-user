@@ -1,0 +1,4 @@
+{
+  "_comment": "QUEUE-2f F-2. DEFAULT-DENY: screenshots/videos (png/jpeg/webm) are staged for upload ONLY for a spec listed here with a non-empty reason, and NEVER for a test tagged @authenticated, whatever this file says. Each entry: {\"spec\": \"<spec file as in results.json>\", \"reason\": \"<why its pixels cannot hold private data>\"}. Adding an entry needs review.",
+  "entries": []
+}

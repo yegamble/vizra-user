@@ -148,8 +148,8 @@ const RECORD_BROWSERS_COMMAND = [
   "npx playwright install --dry-run chromium | tee playwright-browsers.txt",
 ].join("\n");
 /**
- * The redaction AND the page-snapshot upload gate. Both directories: `results.json`
- * is uploaded and lives in `playwright-report/`. The script itself refuses a
+ * The redaction AND the page-snapshot upload gate. Both directories: the redactor
+ * and stager read `playwright-report/results.json` (never uploaded itself). The script itself refuses a
  * directory that does not exist (exit 3), so no argument can empty the gate.
  */
 const REDACT_COMMAND = "bash scripts/ci/redact-artifacts.sh test-results playwright-report";
@@ -1059,19 +1059,23 @@ try {
 // to this file.
 //
 // Re-encoding it would be a fifth URL-shape prediction after four rounds. It is
-// dropped from the upload instead. Nothing diagnostic is lost: `test-results/`
-// still holds `trace.zip`, the screenshot, the video and `error-context.md`, and
-// `npx playwright show-trace test-results/<test>/trace.zip` opens the trace
-// without the HTML report at all. `playwright-report/data/` was a second,
+// dropped from the upload instead. Since QUEUE-2f F-1/F-2 raw `test-results/`
+// is not uploaded either: a failing run publishes only the redacted
+// `artifact-upload/SUMMARY.txt` (plus media for explicitly allowlisted specs);
+// traces stay on the runner and are reproduced locally with
+// `npx playwright show-trace test-results/<test>/trace.zip`. `playwright-report/data/` was a second,
 // byte-identical copy of the same traces, so dropping it removes a duplicate
 // rather than a capability.
 const ALLOWED_UPLOAD_PATHS = new Set([
-  "test-results/",
-  "playwright-report/results.json",
+  // QUEUE-2f F-1/F-2: raw `test-results/` and `playwright-report/results.json`
+  // are NOT uploadable. results.json carries assertion received values verbatim,
+  // and test-results/ carries unredacted screenshots/video. Only the filtered
+  // staging tree written by `artifact-allowlist.mjs --stage` (called from
+  // redact-artifacts.sh) leaves the runner: a redacted SUMMARY.txt (matcher
+  // header, Locator and timeouts only — values withheld) plus media ONLY for
+  // specs listed with a reason in scripts/ci/artifact-media-allowlist.json
+  // (shipped empty) and never for @authenticated tests.
   "playwright-browsers.txt",
-  // QUEUE-2f session 3: the filtered staging tree written by
-  // `artifact-allowlist.mjs --stage` (called from redact-artifacts.sh), holding
-  // only admitted screenshots/video/results.json plus a redacted SUMMARY.txt.
   "artifact-upload/",
   // NOTHING IS ALLOWLISTED BEFORE IT EXISTS. An earlier draft carried
   // `e2e-failure-summary/` here for the authenticated lane, which is a different

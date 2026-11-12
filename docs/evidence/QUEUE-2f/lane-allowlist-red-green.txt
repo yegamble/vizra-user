@@ -1,0 +1,4 @@
+not ok 113 - a gated upload of raw playwright-report/results.json is refused by the allowlist (F-1): output does not match /uploads .playwright-report/results.json., which is not on the allowlist/: ::error::the e2e lane no longer tests what it claims to test:   job `e2e` step 16 (Upload raw results) mentions an artifact directory, `steps.redact`, the uploader `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f
+not ok 114 - a gated upload of raw test-results/ media is refused by the allowlist (F-2): output does not match /uploads .test-results/., which is not on the allowlist/: ::error::the e2e lane no longer tests what it claims to test:   job `e2e` step 16 (Upload raw media) mentions an artifact directory, `steps.redact`, the uploader `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43
+require-checks_test: 237 cases, 244 assertions, 2 failed
+require-checks_test: 237 cases, 244 assertions, 0 failed
