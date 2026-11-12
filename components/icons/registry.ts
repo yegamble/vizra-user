@@ -15,7 +15,7 @@
  * for delete, and in 1.46.0 `Trash2` is only an alias of `Trash`.
  *
  * Adding an icon: add the import and the entry here, add the row to
- * `design/HANDOFF.md` with its Figma node, and the test does the rest. Do not
+ * `design/HANDOFF.md` §4 with its Figma node, and the test does the rest. Do not
  * add an icon the accepted design does not name.
  */
 
