@@ -38,7 +38,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `Textarea` | `9:83` | `4:23` | same as TextField | `components/ui/Textarea.tsx` | IMPLEMENTED |
 | `Select` | `9:139` | `4:23` | same as TextField | `components/ui/Select.tsx` | IMPLEMENTED |
 | `Checkbox` | `10:66` | `4:24` | `Checked` Off\|On\|Mixed; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Checkbox.tsx` | IMPLEMENTED |
-| `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
+| `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Radio.tsx` | IMPLEMENTED |
 | `Switch` | `10:144` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Chip` | `11:54` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Tab` | `11:79` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus | — | PLANNED |
