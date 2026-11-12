@@ -1,0 +1,11 @@
+
+ RUN  v5.0.3 /Users/yosefgamble/github/vizra/.claude/worktrees/user-2f
+
+ ✓ scripts/ci/artifact-allowlist.test.mjs (16 tests) 680ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  10:19:37
+   Duration  784ms (tests 97%, transform 2%, import 1%)
+
+exit 0

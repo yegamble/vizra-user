@@ -22,7 +22,7 @@
     "project's minimum in the same diff, so the ratchet only ever goes up."
   ],
   "projects": {
-    "desktop-chromium-1440": 9,
-    "mobile-chromium-390": 9
+    "desktop-chromium-1440": 21,
+    "mobile-chromium-390": 21
   }
 }

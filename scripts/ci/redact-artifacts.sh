@@ -233,4 +233,13 @@ for dir in "${dirs[@]}"; do
   refuse_page_snapshots "$dir" "$dir"
 done
 
+# QUEUE-2f: DEFAULT-DENY allowlist over the REDACTED trees. Any file type,
+# zip member or content shape not on the allowlist (header values, bodies, DOM
+# snapshots, call parameters, console text, scheme-less URL queries) refuses
+# that file (session 3: filtered, not all-or-nothing). See scripts/ci/artifact-allowlist.mjs.
+# Session 3: FILTERED upload. Only admitted files are copied into the staging
+# tree (plus a redacted SUMMARY.txt); refused files are listed by path and rule.
+# Exit non-zero only if the re-scanned staging tree itself holds anything forbidden.
+node scripts/ci/artifact-allowlist.mjs --stage "${VZ_ARTIFACT_STAGE:-artifact-upload}" "${dirs[@]}" || exit 1
+
 echo "OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in ${total_files} file(s) and ${total_zips} archive(s), and no page snapshot is present, across: ${dirs[*]}"

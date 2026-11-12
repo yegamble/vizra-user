@@ -67,3 +67,6 @@ yarn-error.log*
 /.vizra-e2e
 /e2e/specs/__guard.spec.ts
 /.console-error.demo.ts.bak
+
+# staging output of the filtered e2e artifact upload
+artifact-upload/

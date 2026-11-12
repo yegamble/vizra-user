@@ -13,9 +13,9 @@ Running 4 tests using 4 workers
 
     Error: this is not a production build — the browser lane must never run against `next dev`:
       - the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
         ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
@@ -35,23 +35,27 @@ Running 4 tests using 4 workers
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
 
     expect(received).toEqual(expected) // deep equality
 
     - Expected  -  1
-    + Received  + 25
+    + Received  + 27
 
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
     +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
+    +     cache-control: no-cache, must-revalidate
+    +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
@@ -77,22 +81,118 @@ Running 4 tests using 4 workers
       41 |   test("the same markers hold on a dynamic route", async ({ page }) => {
         at <repo>/e2e/specs/production-build.spec.ts:38:7
 
-    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    Error: The page produced 33 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+    33 DURING THE TEST:
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-fUG1Km4A0TWPiE1F1BoWVA==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/
 
     A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
@@ -100,7 +200,7 @@ Running 4 tests using 4 workers
     group owns it — or in a test.
 
     See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -124,9 +224,9 @@ Running 4 tests using 4 workers
   2) [desktop-chromium-1440] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
 
     Error: the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
         ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
@@ -146,23 +246,27 @@ Running 4 tests using 4 workers
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
 
     expect(received).toEqual(expected) // deep equality
 
     - Expected  -  1
-    + Received  + 25
+    + Received  + 27
 
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
     +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
+    +     cache-control: no-cache, must-revalidate
+    +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
@@ -188,22 +292,118 @@ Running 4 tests using 4 workers
       53 |
         at <repo>/e2e/specs/production-build.spec.ts:50:43
 
-    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    Error: The page produced 33 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+    33 DURING THE TEST:
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-QZxi2J0hDwyVN8ViG0Zc/g==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/health
 
     A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
@@ -211,7 +411,7 @@ Running 4 tests using 4 workers
     group owns it — or in a test.
 
     See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -236,9 +436,9 @@ Running 4 tests using 4 workers
 
     Error: this is not a production build — the browser lane must never run against `next dev`:
       - the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js
       - the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
         ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
       - the Next development overlay (<nextjs-portal>) is in the document.
@@ -258,23 +458,27 @@ Running 4 tests using 4 workers
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
 
     expect(received).toEqual(expected) // deep equality
 
     - Expected  -  1
-    + Received  + 25
+    + Received  + 27
 
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
     +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
+    +     cache-control: no-cache, must-revalidate
+    +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
@@ -300,22 +504,118 @@ Running 4 tests using 4 workers
       41 |   test("the same markers hold on a dynamic route", async ({ page }) => {
         at <repo>/e2e/specs/production-build.spec.ts:38:7
 
-    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    Error: The page produced 33 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+    33 DURING THE TEST:
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-vIxY29Bidz8u2qPYh9zLmg==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/
 
     A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
@@ -323,7 +623,7 @@ Running 4 tests using 4 workers
     group owns it — or in a test.
 
     See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
@@ -347,9 +647,9 @@ Running 4 tests using 4 workers
   4) [mobile-chromium-390] › e2e/specs/production-build.spec.ts:41:7 › the target is the production build › the same markers hold on a dynamic route 
 
     Error: the page requested development-only bundles, so this is not a production build:
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+        http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+        http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js
     the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
         ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>
     the Next development overlay (<nextjs-portal>) is in the document.
@@ -369,23 +669,27 @@ Running 4 tests using 4 workers
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
         cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
+        cache-control: no-cache, must-revalidate
 
     expect(received).toEqual(expected) // deep equality
 
     - Expected  -  1
-    + Received  + 25
+    + Received  + 27
 
     - Array []
     + Array [
     +   "the page requested development-only bundles, so this is not a production build:
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1di75ot._.js
-    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js
-    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsay._.js",
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js
+    +     http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js
+    +     http://127.0.0.1:3212/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
     +   "the page opened 1 WebSocket(s); the production build opens none (a dev server opens the HMR socket):
     +     ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>",
     +   "the Next development overlay (<nextjs-portal>) is in the document.",
     +   "the RSC flight build id is \"development\": this server is `next dev`.",
     +   "/_next/static/ responses are not immutably cached, which is the development behaviour:
+    +     cache-control: no-cache, must-revalidate
+    +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
     +     cache-control: no-cache, must-revalidate
@@ -411,22 +715,118 @@ Running 4 tests using 4 workers
       53 |
         at <repo>/e2e/specs/production-build.spec.ts:50:43
 
-    Error: The page produced 1 browser error(s) that no allow-list entry covers.
+    Error: The page produced 33 browser error(s) that no allow-list entry covers.
     AGENTS.md: console and network errors are failures, not noise.
 
-    1 DURING THE TEST:
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+    33 DURING THE TEST:
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+          at: http://127.0.0.1:3212/health
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/health
 
     No allow-list is in force. If one of these is genuinely expected, declare it with
     test.use({ browserErrorPolicy: { allow: [{ kind, match, reason }] } }) and say why in the reason.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-4GzqRlwcGp7cD3kA… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-OpIODBPkpoiPLrmW… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-exsY7OwkzwRZ1WX8… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-ycf8S3nPxP73PrOf… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-1Rgj9Tmw9SU4h9nk… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-F6SKLtWtm7VErmrq… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-KBtJ4JWhXHy2qCIZ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-CHox7CF+XF5itK7Y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-Fu0iZjYNW/YipXDI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-3+bKrR/84X2JP+JJ… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-tzBMNZ7l8nZ/8oEI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-EGxSJ+22silg1bQ9… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-HKMGAqMmqgowMaAi… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-NCr0hKo6+EaNbDF5… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-47DEQpj8HBSa+/TI… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-h/GKjXBq1QiwvO1y… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-sHwQzC2ZsVrt1faU… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2690:0)
+        at   [console] console.error: Applying inline style violates the following Content Security Policy directive 'style-src 'self' 'nonce-iDnkVBa3NiTRNr3DiOAJhQ==''. Either the 'unsafe-inline' keyword, a hash ('sha256-rmaeaK1hhNkbyR7+… (125 more character(s) dropped) (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js:2641:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraHarnessGuard.auto (<repo>/e2e/harness/test.ts:365:17)
 
     Error: 1 browser signal(s) were produced AFTER THE LAST TEST in this worker finished — an afterAll/afterEach hook, or a page still running once the suite was over. They belong to no test, so no test could fail for them; this worker fails the run instead.
     AGENTS.md: console and network errors are failures, not noise.
 
-      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+      [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
           at: http://127.0.0.1:3212/health
 
     A per-test allow-list cannot reach here, because there is no test to carry it. If a hook
@@ -434,7 +834,7 @@ Running 4 tests using 4 workers
     group owns it — or in a test.
 
     See e2e/harness/worker-guard.ts.
-        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16348:0)
+        at   [console] console.error: WebSocket connection to 'ws://127.0.0.1:3212/_next/hmr?<redacted: 1 parameter(s)>' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE (http://127.0.0.1:3212/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js:16225:0)
         at Object.exports.test._test.test.extend.vizraWorkerGuard.scope (<repo>/e2e/harness/test.ts:175:19)
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
