@@ -493,16 +493,22 @@ half d7-lane-guard-GREEN 0 "still drives the built image" \
 # browser opened.
 mutant="$evidence/e2e-mutant.yml"
 
-sed '/^        run: npm run e2e$/d' .github/workflows/e2e.yml > "$mutant"
+sed '/^          npm run e2e 2>&1 \| node scripts\/ci\/artifact-allowlist.mjs --filter-log$/d' .github/workflows/e2e.yml > "$mutant"
 half d7-lane-step-deleted-RED 1 "no step runs the browser lane" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
-sed 's|^        run: npm run e2e$|        run: echo skipping|' .github/workflows/e2e.yml > "$mutant"
+sed 's|^          npm run e2e 2>&1 \| node scripts/ci/artifact-allowlist.mjs --filter-log$|          echo skipping|' .github/workflows/e2e.yml > "$mutant"
 half d7-lane-step-echoed-RED 1 "no step runs the browser lane" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
-sed 's|^        run: npm run e2e$|        run: npm run e2e \|\| true|' .github/workflows/e2e.yml > "$mutant"
+sed 's|^          npm run e2e 2>&1 \| node scripts/ci/artifact-allowlist.mjs --filter-log$|          npm run e2e 2>\&1 \| node scripts/ci/artifact-allowlist.mjs --filter-log \|\| true|' .github/workflows/e2e.yml > "$mutant"
 half d7-lane-step-or-true-RED 1 "launders the exit code" \
+  -- bash scripts/ci/check-e2e-lane.sh "$mutant"
+
+# A filtered lane without pipefail: the pipe's status is the filter's, so a
+# failing lane would pass.
+sed '/^          set -euo pipefail$/d' .github/workflows/e2e.yml > "$mutant"
+half d7-lane-no-pipefail-RED 1 "no step runs the browser lane" \
   -- bash scripts/ci/check-e2e-lane.sh "$mutant"
 
 sed 's|^      - name: Browser lane (desktop 1440, mobile 390)$|      - name: Browser lane (desktop 1440, mobile 390)\n        if: false|' \

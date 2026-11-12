@@ -1,5 +1,6 @@
 $ bash scripts/ci/check-e2e-lane.sh .github/workflows/e2e.yml
 
-OK: .github/workflows/e2e.yml still drives the built image, runs `npm run e2e` unconditionally, re-checks the coverage floor after it, runs the harness canary, and redacts artifacts before EVERY upload step publishes them.
+OK: .github/workflows/e2e.yml still drives the built image, runs `set -euo pipefail
+npm run e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log` unconditionally, re-checks the coverage floor after it, runs the harness canary, and redacts artifacts before EVERY upload step publishes them.
 
 [exit 0]

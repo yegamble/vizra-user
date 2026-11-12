@@ -83,7 +83,7 @@ steps:
         sleep 2
       done
       echo "::error::the production image never answered /health"
-      docker logs vizra-user-e2e 2>&1 | tail -80
+      docker logs vizra-user-e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log
       exit 1
 
   # The lane itself. Unconditional, exit code load-bearing, pointed at the
@@ -92,7 +92,9 @@ steps:
     name: Browser lane (desktop 1440, mobile 390)
     env:
       E2E_BASE_URL: http://127.0.0.1:3000
-    run: npm run e2e
+    run: |
+      set -euo pipefail
+      npm run e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log
 
   # The coverage floor and the stamps, re-checked from OUTSIDE the Playwright
   # process.

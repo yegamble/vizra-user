@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv3f6ead8bc35ad1f4 npx playwright test
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv56d46043d204f96c npx playwright test
 
 
 Running 44 tests using 2 workers

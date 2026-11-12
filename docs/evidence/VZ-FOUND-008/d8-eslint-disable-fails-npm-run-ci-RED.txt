@@ -2,8 +2,19 @@ $ npm run ci
 
 
 > vizra-user@0.0.0 ci
-> npm run lint && npm run typecheck && npm run test && npm run check:skips && npm run build && npm run check:hygiene
+> npm run check:pins && npm run lint && npm run typecheck && npm run test && npm run check:skips && npm run build && npm run check:hygiene
 
+
+> vizra-user@0.0.0 check:pins
+> node scripts/ci/check-dependency-pins.mjs
+
+OK: lockfile in sync, Node pinned via .nvmrc/engines/setup-node, npm ci only, every dependency exact-pinned.
+ADR-001 GAP (needs meta ADR amendment): node: ADR-001 has no Node.js row (repo pins 22.14.0 in .nvmrc)
+ADR-001 GAP (needs meta ADR amendment): next: ADR-001 row 'Next.js' says 16.3.x, package.json pins 16.4.1
+ADR-001 GAP (needs meta ADR amendment): react: ADR-001 row 'React' has no version ('matching [pin at PR time; verify]'), package.json pins 19.3.0
+ADR-001 GAP (needs meta ADR amendment): react-dom: ADR-001 row 'React' has no version ('matching [pin at PR time; verify]'), package.json pins 19.3.0
+ADR-001 GAP (needs meta ADR amendment): tailwindcss: ADR-001 row 'Tailwind CSS' has no version ('[pin at PR time; verify]'), package.json pins 4.3.3
+ADR-001 GAP (needs meta ADR amendment): typescript: ADR-001 row 'TypeScript' has no version ('[pin at PR time; verify]'), package.json pins 5.9.3
 
 > vizra-user@0.0.0 lint
 > eslint
