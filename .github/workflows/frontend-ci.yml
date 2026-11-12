@@ -54,6 +54,12 @@ jobs:
           API_TIMEOUT_MS: "4242"
         run: npm run ci
 
+      # VZ-CI-001 N1: a skipped/todo unit test fails this job. Re-read from the
+      # workflow (not only `npm run ci`) so editing package.json cannot drop it;
+      # a missing report or zero tests also fails.
+      - name: No unit test was skipped (VZ-CI-001 N1)
+        run: node scripts/ci/check-no-skipped-tests.mjs vitest test-results/vitest-results.json
+
       # OUTCOME check for the server-only boundary: whatever the controls do,
       # the chunks the browser downloads must not carry the internal base URL,
       # the configured origin, or the name of either. It reads the build the
