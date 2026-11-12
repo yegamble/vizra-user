@@ -1,4 +1,4 @@
-$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv3f6ead8bc35ad1f4 npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
+$ env CI=1 PLAYWRIGHT_NO_COPY_PROMPT=1 E2E_COVERAGE_FLOOR=off E2E_BASE_URL=http://127.0.0.1:3211 VZ_DEMO_TYPED=vzenv56d46043d204f96c npx playwright test e2e/specs/__envwrite.spec.ts --project=desktop-chromium-1440 --retries=0
 
 
 Running 1 test using 1 worker

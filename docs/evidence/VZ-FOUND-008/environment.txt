@@ -1,5 +1,5 @@
-branch:     feat/e2e-artifact-allowlist
-head sha:   b2fd64e4e11fac7aa02d467b583008be06dfe386
+branch:     fix/2f-joblog-timeout
+head sha:   8a83933802a9a82f381608b1e795340589639cb0
 node:       v24.21.0
 playwright: Version 1.63.0
 project:    desktop-chromium-1440

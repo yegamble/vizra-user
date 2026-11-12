@@ -23,96 +23,17 @@
 #6 DONE <time>
 
 #7 [internal] load build context
-#7 transferring context: 2.15MB 0.1s done
+#7 transferring context: 2.64MB 0.1s done
 #7 DONE <time>
 
 #8 [deps 2/4] WORKDIR /app
 #8 CACHED
 
 #9 [deps 3/4] COPY package.json package-lock.json ./
-#9 DONE <time>
+#9 CACHED
 
 #10 [deps 4/4] RUN npm ci
-#10 1.022 npm warn ERESOLVE overriding peer dependency
-#10 1.024 npm warn While resolving: eslint-plugin-import@2.32.0
-#10 1.024 npm warn Found: eslint@10.11.0
-#10 1.024 npm warn node_modules/eslint
-#10 1.024 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.024 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.024 npm warn
-#10 1.024 npm warn Could not resolve dependency:
-#10 1.024 npm warn peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#10 1.024 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#10 1.024 npm warn   eslint-plugin-import@"^2.32.0" from eslint-config-next@16.4.1
-#10 1.024 npm warn   node_modules/eslint-config-next
-#10 1.024 npm warn   1 more (eslint-import-resolver-typescript)
-#10 1.024 npm warn
-#10 1.024 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.024 npm warn node_modules/eslint
-#10 1.024 npm warn   peer eslint@"^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8 || ^9" from eslint-plugin-import@2.32.0
-#10 1.024 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-import
-#10 1.024 npm warn     eslint-plugin-import@"^2.32.0" from eslint-config-next@16.4.1
-#10 1.024 npm warn     node_modules/eslint-config-next
-#10 1.024 npm warn     1 more (eslint-import-resolver-typescript)
-#10 1.065 npm warn ERESOLVE overriding peer dependency
-#10 1.065 npm warn While resolving: eslint-plugin-jsx-a11y@6.10.2
-#10 1.065 npm warn Found: eslint@10.11.0
-#10 1.065 npm warn node_modules/eslint
-#10 1.065 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.065 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.065 npm warn
-#10 1.065 npm warn Could not resolve dependency:
-#10 1.065 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#10 1.065 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#10 1.065 npm warn   eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.4.1
-#10 1.065 npm warn   node_modules/eslint-config-next
-#10 1.065 npm warn
-#10 1.065 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.065 npm warn node_modules/eslint
-#10 1.065 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9" from eslint-plugin-jsx-a11y@6.10.2
-#10 1.065 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-jsx-a11y
-#10 1.065 npm warn     eslint-plugin-jsx-a11y@"^6.10.0" from eslint-config-next@16.4.1
-#10 1.065 npm warn     node_modules/eslint-config-next
-#10 1.099 npm warn ERESOLVE overriding peer dependency
-#10 1.099 npm warn While resolving: eslint-plugin-react@7.37.5
-#10 1.099 npm warn Found: eslint@10.11.0
-#10 1.099 npm warn node_modules/eslint
-#10 1.099 npm warn   dev eslint@"10.11.0" from the root project
-#10 1.099 npm warn   10 more (@eslint-community/eslint-utils, ...)
-#10 1.099 npm warn
-#10 1.099 npm warn Could not resolve dependency:
-#10 1.099 npm warn peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#10 1.099 npm warn node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#10 1.099 npm warn   eslint-plugin-react@"^7.37.0" from eslint-config-next@16.4.1
-#10 1.099 npm warn   node_modules/eslint-config-next
-#10 1.099 npm warn
-#10 1.099 npm warn Conflicting peer dependency: eslint@9.39.5
-#10 1.099 npm warn node_modules/eslint
-#10 1.099 npm warn   peer eslint@"^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7" from eslint-plugin-react@7.37.5
-#10 1.099 npm warn   node_modules/eslint-config-next/node_modules/eslint-plugin-react
-#10 1.099 npm warn     eslint-plugin-react@"^7.37.0" from eslint-config-next@16.4.1
-#10 1.099 npm warn     node_modules/eslint-config-next
-#10 49.84 
-#10 49.84 added 416 packages, and audited 417 packages in <time>
-#10 49.84 
-#10 49.84 154 packages are looking for funding
-#10 49.84   run `npm fund` for details
-#10 50.04 
-#10 50.04 10 moderate severity vulnerabilities
-#10 50.04 
-#10 50.04 To address issues that do not require attention, run:
-#10 50.04   npm audit fix
-#10 50.04 
-#10 50.04 To address all issues (including breaking changes), run:
-#10 50.04   npm audit fix --force
-#10 50.04 
-#10 50.04 Run `npm audit` for details.
-#10 50.04 npm notice
-#10 50.04 npm notice New major version of npm available! 10.9.2 -> 12.2.2
-#10 50.04 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
-#10 50.04 npm notice To update run: npm install -g npm@12.2.2
-#10 50.04 npm notice
-#10 DONE <time>
+#10 CACHED
 
 #11 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
 #11 CACHED
@@ -121,37 +42,37 @@
 #12 DONE <time>
 
 #13 [builder 5/5] RUN npm run build
-#13 0.405 
-#13 0.405 > vizra-user@0.0.0 build
-#13 0.405 > next build
-#13 0.405 
-#13 0.698 ▲ Next.js 16.4.1 (Turbopack)
-#13 0.761 ✓ Running next.config.ts took <time>
-#13 0.769 
-#13 0.787   Creating an optimized production build ...
-#13 4.046 ✓ Compiled successfully in <time>
-#13 4.049   Running TypeScript ...
-#13 8.637   Finished TypeScript in 4.6s ...
-#13 8.641   Collecting page data using 5 workers ...
-#13 9.820   Generating static pages using 5 workers (0/3) ...
-#13 10.62 ✓ Generating static pages using 5 workers (3/3) in <time>
-#13 10.63   Finalizing page optimization ...
-#13 10.83 
-#13 10.84 Route (app)
-#13 10.84 ┌ ƒ /
-#13 10.84 ├ ƒ /_not-found
-#13 10.84 └ ƒ /health
-#13 10.84 
-#13 10.84 
-#13 10.84 ƒ Proxy (Middleware)
-#13 10.84 
-#13 10.84 ƒ  (Dynamic)  server-rendered on demand
-#13 10.84 
-#13 10.89 npm notice
-#13 10.89 npm notice New major version of npm available! 10.9.2 -> 12.2.2
-#13 10.89 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
-#13 10.89 npm notice To update run: npm install -g npm@12.2.2
-#13 10.89 npm notice
+#13 0.408 
+#13 0.408 > vizra-user@0.0.0 build
+#13 0.408 > next build
+#13 0.408 
+#13 0.829 ▲ Next.js 16.4.1 (Turbopack)
+#13 0.868 ✓ Running next.config.ts took <time>
+#13 0.878 
+#13 0.899   Creating an optimized production build ...
+#13 4.177 ✓ Compiled successfully in <time>
+#13 4.180   Running TypeScript ...
+#13 7.923   Finished TypeScript in 3.7s ...
+#13 7.926   Collecting page data using 5 workers ...
+#13 8.451   Generating static pages using 5 workers (0/3) ...
+#13 8.871 ✓ Generating static pages using 5 workers (3/3) in <time>
+#13 8.875   Finalizing page optimization ...
+#13 9.011 
+#13 9.013 Route (app)
+#13 9.013 ┌ ƒ /
+#13 9.013 ├ ƒ /_not-found
+#13 9.013 └ ƒ /health
+#13 9.013 
+#13 9.013 
+#13 9.013 ƒ Proxy (Middleware)
+#13 9.013 
+#13 9.013 ƒ  (Dynamic)  server-rendered on demand
+#13 9.013 
+#13 9.037 npm notice
+#13 9.037 npm notice New major version of npm available! 10.9.2 -> 12.2.2
+#13 9.037 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+#13 9.037 npm notice To update run: npm install -g npm@12.2.2
+#13 9.037 npm notice
 #13 DONE <time>
 
 #14 [runner 3/6] RUN apk upgrade --no-cache   && rm -rf /usr/local/lib/node_modules/npm             /usr/local/lib/node_modules/corepack             /opt/yarn-*             /usr/local/bin/npm /usr/local/bin/npx             /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg   && for gone in npm npx yarn yarnpkg corepack; do        if command -v "$gone" > /dev/null 2>&1; then          echo "runner stage: $gone survived removal at $(command -v "$gone")" >&2;          exit 1;        fi;      done   && node --version   && addgroup -S -g 1001 nodejs   && adduser -S -u 1001 -G nodejs nextjs
@@ -168,14 +89,14 @@
 
 #18 exporting to image
 #18 exporting layers
-#18 exporting layers 1.9s done
-#18 exporting manifest sha256:0cb07727adffe67c0009fc1581a647cb5b93025b6b9419e5eb6a2724c0a64762 done
-#18 exporting config sha256:266082b83ec289df5041afe06afa5c41e94d3f8ce6e2cc7e5cbfab552dd60cc8 done
-#18 exporting attestation manifest sha256:e435cbf07c4f41d29a5027e7c534346a6e21b79cf58d49819564206fce34620a done
-#18 exporting manifest list sha256:d9199b0f0db58333f5452181c85d13c94be593607cb3e04a158fe8443cd526bb done
+#18 exporting layers 1.5s done
+#18 exporting manifest sha256:1ee57801fd744031e59224edf48ffde70aafb0263402da91908f02941a82151a done
+#18 exporting config sha256:fafd947290e2d6ebb2b917b4471138cb9bb549dc909d57d229ab21942ac3aff9 done
+#18 exporting attestation manifest sha256:ace9dfd48fa9fa2f4949e0b65f59f926a7b7cbd04abef5d94b73fe29b619b5f7 done
+#18 exporting manifest list sha256:7194ab2a52a8fa088491784d09a6660b1432ada4c4e14217d8c1b7c693c74065 done
 #18 naming to docker.io/library/vizra-user:demonstrate done
 #18 unpacking to docker.io/library/vizra-user:demonstrate
-#18 unpacking to docker.io/library/vizra-user:demonstrate 0.5s done
+#18 unpacking to docker.io/library/vizra-user:demonstrate 0.3s done
 #18 DONE <time>
 
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/0eckea5rogbgap5kxnp8pfeuc
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/eqsfjjcsoboz828cwrcdwbami

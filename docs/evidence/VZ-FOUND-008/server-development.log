@@ -1,10 +1,22 @@
-⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::3212
-    at new Promise (<anonymous>) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '::',
-  port: 3212
+▲ Next.js 16.4.1 (Turbopack)
+- Local:         http://localhost:3212
+- Network:       http://192.168.1.141:3212
+✓ Ready in <time>
+✓ Running next.config.ts took <time>
+
+ GET /health 200 in 1302ms (next.js: 1069ms, proxy.ts: 120ms, application-code: 113ms)
+ GET /health 200 in 113ms (next.js: 14ms, proxy.ts: 3ms, application-code: 95ms)
+ GET /health 200 in 93ms (next.js: 13ms, proxy.ts: 19ms, application-code: 61ms)
+ GET / 200 in 365ms (next.js: 279ms, proxy.ts: 22ms, application-code: 65ms)
+ GET / 200 in 431ms (next.js: 378ms, proxy.ts: 5ms, application-code: 48ms)
+⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
 }
-[?25h
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigi[?25h

@@ -2,8 +2,10 @@ $ bash scripts/ci/redact-artifacts.sh test-results
 
 REFUSED test-results/.last-run.json not-staged
 REFUSED test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/error-context.md not-staged
+REFUSED test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/test-failed-<n>.png media-not-opted-in
 REFUSED test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/trace.zip not-staged
-OK: staged admitted files into artifact-upload (3 refused, listed above)
+REFUSED test-results/signed-url-artifact.demo.t-88141-oduces-the-trace-under-test-desktop-chromium-1440/video<n>.webm media-not-opted-in
+OK: staged admitted files into artifact-upload (5 refused, listed above)
 OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 2 file(s) and 1 archive(s), and no page snapshot is present, across: test-results
 
 [exit 0]

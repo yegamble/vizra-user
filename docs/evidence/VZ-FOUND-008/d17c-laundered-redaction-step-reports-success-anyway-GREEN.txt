@@ -6,11 +6,12 @@ REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-valu
 REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-desktop-chromium-1440-retry1/trace.zip not-staged
 REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390/trace.zip not-staged
 REFUSED test-results/__envwrite-the-verifier-s--c5624-e-field-holds-a-typed-value-mobile-chromium-390-retry1/trace.zip not-staged
-REFUSED playwright-report/data/04983e46e33218b3c6b63d1080e844489ff1bbac.zip not-staged
-REFUSED playwright-report/data/1122ea978923c0744865b8c6b1aaeda5eae01d25.zip not-staged
-REFUSED playwright-report/data/3d9083368efed770276a008bc4c008afcba37083.zip not-staged
-REFUSED playwright-report/data/cb76f160633d07c0cfc9eafb34218529e9fd2cd4.zip not-staged
+REFUSED playwright-report/data/08fea71ef74e633bae90dbf18955abee2234c68d.zip not-staged
+REFUSED playwright-report/data/7f687a6a80a9ca4f512cec4d029980f38d8493f1.zip not-staged
+REFUSED playwright-report/data/80f272bbf613e372ec5873ab9ca1013ca9ba1694.zip not-staged
+REFUSED playwright-report/data/d1960cf1c658c72d61c9c839545f6ea76bccc47a.zip not-staged
 REFUSED playwright-report/index.html not-staged
+REFUSED playwright-report/results.json not-staged
 REFUSED playwright-report/trace/assets/codeMirrorModule-BbkfBe3n.js not-staged
 REFUSED playwright-report/trace/assets/defaultSettingsView-Ds6CBOo0.js not-staged
 REFUSED playwright-report/trace/assets/urlMatch-L3liM589.js not-staged
@@ -29,7 +30,7 @@ REFUSED playwright-report/trace/uiMode.CU5KtEkS.js not-staged
 REFUSED playwright-report/trace/uiMode.CyMfwkXJ.css not-staged
 REFUSED playwright-report/trace/uiMode.html not-staged
 REFUSED playwright-report/trace/xtermModule.kHJ-D0s7.css not-staged
-OK: staged admitted files into artifact-upload (28 refused, listed above)
+OK: staged admitted files into artifact-upload (29 refused, listed above)
 OK: redacted URL query strings with the shared programs (absolute, protocol-relative, authority-relative, path-relative) in 21 file(s) and 8 archive(s), and no page snapshot is present, across: test-results playwright-report
 [exit 0]
 
