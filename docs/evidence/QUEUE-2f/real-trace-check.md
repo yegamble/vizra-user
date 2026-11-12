@@ -22,3 +22,18 @@ useful, safe evidence". Decisions per shape:
   the page's aria snapshot and failure text — needs review before upload.
 Remaining fix: gate should emit a filtered upload tree of admitted files plus a
 text failure summary instead of refusing the whole upload. Not done this session.
+
+## Session 3 (2026-11-12): filtered upload
+Finding above addressed by `artifact-allowlist.mjs --stage artifact-upload DIR...`
+(called from redact-artifacts.sh): copies only admitted `*.png|*.jpe?g|*.webm|results.json`
+into `artifact-upload/`, writes a redacted `SUMMARY.txt` (failed title, file:line,
+assertion message; URL queries, bearer/JWT/long tokens, header values, emails redacted),
+logs every refused file as `REFUSED <path> <rule>`, then re-scans the staging tree
+and exits 1 (deleting it) on any hit. The upload step and its pin upload `artifact-upload/`
+plus `playwright-browsers.txt` only.
+error-context.md: REFUSED (`not-staged`). It is the page outline plus the failure
+message; the failure message already reaches SUMMARY.txt redacted from results.json, so
+redacting error-context.md down to "the failure message only" would duplicate SUMMARY.txt
+while keeping a page-content-shaped file in the upload path.
+Red first: new `filtered upload` tests against HEAD c5026ae's gate: 3 failed (exit 1);
+against the new gate: 19/19 passed.
