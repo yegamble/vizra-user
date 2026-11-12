@@ -419,6 +419,11 @@ half d4d-filtered-run-GREEN 0 "e2e coverage floor: OK" \
 
 # --- D5 pointed at a dev server --------------------------------------------
 log "D5 — pointed at a development server instead of the production build"
+# A stale .next/dev cache can pin a native-module resolution from an earlier
+# install (seen: @tailwindcss/oxide falling back to darwin-universal after an
+# install under the wrong Node), so every /health answers 500 and D5 blocks.
+# The dev server must compile from this tree's node_modules, not a cache.
+rm -rf "$repo/.next/dev"
 INTERNAL_API_BASE_URL=http://api.sentinel.invalid:8080 \
   PUBLIC_ORIGIN="http://127.0.0.1:$dev_port" \
   NEXT_TELEMETRY_DISABLED=1 \
