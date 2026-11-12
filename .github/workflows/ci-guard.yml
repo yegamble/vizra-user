@@ -149,6 +149,14 @@ jobs:
       - name: The required-check manifest still demands its floor
         run: bash scripts/ci/check-required-floor.sh
 
+      # VZ-CI-001: a lane leaves the manifest (`name` or `?name`, including a
+      # demotion or a rename) only with a dated, reasoned tombstone. Compared
+      # with the BASE manifest read from git, never from the tree under test.
+      - name: Retired lanes carry a tombstone
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        run: bash scripts/ci/check-required-tombstones.sh
+
       # Actions are pinned to commit SHAs and the contract to a sha256; the
       # Docker base image was the one input still referenced by a mutable tag,
       # so a registry repoint changed what ships with no diff. The guard also
