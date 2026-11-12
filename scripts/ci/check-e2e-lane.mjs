@@ -124,7 +124,16 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const PINS_FILE = ".github/e2e-pinned-steps.yml";
 
 /** The one command the lane may run. Documented in AGENTS.md as `npm run e2e`. */
-const LANE_COMMAND = "npm run e2e";
+const LANE_COMMAND = [
+  "set -euo pipefail",
+  "npm run e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log",
+].join("\n");
+/**
+ * 2ac: the public job log. The list reporter prints Expected/Received values
+ * and call logs; `docker logs` prints the server's own lines. Both must pass
+ * through the default-deny `--filter-log` before they reach the Actions log.
+ */
+const LOG_FILTER = "| node scripts/ci/artifact-allowlist.mjs --filter-log";
 /** The step that re-checks the floor from outside the Playwright process. */
 const FLOOR_COMMAND = "node scripts/ci/check-coverage-floor-ran.mjs";
 /**
@@ -594,6 +603,23 @@ if (!job) {
   const runOf = (step) => (typeof step?.run === "string" ? step.run.trim() : "");
   for (const step of steps) {
     const run = runOf(step);
+    // 2ac: no unfiltered failure text in the public job log. Every line that
+    // runs `docker logs` or the browser lane must pipe into the filter, and
+    // the lane needs `pipefail` so the filter cannot launder its exit code.
+    for (const line of run.split("\n")) {
+      const drives = /\bdocker\s+(container\s+)?logs\b/.test(line) || /\bnpm\s+(run|run-script)\s+e2e(?![\w:-])|\bplaywright\s+test\b/.test(line);
+      if (drives && !line.trimEnd().replace(/\s*\|\|\s*true$/, "").endsWith(LOG_FILTER.slice(2)) ) {
+        add(
+          `a step prints \`${line.trim()}\` to the public job log unfiltered. Playwright's list reporter ` +
+            "prints Expected/Received values and call logs, and `docker logs` prints server lines; both " +
+            `must end in \`${LOG_FILTER}\` (2ac, VZ-FOUND-008).`,
+        );
+      }
+      if (drives && !/\|\s*node scripts\/ci\/artifact-allowlist\.mjs --filter-log/.test(line)) continue;
+      if (/\bnpm\s+(run|run-script)\s+e2e(?![\w:-])/.test(line) && !/set -[a-z]*o pipefail|set -o pipefail/.test(run)) {
+        add("the browser lane pipes into the log filter without `set -o pipefail`, so a red lane would exit 0.");
+      }
+    }
     if (/\b(next|npm run) dev\b/.test(run)) {
       add("a step starts a development server. The lane must drive the production build (ADR-009).");
     }

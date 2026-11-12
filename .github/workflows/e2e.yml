@@ -115,7 +115,7 @@ jobs:
             sleep 2
           done
           echo "::error::the production image never answered /health"
-          docker logs vizra-user-e2e 2>&1 | tail -80
+          docker logs vizra-user-e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log
           exit 1
 
       # The lane. `E2E_BASE_URL` makes the harness drive the container and start
@@ -125,7 +125,9 @@ jobs:
       - name: Browser lane (desktop 1440, mobile 390)
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
-        run: npm run e2e
+        run: |
+          set -euo pipefail
+          npm run e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log
 
       # The floor, re-checked from OUTSIDE the Playwright process. The
       # in-process reporter lives in playwright.config.ts, which the pull
@@ -159,7 +161,7 @@ jobs:
 
       - name: Container logs
         if: always()
-        run: docker logs vizra-user-e2e 2>&1 | tail -200 || true
+        run: docker logs vizra-user-e2e 2>&1 | node scripts/ci/artifact-allowlist.mjs --filter-log || true
 
       # PRIVACY, BEFORE ANYTHING LEAVES THE RUNNER. e2e/harness/redact.ts strips
       # query strings from what the HARNESS prints; it cannot reach Playwright's
