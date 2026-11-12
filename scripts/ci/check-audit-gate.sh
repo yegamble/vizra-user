@@ -11,7 +11,8 @@ if (cd "$fixture" && npm audit --audit-level=high >/dev/null 2>&1); then
   echo "::error::npm audit --audit-level=high PASSED a lockfile with a known high advisory; the deps-scan verdict is not a gate" >&2
   exit 1
 fi
-out=$(cd "$fixture" && npm audit --json 2>/dev/null || true)
+cd "$fixture"
+out=$(npm audit --json 2>/dev/null) || true
 if ! grep -q '"lodash"' <<<"$out"; then
   echo "::error::npm audit failed but did not report the fixture advisory (registry unreachable?) — not evidence" >&2
   exit 1
