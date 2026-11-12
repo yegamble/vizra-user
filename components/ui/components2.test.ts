@@ -128,3 +128,47 @@ describe("Switch (Figma 10:144)", () => {
     expect(r(h(Switch, { label: "x", disabled: true }))).toContain('disabled=""');
   });
 });
+
+import { Chip } from "./Chip";
+import { Tabs, nextTabIndex } from "./Tabs";
+
+describe("Chip (Figma 11:54)", () => {
+  it("Selected=No: native toggle button, aria-pressed=false, no check icon", () => {
+    const html = r(h(Chip, { label: "Landscape", selected: false }));
+    expect(html).toMatch(/^<button type="button" aria-pressed="false"/);
+    expect(html).toContain("<span>Landscape</span>");
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("focus-visible:outline-focus-ring");
+  });
+  it("Selected=Yes: aria-pressed=true plus a decorative check icon (not colour alone)", () => {
+    const html = r(h(Chip, { label: "Landscape", selected: true }));
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
+  });
+  it("State=Disabled: native disabled", () => {
+    expect(r(h(Chip, { label: "x", selected: false, disabled: true }))).toContain('disabled=""');
+  });
+});
+
+describe("Tab (Figma 11:79)", () => {
+  const tabs = [{ id: "a", label: "Photos" }, { id: "b", label: "Albums" }, { id: "c", label: "Faves" }];
+  it("tablist named; Selected=Yes/No via aria-selected, roving tabindex, indicator + weight", () => {
+    const html = r(h(Tabs, { label: "Profile sections", tabs, selectedId: "b", onSelect: () => {} }));
+    expect(html).toMatch(/^<div role="tablist" aria-label="Profile sections"/);
+    expect(html.match(/role="tab"/g)).toHaveLength(3);
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
+    expect(html.match(/tabindex="0"/g)).toHaveLength(1);
+    expect(html.match(/tabindex="-1"/g)).toHaveLength(2);
+    expect(html).toMatch(/aria-selected="true"[^>]*tabindex="0"[^>]*border-accent font-semibold/);
+    expect(html).toContain("focus-visible:outline-focus-ring");
+    for (const m of html.matchAll(/aria-controls="([^"]+)"/g)) expect(m[1]).toContain("-panel-");
+  });
+  it("keyboard: arrows wrap, Home/End jump, other keys ignored", () => {
+    expect(nextTabIndex("ArrowRight", 2, 3)).toBe(0);
+    expect(nextTabIndex("ArrowLeft", 0, 3)).toBe(2);
+    expect(nextTabIndex("ArrowRight", 0, 3)).toBe(1);
+    expect(nextTabIndex("Home", 2, 3)).toBe(0);
+    expect(nextTabIndex("End", 0, 3)).toBe(2);
+    expect(nextTabIndex("Enter", 1, 3)).toBeNull();
+  });
+});

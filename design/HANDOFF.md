@@ -41,7 +41,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Radio.tsx` | IMPLEMENTED |
 | `Switch` | `10:144` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Switch.tsx` | IMPLEMENTED |
 | `Chip` | `11:54` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus\|Disabled | `components/ui/Chip.tsx` | IMPLEMENTED |
-| `Tab` | `11:79` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus | — | PLANNED |
+| `Tab` | `11:79` | `4:25` | `Selected` No\|Yes; `State` Default\|Hover\|Focus | `components/ui/Tabs.tsx` | IMPLEMENTED |
 | `PhotoCard` | `12:263` | `4:26` | `Aspect` Landscape 3:2\|Square 1:1\|Portrait 4:5; `State` Default\|Sensitive\|Loading | — | PLANNED |
 | `Avatar` | `14:56` | `4:27` | `Size` XS\|SM\|MD\|LG; `Type` Image\|Initials\|Fallback | — | PLANNED |
 | `TabBar Item` / `TabBar` | `15:31` / `15:32` | `4:28` | `Selected` No\|Yes; `State` Default\|Focus | — | PLANNED |
