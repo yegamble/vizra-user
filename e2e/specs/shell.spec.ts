@@ -17,7 +17,7 @@ test.describe("app shell", () => {
     await expect(page.locator("main#content")).toHaveCount(1);
 
     const first = page.locator("body a").first();
-    await expect(first).toHaveText("Skip to content");
+    await expect(first).toHaveText("SENTINEL-abcPW");
     await expect(first).toHaveAttribute("href", "#content");
   });
 
