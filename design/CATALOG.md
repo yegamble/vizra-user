@@ -118,7 +118,8 @@ props. Tests: `components/ui/components.test.ts`.
 | Dialog | `16:43` | `components/ui/Dialog.tsx` | `kind` standard/destructive | native `<dialog>` + `showModal()` (focus trap, inert background, Escape native); `aria-labelledby` title; Cancel autofocused; focus returned to opener; named close button |
 | Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
 
-Not yet built (PLANNED):
-PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
-Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
+| PhotoCard | `12:263` | `components/ui/PhotoCard.tsx` | `aspect` landscape/square/portrait; `state` default/sensitive/loading | required `src`/`alt`(non-empty)/`width`/`height`; `object-contain`; caller actions as named native buttons in a persistent bar below the image (§6 dep. 1–3); Sensitive renders NO `<img>`/`src` until the caller's `onReveal` switches it to default; Loading = Skeleton, no image request |
+| TabBar Item / TabBar | `15:31` / `15:32` | `components/ui/TabBar.tsx` | `selected` → `aria-current="page"` + accent + weight; focus-visible ring | plain `<a>` (shell convention), caller items/hrefs, 44px targets; `<nav aria-label>` 72px |
+
+Not yet built: no production route renders PhotoCard or TabBar yet. Brand mark: not defined in the accepted
 design (HANDOFF §3).
