@@ -1643,5 +1643,58 @@ title="a ledger label the suite no longer records fails by name"
 hygiene_expect 1 'no longer records' docs/evidence/VZ-FOUND-008/mutation-digests.txt \
   's/^D12 browser-errors\.ts BEFORE/D99 browser-errors.ts BEFORE/m'
 
+# --- VZ-CI-001: retiring a lane needs a tombstone -----------------------------
+tomb_script=$here/check-required-tombstones.sh
+TB=$tmp/tomb-base.txt
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\nlint\n' >"$TB"
+T='# tombstone: lint retired 2026-11-12 because folded into frontend'
+# tomb_expect RC REGEX BASEFILE: manifest under test on stdin.
+tomb_expect() {
+  cases=$((cases + 1))
+  local want=$1 pattern=$2 base=$3 rc=0 file=$tmp/tomb-$cases.txt
+  cat >"$file"
+  BASE_MANIFEST=$base bash "$tomb_script" "$file" >"$file.out" 2>&1 || rc=$?
+  if [ "$rc" -ne "$want" ]; then
+    record 1 "exit $rc, want $want: $(tr '\n' ' ' <"$file.out" | cut -c1-240)"
+  elif ! grep -Eq -- "$pattern" "$file.out"; then
+    record 1 "output does not match /$pattern/: $(tr '\n' ' ' <"$file.out" | cut -c1-240)"
+  else
+    record 0
+  fi
+}
+title="tombstone: unchanged manifest passes"
+tomb_expect 0 'retires no lane' "$TB" <"$TB"
+title="S1 tombstone: deleting a required line without tombstone fails"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n' | tomb_expect 1 'lint: removed from the manifest without a tombstone' "$TB"
+title="S1 tombstone: commenting out a required line fails"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n# lint\n' | tomb_expect 1 'lint: removed' "$TB"
+title="S1 tombstone: deleting an optional ?line without tombstone fails"
+printf 'frontend\ncontract\ne2e\n?guard\nlint\n' | tomb_expect 1 '\?docker-build: removed' "$TB"
+title="S1 tombstone: demoting lint to ?lint without tombstone fails"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n?lint\n' | tomb_expect 1 'lint: demoted' "$TB"
+title="S2 tombstone: renaming a ?lane without tombstone fails"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-image\nlint\n' | tomb_expect 1 '\?docker-build: removed' "$TB"
+title="S2 tombstone: renaming a ?lane with tombstone for the old name passes"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-image\nlint\n# tombstone: docker-build retired 2026-11-12 because renamed docker-image\n' | tomb_expect 0 'retires no lane' "$TB"
+title="tombstone: valid tombstone retires a lane"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n%s\n' "$T" | tomb_expect 0 'retires no lane' "$TB"
+title="tombstone: demotion with tombstone passes"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n?lint\n%s\n' "$T" | tomb_expect 0 'retires no lane' "$TB"
+title="tombstone: no reason is malformed"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n# tombstone: lint retired 2026-11-12 because\n' | tomb_expect 1 'malformed tombstone' "$TB"
+title="tombstone: no date is malformed"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n# tombstone: lint because gone\n' | tomb_expect 1 'malformed tombstone' "$TB"
+title="tombstone: lane the base never listed fails"
+{ cat "$TB"; echo '# tombstone: nope retired 2026-11-12 because typo'; } | tomb_expect 1 'nope: tombstone for a lane the base manifest never listed' "$TB"
+title="tombstone: lane still required fails"
+{ cat "$TB"; echo "$T"; } | tomb_expect 1 'lint: tombstone for a lane that is still required' "$TB"
+title="tombstone: floor lane cannot be tombstoned"
+printf 'contract\ne2e\n?guard\n?docker-build\nlint\n# tombstone: frontend retired 2026-11-12 because x\n' | tomb_expect 1 'frontend: tombstone for a floor lane' "$TB"
+title="tombstone: deleting an earlier tombstone fails"
+TB2=$tmp/tomb-base2.txt; printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n%s\n' "$T" >"$TB2"
+printf 'frontend\ncontract\ne2e\n?guard\n?docker-build\n' | tomb_expect 1 'lint: an earlier tombstone was deleted' "$TB2"
+title="tombstone: unavailable base fails closed"
+tomb_expect 1 'BASE MANIFEST UNAVAILABLE' "$tmp/no-such-base" <"$TB"
+
 echo "require-checks_test: $cases cases, $assertions assertions, $failures failed"
 [ "$failures" -eq 0 ]

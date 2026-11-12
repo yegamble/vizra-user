@@ -14,6 +14,15 @@
 # Nothing but `success` passes: `cancelled`, `timed_out`, `neutral` and
 # `skipped` all fail (AGENTS.md: a skipped required lane is not a pass).
 #
+# Retiring a lane (VZ-CI-001). Removing or commenting out a line, demoting
+# `name` to `?name`, or renaming a lane (`name` or `?name`) needs, in the same
+# change, a tombstone for the old name that stays here permanently:
+#   # tombstone: <lane> retired <YYYY-MM-DD> because <reason>
+# scripts/ci/check-required-tombstones.sh compares this file with the base
+# commit's copy and rejects a missing or malformed tombstone, one for a lane
+# the base never listed, one for a lane still required, one for a floor lane,
+# and the deletion of an earlier tombstone.
+#
 # This file is owner-reviewed (CODEOWNERS, once the ruleset is applied): a PR
 # that weakens the required set must be as visible as one that weakens a test.
 
