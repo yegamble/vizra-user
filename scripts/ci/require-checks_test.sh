@@ -942,6 +942,29 @@ lane_append 1 'not gated on the redaction having SUCCEEDED' <<'YAML'
           path: test-results/
 YAML
 
+# QUEUE-2f F-1/F-2: raw results.json and test-results/ used to be on
+# ALLOWED_UPLOAD_PATHS. They are refused by name now, even from a correctly
+# gated uploader: only the redacted artifact-upload/ staging tree may leave.
+title="a gated upload of raw playwright-report/results.json is refused by the allowlist (F-1)"
+lane_append 1 'uploads .playwright-report/results.json., which is not on the allowlist' <<'YAML'
+      - name: Upload raw results
+        if: failure() && steps.redact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: raw-results
+          path: playwright-report/results.json
+YAML
+
+title="a gated upload of raw test-results/ media is refused by the allowlist (F-2)"
+lane_append 1 'uploads .test-results/., which is not on the allowlist' <<'YAML'
+      - name: Upload raw media
+        if: failure() && steps.redact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: raw-media
+          path: test-results/
+YAML
+
 # THIS CASE WAS GREEN UNTIL ROUND 3, AND IS RED ON PURPOSE NOW. A second upload
 # step that carried the right gate used to pass, because the guard judged each
 # uploader by a list of properties. Since R3-FINDING H every step the guard relies

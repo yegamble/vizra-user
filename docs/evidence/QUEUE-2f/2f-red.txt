@@ -1,0 +1,160 @@
+
+ RUN  v5.0.3 /Users/yosefgamble/github/vizra/.claude/worktrees/user-2f-leaks
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs (24 tests | 5 failed) 782ms
+   ✓ artifact-allowlist gate (QUEUE-2f) (16)
+     ✓ admits a clean fixture 36ms
+     ✓ refuses header-value, naming the file and the rule, never the content 35ms
+     ✓ refuses set-cookie header, naming the file and the rule, never the content 34ms
+     ✓ refuses x-amz-security-token, naming the file and the rule, never the content 34ms
+     ✓ refuses body, naming the file and the rule, never the content 38ms
+     ✓ refuses body resource, naming the file and the rule, never the content 42ms
+     ✓ refuses dom-snapshot, naming the file and the rule, never the content 34ms
+     ✓ refuses call-parameters, naming the file and the rule, never the content 32ms
+     ✓ refuses console-text, naming the file and the rule, never the content 33ms
+     ✓ refuses schemeless-url-query, naming the file and the rule, never the content 35ms
+     ✓ refuses page-snapshot, naming the file and the rule, never the content 34ms
+     ✓ refuses html report, naming the file and the rule, never the content 32ms
+     ✓ refuses fake png, naming the file and the rule, never the content 32ms
+     ✓ refuses a missing directory and an empty argument list 66ms
+     ✓ gates a job log line carrying a token (2ac) 67ms
+     ✓ is wired into redact-artifacts.sh after redaction 3ms
+   ✓ filtered upload (QUEUE-2f session 3) (3)
+     ✓ uploads safe evidence from a real-shaped failing run: screenshots, video, results.json, SUMMARY.txt and nothing else 35ms
+     ✓ admits a clean results.json into staging 38ms
+     ✓ a forbidden file never reaches staging, even with an allowed extension 36ms
+   ❯ F-1: assertion values and messages never reach the staged upload (1)
+     × drops results.json and keeps only title, location and matcher header in SUMMARY.txt 39ms
+   ❯ F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec (4)
+     × refuses png/webm/jpeg by default (empty allow-list) 5ms
+     × the shipped allow-list opts nothing in 36ms
+     × admits media of an opted-in, unauthenticated spec; refuses an entry with no reason 3ms
+     × never admits media of a spec tagged @authenticated, even if opted in 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-1: assertion values and messages never reach the staged upload > drops results.json and keeps only title, location and matcher header in SUMMARY.txt
+AssertionError: expected 'REFUSED test-results/.last-run.json n…' to match /^REFUSED pla…/results\.json not-staged$
+
+- Expected:
+/^REFUSED playwright-report\/results\.json not-staged$/m
+
++ Received:
+"REFUSED test-results/.last-run.json not-staged
+REFUSED test-results/zz-forced-fail-chromium/error-context.md not-staged
+REFUSED test-results/zz-forced-fail-chromium/trace.zip not-staged
+REFUSED playwright-report/data/abc.zip not-staged
+REFUSED playwright-report/index.html not-staged
+REFUSED playwright-report/results.json bearer-token
+"
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:169:22
+    167|     expect(r.status).toBe(0);
+    168|     expect(walkFiles(out)).not.toContain("playwright-report/results.js…
+    169|     expect(r.stderr).toMatch(/^REFUSED playwright-report\/results\.jso…
+       |                      ^
+    170|     for (const f of walkFiles(out)) {
+    171|       const body = readFileSync(join(out, f), "latin1");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec > refuses png/webm/jpeg by default (empty allow-list)
+AssertionError: expected [ 'SUMMARY.txt', …(4) ] to deeply equal [ 'SUMMARY.txt' ]
+
+- Expected
++ Received
+
+  [
+    "SUMMARY.txt",
++   "playwright-report/results.json",
++   "test-results/health-shows-chromium/test-failed-1.png",
++   "test-results/health-shows-chromium/video.webm",
++   "test-results/stray.jpg",
+  ]
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:204:44
+    202|     const root = mediaTree([]);
+    203|     const { refused } = runStage(root, []);
+    204|     expect(walkFiles(join(root, "stage"))).toEqual(["SUMMARY.txt"]);
+       |                                            ^
+    205|     expect(refused).toContainEqual(["test-results/health-shows-chromiu…
+    206|     expect(refused).toContainEqual(["test-results/health-shows-chromiu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec > the shipped allow-list opts nothing in
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "test-results/zz-forced-fail-chromium/test-failed-1.png",
++   "test-results/zz-forced-fail-chromium/video.webm",
++ ]
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:212:78
+    210|     const root = realTree(), out = join(root, "stage");
+    211|     spawnSync(process.execPath, [GATE, "--stage", out, "test-results",…
+    212|     expect(walkFiles(out).filter((f) => /\.(png|jpe?g|webm|zip)$/i.tes…
+       |                                                                              ^
+    213|   });
+    214|   it("admits media of an opted-in, unauthenticated spec; refuses an en…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec > admits media of an opted-in, unauthenticated spec; refuses an entry with no reason
+AssertionError: expected [ 'SUMMARY.txt', …(4) ] to deeply equal [ 'SUMMARY.txt', …(2) ]
+
+- Expected
++ Received
+
+  [
+    "SUMMARY.txt",
++   "playwright-report/results.json",
+    "test-results/health-shows-chromium/test-failed-1.png",
+    "test-results/health-shows-chromium/video.webm",
++   "test-results/stray.jpg",
+  ]
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:217:51
+    215|     const root = mediaTree([]);
+    216|     runStage(root, [{ spec: "health.spec.ts", reason: "public page, no…
+    217|     expect(walkFiles(join(root, "stage")).sort()).toEqual(["SUMMARY.tx…
+       |                                                   ^
+    218|     const r2 = mediaTree([]);
+    219|     runStage(r2, [{ spec: "health.spec.ts", reason: "  " }]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec > never admits media of a spec tagged @authenticated, even if opted in
+AssertionError: expected [ 'SUMMARY.txt', …(4) ] to deeply equal [ 'SUMMARY.txt' ]
+
+- Expected
++ Received
+
+  [
+    "SUMMARY.txt",
++   "playwright-report/results.json",
++   "test-results/health-shows-chromium/test-failed-1.png",
++   "test-results/health-shows-chromium/video.webm",
++   "test-results/stray.jpg",
+  ]
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:225:44
+    223|     const root = mediaTree(["@authenticated"]);
+    224|     const { refused } = runStage(root, [{ spec: "health.spec.ts", reas…
+    225|     expect(walkFiles(join(root, "stage"))).toEqual(["SUMMARY.txt"]);
+       |                                            ^
+    226|     expect(refused).toContainEqual(["test-results/health-shows-chromiu…
+    227|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 19 passed (24)
+   Start at  13:17:49
+   Duration  1.44s (tests 96%, transform 2%, import 1%, worker 1%)
+
