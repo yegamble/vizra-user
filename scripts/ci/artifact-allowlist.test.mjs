@@ -115,16 +115,17 @@ function realTree() {
 const walkFiles = (d, base = d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkFiles(join(d, e.name), base) : [join(d, e.name).slice(base.length + 1)]);
 
 describe("filtered upload (QUEUE-2f session 3)", () => {
-  it("uploads safe evidence from a real-shaped failing run: screenshots, video, results.json, SUMMARY.txt and nothing else", () => {
+  it("uploads only a redacted SUMMARY.txt from a real-shaped failing run by default (F-1/F-2: no results.json, no media)", () => {
     const root = realTree(), out = join(root, "stage");
     const r = spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root, encoding: "utf8" });
     expect(r.status).toBe(0);
     expect(existsSync(out)).toBe(true);
     const got = walkFiles(out).sort();
     expect(got).toContain("SUMMARY.txt");
-    expect(got).toContain("test-results/zz-forced-fail-chromium/test-failed-1.png");
-    expect(got).toContain("test-results/zz-forced-fail-chromium/video.webm");
-    expect(got.every((f) => /^(SUMMARY\.txt|.*\.png|.*\.webm|playwright-report\/results\.json)$/.test(f))).toBe(true);
+    expect(got).toEqual(["SUMMARY.txt"]);
+    expect(r.stderr).toMatch(/^REFUSED test-results\/zz-forced-fail-chromium\/test-failed-1\.png media-not-opted-in$/m);
+    expect(r.stderr).toMatch(/^REFUSED test-results\/zz-forced-fail-chromium\/video\.webm media-not-opted-in$/m);
+    expect(r.stderr).toMatch(/^REFUSED playwright-report\/results\.json not-staged$/m);
     const summary = readFileSync(join(out, "SUMMARY.txt"), "utf8");
     expect(summary).toMatch(/FAILED \[chromium\] forced fail/);
     expect(summary).toMatch(/e2e\/specs\/zz-forced-fail\.spec\.ts:5/);
@@ -136,11 +137,11 @@ describe("filtered upload (QUEUE-2f session 3)", () => {
     expect(r.stderr).toMatch(/^REFUSED test-results\/zz-forced-fail-chromium\/trace\.zip not-staged$/m);
     expect(r.stderr).not.toMatch(/SYNTHPAGE|SYNTHSECRET/);
   });
-  it("admits a clean results.json into staging", () => {
+  it("never stages results.json, even a clean one (F-1)", () => {
     const root = realTree(), out = join(root, "stage");
     writeFileSync(join(root, "playwright-report/results.json"), JSON.stringify({ suites: [] }));
     expect(spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root }).status).toBe(0);
-    expect(walkFiles(out)).toContain("playwright-report/results.json");
+    expect(walkFiles(out)).not.toContain("playwright-report/results.json");
   });
   it("a forbidden file never reaches staging, even with an allowed extension", () => {
     const root = realTree(), out = join(root, "stage");
