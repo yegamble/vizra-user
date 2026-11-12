@@ -10,8 +10,8 @@
 // never the matched content (the log is public). Nothing is uploaded: the
 // caller (redact-artifacts.sh) exits non-zero and the upload step is gated on
 // its success. Exit 2 is a usage error, also refusing.
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { inflateRawSync } from "node:zlib";
 
 const MAGIC = {
@@ -157,7 +157,83 @@ export function gateLog(file) {
   return out;
 }
 
+// --- Filtered upload (session 3) -------------------------------------------
+// Files that may be COPIED into the staging tree, on top of passing gate rules.
+// error-context.md is NOT here: it is page text (outline) plus the failure
+// message; the failure message reaches SUMMARY.txt redacted, from results.json,
+// so the page-content half never needs to leave the runner.
+export const STAGED_FILES = [/\.png$/i, /\.jpe?g$/i, /\.webm$/i, /(^|\/)results\.json$/];
+
+// Redaction for SUMMARY.txt (the separator is dropped so the re-scan rule
+// `header-value` does not fire on the redacted line): URL queries, token shapes, header values, emails.
+export function redactText(t) {
+  return String(t)
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/\b(authorization|proxy-authorization|cookie|set-cookie|x-amz-security-token|x-api-key|x-csrf-token|x-auth-token)\s*[:=]\s*[^\n]*/gi, "$1 (value redacted)")
+    .replace(/\bbearer\s+[A-Za-z0-9._~+/-]+=*/gi, "Bearer <redacted>")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/g, "<redacted-jwt>")
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "<redacted-email>")
+    .replace(/\?(?!<redacted>)[^\s"'`)<>]*=[^\s"'`)<>]*/g, "?<redacted>")
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/g, "<redacted-token>");
+}
+
+export function summarize(results) {
+  const out = [];
+  const visit = (suite, file) => {
+    for (const spec of suite.specs ?? []) for (const t of spec.tests ?? []) for (const r of t.results ?? []) {
+      if (r.status === "passed" || r.status === "skipped") continue;
+      const errs = r.errors?.length ? r.errors : r.error ? [r.error] : [{}];
+      for (const e of errs) {
+        const loc = e.location ? `${e.location.file}:${e.location.line}` : `${spec.file ?? file}:${spec.line ?? "?"}`;
+        out.push(`FAILED [${t.projectName ?? ""}] ${spec.title} (${r.status})\n  at ${loc}\n  ${String(e.message ?? "").split("\n").join("\n  ")}`);
+      }
+    }
+    for (const s of suite.suites ?? []) visit(s, s.file ?? file);
+  };
+  for (const s of results.suites ?? []) visit(s, s.file);
+  return redactText(out.join("\n\n") || "no failed test recorded in results.json") + "\n";
+}
+
+export function stage(out, dirs) {
+  rmSync(out, { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
+  const refused = [];
+  const failures = [];
+  for (const d of dirs) {
+    if (!statSync(d, { throwIfNoEntry: false })?.isDirectory()) { refused.push([d, "not-a-directory"]); continue; }
+    for (const [p, special] of files(d)) {
+      const label = join(d, relative(d, p));
+      if (special) { refused.push([label, special]); continue; }
+      // The summary is built even when results.json itself is refused: it is
+      // redacted here and re-scanned with the staging tree below.
+      if (/(^|\/)results\.json$/.test(label)) {
+        try { failures.push(summarize(JSON.parse(readFileSync(p, "utf8")))); } catch { refused.push([label, "summary-unparseable"]); }
+      }
+      if (!STAGED_FILES.some((re) => re.test(label))) { refused.push([label, "not-staged"]); continue; }
+      const r = checkFile(p, label);
+      if (r.length) { refused.push(...r); continue; }
+      const dest = join(out, label.replace(/^(\.\.\/|\/)+/, ""));
+      mkdirSync(dirname(dest), { recursive: true });
+      copyFileSync(p, dest);
+    }
+  }
+  writeFileSync(join(out, "SUMMARY.txt"), failures.join("\n") || "no results.json admitted; see the job log\n");
+  // Belt and braces: the staging tree itself must pass the gate.
+  const leaks = gate([out]);
+  return { refused, leaks };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+  if (process.argv[2] === "--stage") {
+    const [out, ...dirs] = process.argv.slice(3);
+    if (!out || !dirs.length) { console.error("usage: artifact-allowlist.mjs --stage OUT DIR..."); process.exit(2); }
+    const { refused, leaks } = stage(out, dirs);
+    for (const [where, rule] of refused) console.error(`REFUSED ${where} ${rule}`);
+    for (const [where, rule] of leaks) console.error(`::error::LEAK-IN-STAGING ${where} ${rule}`);
+    if (leaks.length) { rmSync(out, { recursive: true, force: true }); process.exit(1); }
+    console.log(`OK: staged admitted files into ${out} (${refused.length} refused, listed above)`);
+    process.exit(0);
+  }
   const args = process.argv.slice(2);
   if (!args.length || (args[0] === "--log" && args.length !== 2)) {
     console.error("usage: artifact-allowlist.mjs DIR... | --log FILE");

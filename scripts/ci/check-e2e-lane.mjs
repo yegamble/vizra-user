@@ -436,9 +436,10 @@ function describeDifferences(role, diffs) {
       .split("\n")
       .map((entry) => entry.trim())
       .filter((entry) => entry !== "");
-    if (!entries.includes("test-results/")) add(`${where("upload")} no longer includes \`test-results/\`.`);
+    // QUEUE-2f session 3: the pin uploads ONLY the filtered staging tree.
+    if (!entries.includes("artifact-upload/")) add(`${where("upload")} no longer includes \`artifact-upload/\`.`);
     for (const entry of entries) {
-      if (!["test-results/", "playwright-report/results.json", "playwright-browsers.txt"].includes(entry)) {
+      if (!["artifact-upload/", "playwright-browsers.txt"].includes(entry)) {
         add(`${where("upload")} uploads \`${entry}\`, which is not on the path allowlist.`);
       }
     }
@@ -1068,6 +1069,10 @@ const ALLOWED_UPLOAD_PATHS = new Set([
   "test-results/",
   "playwright-report/results.json",
   "playwright-browsers.txt",
+  // QUEUE-2f session 3: the filtered staging tree written by
+  // `artifact-allowlist.mjs --stage` (called from redact-artifacts.sh), holding
+  // only admitted screenshots/video/results.json plus a redacted SUMMARY.txt.
+  "artifact-upload/",
   // NOTHING IS ALLOWLISTED BEFORE IT EXISTS. An earlier draft carried
   // `e2e-failure-summary/` here for the authenticated lane, which is a different
   // pull request: an allowlist entry for a path no step produces is a hole held

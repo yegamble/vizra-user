@@ -133,8 +133,7 @@ steps:
     with:
       name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
       path: |
-        test-results/
-        playwright-report/results.json
+        artifact-upload/
         playwright-browsers.txt
       retention-days: 3
       if-no-files-found: error

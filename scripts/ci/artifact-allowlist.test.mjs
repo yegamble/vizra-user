@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
@@ -85,6 +85,68 @@ describe("artifact-allowlist gate (QUEUE-2f)", () => {
   });
   it("is wired into redact-artifacts.sh after redaction", () => {
     const sh = execFileSync("cat", [new URL("./redact-artifacts.sh", import.meta.url).pathname], { encoding: "utf8" });
-    expect(sh).toMatch(/^node scripts\/ci\/artifact-allowlist\.mjs "\$\{dirs\[@\]\}" \|\| exit 1$/m);
+    expect(sh).toMatch(/^node scripts\/ci\/artifact-allowlist\.mjs --stage "\$\{VZ_ARTIFACT_STAGE:-artifact-upload\}" "\$\{dirs\[@\]\}" \|\| exit 1$/m);
+  });
+});
+
+// Session 3: shapes from the real failing run (docs/evidence/QUEUE-2f/real-trace-check.md),
+// synthesized with no real tokens.
+const webm = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0]);
+const RESULTS = JSON.stringify({ suites: [{ file: "zz-forced-fail.spec.ts", specs: [{ title: "forced fail", file: "zz-forced-fail.spec.ts", line: 3,
+  tests: [{ projectName: "chromium", results: [{ status: "failed", errors: [{ message: "expect(locator).toBeVisible() failed\nLocator: #does-not-exist\nnavigated to /health?sig=SYNTHSECRET1 by qa@example.com Authorization: Bearer SYNTHSECRET2",
+    location: { file: "e2e/specs/zz-forced-fail.spec.ts", line: 5 } }] }] }] }] }] });
+const REAL_SHAPES = {
+  "test-results/zz-forced-fail-chromium/test-failed-1.png": png,
+  "test-results/zz-forced-fail-chromium/video.webm": webm,
+  "test-results/zz-forced-fail-chromium/error-context.md": "# Instructions\n# Test info\n- Name: forced fail\n# Error details\nboom\n",
+  "test-results/zz-forced-fail-chromium/trace.zip": zip({ "0-trace.trace": lines({ type: "frame-snapshot", snapshot: { html: ["SYNTHPAGE"] } }), "resources/a.css": "x", "test.trace": "{}" }),
+  "test-results/.last-run.json": '{"status":"failed"}',
+  "playwright-report/index.html": "<html>SYNTHPAGE</html>",
+  "playwright-report/data/abc.zip": zip({ "x.html": "SYNTHPAGE" }),
+  "playwright-report/results.json": RESULTS,
+};
+function realTree() {
+  const root = mkdtempSync(join(tmpdir(), "2f-real-"));
+  for (const [rel, body] of Object.entries(REAL_SHAPES)) { mkdirSync(join(root, rel, ".."), { recursive: true }); writeFileSync(join(root, rel), body); }
+  return root;
+}
+const walkFiles = (d, base = d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkFiles(join(d, e.name), base) : [join(d, e.name).slice(base.length + 1)]);
+
+describe("filtered upload (QUEUE-2f session 3)", () => {
+  it("uploads safe evidence from a real-shaped failing run: screenshots, video, results.json, SUMMARY.txt and nothing else", () => {
+    const root = realTree(), out = join(root, "stage");
+    const r = spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root, encoding: "utf8" });
+    expect(r.status).toBe(0);
+    expect(existsSync(out)).toBe(true);
+    const got = walkFiles(out).sort();
+    expect(got).toContain("SUMMARY.txt");
+    expect(got).toContain("test-results/zz-forced-fail-chromium/test-failed-1.png");
+    expect(got).toContain("test-results/zz-forced-fail-chromium/video.webm");
+    expect(got.every((f) => /^(SUMMARY\.txt|.*\.png|.*\.webm|playwright-report\/results\.json)$/.test(f))).toBe(true);
+    const summary = readFileSync(join(out, "SUMMARY.txt"), "utf8");
+    expect(summary).toMatch(/FAILED \[chromium\] forced fail/);
+    expect(summary).toMatch(/e2e\/specs\/zz-forced-fail\.spec\.ts:5/);
+    expect(summary).toMatch(/#does-not-exist/);
+    for (const forbidden of ["SYNTHSECRET1", "SYNTHSECRET2", "qa@example.com"]) expect(summary).not.toContain(forbidden);
+    // refused files are named by path and rule; contents never printed
+    expect(r.stderr).toMatch(/^REFUSED playwright-report\/index\.html \S+$/m);
+    expect(r.stderr).toMatch(/^REFUSED test-results\/zz-forced-fail-chromium\/error-context\.md not-staged$/m);
+    expect(r.stderr).toMatch(/^REFUSED test-results\/zz-forced-fail-chromium\/trace\.zip not-staged$/m);
+    expect(r.stderr).not.toMatch(/SYNTHPAGE|SYNTHSECRET/);
+  });
+  it("admits a clean results.json into staging", () => {
+    const root = realTree(), out = join(root, "stage");
+    writeFileSync(join(root, "playwright-report/results.json"), JSON.stringify({ suites: [] }));
+    expect(spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root }).status).toBe(0);
+    expect(walkFiles(out)).toContain("playwright-report/results.json");
+  });
+  it("a forbidden file never reaches staging, even with an allowed extension", () => {
+    const root = realTree(), out = join(root, "stage");
+    writeFileSync(join(root, "test-results/zz-forced-fail-chromium/fake.png"), "Authorization: Bearer SYNTHSECRET3");
+    const r = spawnSync(process.execPath, [GATE, "--stage", out, "test-results", "playwright-report"], { cwd: root, encoding: "utf8" });
+    expect(r.status).toBe(0);
+    expect(walkFiles(out)).not.toContain("test-results/zz-forced-fail-chromium/fake.png");
+    expect(r.stderr).toMatch(/REFUSED test-results\/zz-forced-fail-chromium\/fake\.png content-not-png/);
+    for (const f of walkFiles(out)) expect(readFileSync(join(out, f), "utf8")).not.toMatch(/SYNTHSECRET|SYNTHPAGE/);
   });
 });
