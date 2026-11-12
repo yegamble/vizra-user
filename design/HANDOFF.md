@@ -35,7 +35,7 @@ State: IMPLEMENTED, READY_FOR_REVIEW — not VERIFIED.
 | `Button` | `7:146` | `4:21` | `Kind` Primary\|Secondary\|Quiet\|Danger; `State` Default\|Hover\|Pressed\|Focus\|Disabled\|Loading; `Leading icon`, `Icon`, `Label` | `components/ui/Button.tsx` | IMPLEMENTED |
 | `IconButton` | `8:104` | `4:22` | `Kind` Secondary\|Quiet\|Danger\|On media; `State` Default\|Hover\|Pressed\|Focus\|Disabled; `Icon` | `components/ui/IconButton.tsx` | IMPLEMENTED |
 | `TextField` | `9:42` | `4:23` | `State` Default\|Hover\|Focus\|Error\|Disabled | `components/ui/TextField.tsx` | IMPLEMENTED |
-| `Textarea` | `9:83` | `4:23` | same as TextField | — | PLANNED |
+| `Textarea` | `9:83` | `4:23` | same as TextField | `components/ui/Textarea.tsx` | IMPLEMENTED |
 | `Select` | `9:139` | `4:23` | same as TextField | — | PLANNED |
 | `Checkbox` | `10:66` | `4:24` | `Checked` Off\|On\|Mixed; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
 | `Radio` | `10:103` | `4:24` | `Checked` Off\|On; `State` Default\|Hover\|Focus\|Disabled | — | PLANNED |
