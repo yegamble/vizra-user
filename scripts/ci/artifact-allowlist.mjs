@@ -224,10 +224,27 @@ export function redactText(t) {
 // F-1 DEFAULT-DENY: of an error message only the matcher header
 // (`expect(...).toX(...) failed`) and the `Locator:` line pass; Expected,
 // Received, call logs, stacks, values and free-form messages are dropped.
-const MESSAGE_LINE_ALLOW = [/^(Error: )?expect\([^\n]*\)(\.not)?\.\w+\([^\n]*\)( failed)?$/, /^Locator: /, /^(Error: )?Timed? ?out\b[^"'`]*$/i, /^Test timeout of \d+ms exceeded\.?$/];
+// F-A: the timeout lines are matched only in the exact shapes the installed
+// @playwright/test prints (node_modules/playwright/lib/matchers/expect.js
+// formatMatcherMessage: `Timeout: ${timeout}ms`; lib/worker: `Test timeout of
+// ${timeout}ms exceeded.` / `… while running "${type}" hook.` / `… while setting
+// up "${fixture}".`). Free text that merely starts with "Timed out" is withheld.
+const MESSAGE_LINE_ALLOW = [
+  /^(Error: )?expect\([^\n]*\)(\.not)?\.\w+\([^\n]*\)( failed)?$/,
+  /^Locator: /,
+  /^Timeout: +\d+ms$/,
+  /^Test timeout of \d+ms exceeded(\.| while running "(beforeEach|afterEach|beforeAll|afterAll)" hook\.| while setting up "[\w$]+"\.)$/,
+];
+// F-B: a locator may be built from a value (getByText('secret'), [value="x"]);
+// quoted strings and regex literals in it are withheld, the shape is kept.
+export function scrubLocator(l) {
+  return l
+    .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, "<withheld>")
+    .replace(/([(,=:]\s*)\/(?:\\.|[^/\\])+\/[a-z]*/g, "$1<withheld>");
+}
 function allowedMessageLines(message) {
   const lines = String(message ?? "").replace(/\x1b\[[0-9;]*m/g, "").split("\n").map((l) => l.trim());
-  const kept = lines.filter((l) => MESSAGE_LINE_ALLOW.some((re) => re.test(l)));
+  const kept = lines.filter((l) => MESSAGE_LINE_ALLOW.some((re) => re.test(l))).map((l) => (l.startsWith("Locator: ") || l.includes("expect(") ? scrubLocator(l) : l));
   return kept.length < lines.filter(Boolean).length ? [...kept, "(other message lines withheld from upload; see the job log)"] : kept;
 }
 
@@ -287,7 +304,55 @@ export function stage(out, dirs, { mediaAllowlist = loadMediaAllowlist() } = {})
   return { refused, leaks };
 }
 
+// 2ac: DEFAULT-DENY FILTER FOR THE PUBLIC JOB LOG. The e2e job's console
+// (Playwright's list reporter, docker logs) is piped through this before it
+// reaches the Actions log: only the reporter's progress/summary shapes and the
+// message lines SUMMARY.txt admits pass; every other line (Expected/Received,
+// call logs, stacks, test stdout, server logs) is counted and withheld.
+const LOG_LINE_ALLOW = [
+  /^Running \d+ tests? using \d+ workers?/,
+  /^(ok|[✓✘✗·°x-])?\s*\d+ (\[[\w .-]+\] › )?[\w./@-]+:\d+:\d+ › [^\n]*$/u,
+  /^\d+\) (\[[\w .-]+\] › )?[\w./@-]+:\d+:\d+ › [^\n]*$/,
+  /^\[[\w .-]+\] › [\w./@-]+:\d+:\d+ › [^\n]*$/,
+  /^\d+ (passed|failed|flaky|skipped|interrupted|did not run)( \([\d.]+m?s\))?$/,
+  /^(Error: )?(expect\(|Locator: |Timeout: |Test timeout of )/,
+  /^::error::/,
+  /^at [\w./@-]+:\d+(:\d+)?$/,
+];
+export function filterLogLine(raw) {
+  const l = String(raw).replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "").trim();
+  if (!l) return "";
+  if (/^(Error: )?(expect\(|Locator: |Timeout: |Test timeout of )/.test(l)) {
+    const kept = allowedMessageLines(l.replace(/^Error: /, ""));
+    return kept.length && !kept[0].startsWith("(other") ? redactText(kept[0]).trim() : null;
+  }
+  return LOG_LINE_ALLOW.some((re) => re.test(l)) ? scrubLocator(redactText(l)).trim() : null;
+}
+export function filterLog(text) {
+  const out = [];
+  let withheld = 0;
+  const flush = () => { if (withheld) out.push(`(${withheld} line(s) withheld from the public log)`); withheld = 0; };
+  for (const line of String(text).split("\n")) {
+    const kept = filterLogLine(line);
+    if (kept === null) { withheld++; continue; }
+    flush();
+    if (kept) out.push(kept);
+  }
+  flush();
+  return out.join("\n") + (out.length ? "\n" : "");
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
+  if (process.argv[2] === "--filter-log") {
+    let buf = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (c) => {
+      buf += c;
+      const i = buf.lastIndexOf("\n");
+      if (i >= 0) { const body = filterLog(buf.slice(0, i)); if (body) process.stdout.write(body); buf = buf.slice(i + 1); }
+    });
+    process.stdin.on("end", () => { const body = filterLog(buf); if (body) process.stdout.write(body); });
+  } else
   if (process.argv[2] === "--stage") {
     const [out, ...dirs] = process.argv.slice(3);
     if (!out || !dirs.length) { console.error("usage: artifact-allowlist.mjs --stage OUT DIR..."); process.exit(2); }
@@ -299,6 +364,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(0);
   }
   const args = process.argv.slice(2);
+  if (args[0] === "--filter-log") { /* handled above */ } else {
   if (!args.length || (args[0] === "--log" && args.length !== 2)) {
     console.error("usage: artifact-allowlist.mjs DIR... | --log FILE");
     process.exit(2);
@@ -310,4 +376,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   console.log(`OK: artifact-allowlist admitted ${args.join(" ")}`);
+  }
 }

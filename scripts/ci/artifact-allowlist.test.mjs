@@ -227,3 +227,67 @@ describe("F-2: binary media is refused unless a spec opts in with a reason, and 
     expect(refused).toContainEqual(["test-results/health-shows-chromium/test-failed-1.png", "media-authenticated-spec"]);
   });
 });
+
+// --- QUEUE-2f-final: F-A, F-B and the public job log (2ac) -----------------
+import { filterLog, summarize } from "./artifact-allowlist.mjs";
+
+const SENT = "abcPWSENTINEL";
+const failing = (message) => ({ suites: [{ file: "a.spec.ts", specs: [{ title: "t", file: "a.spec.ts", line: 1, tests: [{ projectName: "desktop", results: [{ status: "failed", errors: [{ message }] }] }] }] }] });
+
+describe("F-A: only Playwright's exact timeout lines pass", () => {
+  it("withholds free text that starts with Timed out / Timeout", () => {
+    const s = summarize(failing(`Timed out waiting for token ${SENT}\nTimeout waiting ${SENT}\nError: Timed out ${SENT}`));
+    expect(s).not.toContain("PWSENTINEL");
+    expect(s).toContain("(other message lines withheld");
+  });
+  it("keeps the real shapes from @playwright/test", () => {
+    const s = summarize(failing('expect(locator).toBeVisible() failed\nTimeout: 5000ms\nTest timeout of 30000ms exceeded while running "beforeEach" hook.'));
+    expect(s).toContain("Timeout: 5000ms");
+    expect(s).toContain('Test timeout of 30000ms exceeded while running "beforeEach" hook.');
+  });
+});
+
+describe("F-B: Locator lines lose quoted and regex arguments", () => {
+  it("getByText('secret') -> getByText(<withheld>)", () => {
+    const s = summarize(failing(`expect(locator).toHaveText(expected) failed\nLocator: getByText('${SENT}')\nLocator: locator('[value="${SENT}"]')\nLocator: getByRole('button', { name: /${SENT}/i })`));
+    expect(s).not.toContain("PWSENTINEL");
+    expect(s).toContain("Locator: getByText(<withheld>)");
+  });
+});
+
+describe("2ac: --filter-log is default-deny for the public job log", () => {
+  const listOutput = [
+    "Running 2 tests using 1 worker",
+    "  ✘  1 [desktop] › e2e/a.spec.ts:3:5 › signs in (5.1s)",
+    "  ✓  2 [mobile] › e2e/b.spec.ts:4:5 › home (1.0s)",
+    "  1) [desktop] › e2e/a.spec.ts:3:5 › signs in ",
+    "    Error: expect(locator).toHaveValue(expected) failed",
+    `    Locator: getByLabel('${SENT}')`,
+    '    Expected: "x"',
+    `    Received: "CorrectHorse!${SENT}"`,
+    "    Timeout: 5000ms",
+    `    Timed out waiting for token ${SENT}`,
+    "    Call log:",
+    `      - Authorization: Bearer ${SENT}`,
+    `      > 12 |   await page.fill('#pw', '${SENT}');`,
+    `    console.log from the spec: ${SENT}`,
+    `[server] GET /media?X-Amz-Signature=${SENT} 200`,
+    "  1 failed",
+    "  1 passed (6.2s)",
+  ].join("\n");
+  it("no sentinel survives; the progress, matcher and counts do", () => {
+    const out = filterLog(listOutput);
+    expect(out).not.toContain("PWSENTINEL");
+    expect(out).toContain("1 [desktop] › e2e/a.spec.ts:3:5 › signs in (5.1s)");
+    expect(out).toContain("expect(locator).toHaveValue(expected) failed");
+    expect(out).toContain("Locator: getByLabel(<withheld>)");
+    expect(out).toContain("1 failed");
+    expect(out).toMatch(/line\(s\) withheld from the public log/);
+  });
+  it("as a pipe (the e2e.yml shape)", () => {
+    const r = spawnSync(process.execPath, [GATE, "--filter-log"], { input: listOutput, encoding: "utf8" });
+    expect(r.status).toBe(0);
+    expect(r.stdout).not.toContain("PWSENTINEL");
+    expect(r.stdout).toContain("1 passed (6.2s)");
+  });
+});

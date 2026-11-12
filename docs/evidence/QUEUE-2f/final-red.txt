@@ -1,0 +1,148 @@
+
+ RUN  v5.0.3 /Users/yosefgamble/github/vizra/.claude/worktrees/user-2f-joblog
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs (29 tests | 5 failed) 1006ms
+   ✓ artifact-allowlist gate (QUEUE-2f) (16)
+     ✓ admits a clean fixture 39ms
+     ✓ refuses header-value, naming the file and the rule, never the content 36ms
+     ✓ refuses set-cookie header, naming the file and the rule, never the content 36ms
+     ✓ refuses x-amz-security-token, naming the file and the rule, never the content 34ms
+     ✓ refuses body, naming the file and the rule, never the content 61ms
+     ✓ refuses body resource, naming the file and the rule, never the content 40ms
+     ✓ refuses dom-snapshot, naming the file and the rule, never the content 42ms
+     ✓ refuses call-parameters, naming the file and the rule, never the content 39ms
+     ✓ refuses console-text, naming the file and the rule, never the content 40ms
+     ✓ refuses schemeless-url-query, naming the file and the rule, never the content 38ms
+     ✓ refuses page-snapshot, naming the file and the rule, never the content 46ms
+     ✓ refuses html report, naming the file and the rule, never the content 42ms
+     ✓ refuses fake png, naming the file and the rule, never the content 38ms
+     ✓ refuses a missing directory and an empty argument list 96ms
+     ✓ gates a job log line carrying a token (2ac) 78ms
+     ✓ is wired into redact-artifacts.sh after redaction 3ms
+   ✓ filtered upload (QUEUE-2f session 3) (3)
+     ✓ uploads only a redacted SUMMARY.txt from a real-shaped failing run by default (F-1/F-2: no results.json, no media) 46ms
+     ✓ never stages results.json, even a clean one (F-1) 57ms
+     ✓ a forbidden file never reaches staging, even with an allowed extension 41ms
+   ✓ F-1: assertion values and messages never reach the staged upload (1)
+     ✓ drops results.json and keeps only title, location and matcher header in SUMMARY.txt 44ms
+   ✓ F-2: binary media is refused unless a spec opts in with a reason, and never for an authenticated spec (4)
+     ✓ refuses png/webm/jpeg by default (empty allow-list) 4ms
+     ✓ the shipped allow-list opts nothing in 42ms
+     ✓ admits media of an opted-in, unauthenticated spec; refuses an entry with no reason 5ms
+     ✓ never admits media of a spec tagged @authenticated, even if opted in 2ms
+   ❯ F-A: only Playwright's exact timeout lines pass (2)
+     × withholds free text that starts with Timed out / Timeout 5ms
+     × keeps the real shapes from @playwright/test 2ms
+   ❯ F-B: Locator lines lose quoted and regex arguments (1)
+     × getByText('secret') -> getByText(<withheld>) 0ms
+   ❯ 2ac: --filter-log is default-deny for the public job log (2)
+     × no sentinel survives; the progress, matcher and counts do 0ms
+     × as a pipe (the e2e.yml shape) 45ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-A: only Playwright's exact timeout lines pass > withholds free text that starts with Timed out / Timeout
+AssertionError: expected 'FAILED [desktop] t (failed)\n  at a.s…' not to contain 'PWSENTINEL'
+
+- Expected
++ Received
+
+- PWSENTINEL
++ FAILED [desktop] t (failed)
++   at a.spec.ts:1
++   Timed out waiting for token abcPWSENTINEL
++   Timeout waiting abcPWSENTINEL
++   Error: Timed out abcPWSENTINEL
++
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:240:19
+    238|   it("withholds free text that starts with Timed out / Timeout", () =>…
+    239|     const s = summarize(failing(`Timed out waiting for token ${SENT}\n…
+    240|     expect(s).not.toContain("PWSENTINEL");
+       |                   ^
+    241|     expect(s).toContain("(other message lines withheld");
+    242|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-A: only Playwright's exact timeout lines pass > keeps the real shapes from @playwright/test
+AssertionError: expected 'FAILED [desktop] t (failed)\n  at a.s…' to contain 'Test timeout of 30000ms exceeded whil…'
+
+- Expected
++ Received
+
+- Test timeout of 30000ms exceeded while running "beforeEach" hook.
++ FAILED [desktop] t (failed)
++   at a.spec.ts:1
++   expect(locator).toBeVisible() failed
++   Timeout: 5000ms
++   (other message lines withheld from upload; see the job log)
++
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:246:15
+    244|     const s = summarize(failing('expect(locator).toBeVisible() failed\…
+    245|     expect(s).toContain("Timeout: 5000ms");
+    246|     expect(s).toContain('Test timeout of 30000ms exceeded while runnin…
+       |               ^
+    247|   });
+    248| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > F-B: Locator lines lose quoted and regex arguments > getByText('secret') -> getByText(<withheld>)
+AssertionError: expected 'FAILED [desktop] t (failed)\n  at a.s…' not to contain 'PWSENTINEL'
+
+- Expected
++ Received
+
+- PWSENTINEL
++ FAILED [desktop] t (failed)
++   at a.spec.ts:1
++   expect(locator).toHaveText(expected) failed
++   Locator: getByText('abcPWSENTINEL')
++   Locator: locator('[value="abcPWSENTINEL"]')
++   Locator: getByRole('button', { name: /abcPWSENTINEL/i })
++
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:253:19
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > 2ac: --filter-log is default-deny for the public job log > no sentinel survives; the progress, matcher and counts do
+TypeError: filterLog is not a function
+ ❯ scripts/ci/artifact-allowlist.test.mjs:279:17
+    277|   ].join("\n");
+    278|   it("no sentinel survives; the progress, matcher and counts do", () =…
+    279|     const out = filterLog(listOutput);
+       |                 ^
+    280|     expect(out).not.toContain("PWSENTINEL");
+    281|     expect(out).toContain("1 [desktop] › e2e/a.spec.ts:3:5 › signs in …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  scripts/ci/artifact-allowlist.test.mjs > 2ac: --filter-log is default-deny for the public job log > as a pipe (the e2e.yml shape)
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ scripts/ci/artifact-allowlist.test.mjs:289:22
+    287|   it("as a pipe (the e2e.yml shape)", () => {
+    288|     const r = spawnSync(process.execPath, [GATE, "--filter-log"], { in…
+    289|     expect(r.status).toBe(0);
+       |                      ^
+    290|     expect(r.stdout).not.toContain("PWSENTINEL");
+    291|     expect(r.stdout).toContain("1 passed (6.2s)");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 24 passed (29)
+   Start at  13:46:30
+   Duration  1.18s (tests 96%, transform 3%, import 1%)
+
