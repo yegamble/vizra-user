@@ -90,3 +90,35 @@ follow-up row "security F3".
 - **`design/HANDOFF.md`** is referenced by comments in `design/tokens.css` and
   `components/icons/registry.ts` (per-node references, and what was not
   mirrored) and has not been written. Owed.
+
+## UI components — `components/ui/` (VZ-DESIGN-001 remainder, PR #13)
+
+Node ids and the full per-component status are in `design/HANDOFF.md` §2.
+Hover/Pressed/Focus are CSS states built from tokens (`hover:`, `active:`,
+`focus-visible:outline-focus-ring` + offset 2); Disabled/Loading/Error are
+props. Tests: `components/ui/components.test.ts`.
+
+| Component | Figma | File | Variants (prop) | States |
+| --- | --- | --- | --- | --- |
+| Button | `7:146` | `components/ui/Button.tsx` | `kind`: primary, secondary, quiet, danger; `leadingIcon` | default, hover, pressed, focus-visible, disabled (`disabled`), loading (`loading` → `aria-busy`, disabled, stable name, reduced-motion spinner) |
+| IconButton | `8:104` | `components/ui/IconButton.tsx` | `kind`: secondary, quiet, danger, onMedia (dual focus ring); `pressed` → `aria-pressed` | default, hover, pressed, focus-visible, disabled; 44px hit box, required `label` → `aria-label` |
+| TextField | `9:42` | `components/ui/TextField.tsx` | — | default, hover, focus-visible, error (`error` → `aria-invalid`, icon + text, `aria-describedby`), disabled; visible `<label>`, `helper` |
+| Textarea | `9:83` | `components/ui/Textarea.tsx` | — | default, hover, focus-visible, error (`aria-invalid`, icon + text, `aria-describedby`), disabled; visible `<label>`, `helper` |
+| Select | `9:139` | `components/ui/Select.tsx` | `options` | default, hover, focus-visible, error (`aria-invalid`, icon + text, `aria-describedby`), disabled; native `<select>`, visible `<label>`, decorative chevron |
+| Checkbox | `10:66` | `components/ui/Checkbox.tsx` | `checked`: off, on, mixed (DOM `indeterminate`) | default, hover, focus-visible, disabled; native checkbox, `line` off boundary |
+| Radio | `10:103` | `components/ui/Radio.tsx` (`RadioGroup`) | `options`, `value` | on/off, default, hover, focus-visible, disabled (option or group); `<fieldset>`/`<legend>`, native arrow keys |
+| Switch | `10:144` | `components/ui/Switch.tsx` | `checked` | on/off (thumb position), default, hover, focus-visible, disabled; native checkbox + `role="switch"`, reduced motion |
+| Chip | `11:54` | `components/ui/Chip.tsx` | `selected` → `aria-pressed` + `icon/Check` | default, hover, focus-visible, disabled; native toggle button; drawn 32px, hit area 44px (`min-h-touch-min`) |
+| Avatar | `14:56` | `components/ui/Avatar.tsx` | `size` xs/sm/md/lg (24/32/40/64); Image when `src`, else Initials, else Fallback | named by caller `name` (img alt / role=img); no default image or name |
+| Toast / Inline status | `17:40` | `components/ui/Toast.tsx` | `tone` success/info → `role=status aria-live=polite`; error → `role=alert` + required `action` | message required, no default text, no auto-dismiss timer |
+| Banner | `17:68` | `components/ui/Banner.tsx` | `tone` info/warn/danger | named `<section>`, icon + text, not a live region |
+| Skeleton | `17:72` | `components/ui/Skeleton.tsx` | `shape` line/block/circle | `aria-hidden`, static tint (no shimmer) |
+| EmptyState | `17:95` | `components/ui/EmptyState.tsx` | `kind` empty/noResults | caller copy and optional real action |
+| ErrorState | `17:96` | `components/ui/ErrorState.tsx` | single | required `onRetry` native button; caller supplies sanitised copy |
+| Dialog | `16:43` | `components/ui/Dialog.tsx` | `kind` standard/destructive | native `<dialog>` + `showModal()` (focus trap, inert background, Escape native); `aria-labelledby` title; Cancel autofocused; focus returned to opener; named close button |
+| Tab | `11:79` | `components/ui/Tabs.tsx` | `tabs`, `selectedId` → `aria-selected`, 2px indicator + weight | default, hover, focus-visible; tablist, roving tabindex, Left/Right/Home/End |
+
+Not yet built (PLANNED):
+PhotoCard, Avatar, TabBar Item/TabBar, Dialog, Toast/Inline status, Banner,
+Skeleton, EmptyState, ErrorState. Brand mark: not defined in the accepted
+design (HANDOFF §3).
